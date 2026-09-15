@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.env
+.env.*
+.DS_Store
+apps-script/
+tests/
+test-results/
+playwright-report/
+*.csv
+*.xlsx
+*.tsv
