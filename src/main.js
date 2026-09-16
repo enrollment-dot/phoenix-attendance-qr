@@ -27,7 +27,7 @@ const time = (v) =>
 const field = (label, name, type = 'text', extra = '') =>
   `<label>${label}<input name="${name}" type="${type}" ${extra} required></label>`;
 function frame(content, attendee = false) {
-  root.innerHTML = `<div class="shell"><aside><a class="brand" href="#"><span class="mark">P</span><span>Phoenix<small>ATTENDANCE QR</small></span></a><div class="workspace">${attendee ? 'STUDENT SPACE' : 'CLASSROOM WORKSPACE'}</div><nav>${attendee ? '<a href="#">← Back to home</a>' : `<button data-nav="dashboard" class="${view === 'dashboard' ? 'selected' : ''}">▦ &nbsp; Overview</button><button data-nav="reports" class="${view === 'reports' ? 'selected' : ''}">≡ &nbsp; Attendance</button><button data-nav="scanner">▣ &nbsp; Scan a QR</button>`}</nav><div class="aside-bottom">Simple attendance.<br>More time to teach.<hr><span class="tiny">GOOGLE SHEETS CONNECTED WORKFLOW</span></div></aside><main><header><span>${attendee ? 'Student check-in' : 'Classroom / ' + (view === 'reports' ? 'Attendance' : 'Overview')}</span>${token ? '<button class="text" id="logout">Sign out</button>' : '<span class="tiny">PHOENIX ATTENDANCE QR</span>'}</header><div id="notice" role="status" aria-live="polite"></div>${content}<footer>Attendance for online classes · Independent of Google Meet</footer></main></div>`;
+  root.innerHTML = `<div class="shell"><aside><a class="brand" href="#" aria-label="YLP Attendance"><span class="mark" aria-hidden="true">Y</span><span>YLP<small>ATTENDANCE</small></span></a><div class="workspace">${attendee ? 'STUDENT SPACE' : 'CLASSROOM WORKSPACE'}</div><nav>${attendee ? '<a href="#">← Back to home</a>' : `<button data-nav="dashboard" class="${view === 'dashboard' ? 'selected' : ''}">▦ &nbsp; Overview</button><button data-nav="reports" class="${view === 'reports' ? 'selected' : ''}">≡ &nbsp; Attendance</button><button data-nav="scanner">▣ &nbsp; Scan a QR</button>`}</nav><div class="aside-bottom">Simple attendance.<br>More time to teach.<hr><span class="tiny">GOOGLE SHEETS CONNECTED WORKFLOW</span></div></aside><main><header><span>${attendee ? 'Student check-in' : 'Classroom / ' + (view === 'reports' ? 'Attendance' : 'Overview')}</span>${token ? '<button class="text" id="logout">Sign out</button>' : '<span class="tiny">YLP ATTENDANCE</span>'}</header><div id="notice" role="status" aria-live="polite"></div>${content}<footer>Attendance for online classes · Independent of Google Meet</footer></main></div>`;
   root.querySelectorAll('a[href="#"]').forEach(
     (a) =>
       (a.onclick = () => {
@@ -221,7 +221,7 @@ async function showQr(s) {
     });
   document.querySelector('#download').onclick = () => {
     const a = document.createElement('a');
-    a.download = `phoenix-${s.session_id}.png`;
+    a.download = `ylp-${s.session_id}.png`;
     a.href = document.querySelector('#qr').toDataURL();
     a.click();
   };
@@ -270,7 +270,7 @@ function reports() {
       ),
       a = document.createElement('a');
     a.href = u;
-    a.download = 'phoenix-attendance.csv';
+    a.download = 'ylp-attendance.csv';
     a.click();
     setTimeout(() => URL.revokeObjectURL(u), 1000);
   };

@@ -1,4 +1,4 @@
-# Phoenix Attendance QR — Frontend
+# YLP Attendance — Frontend
 
 Static frontend for the existing Google Apps Script attendance API. Backend code, Google Sheets records, and credentials are not included.
 
