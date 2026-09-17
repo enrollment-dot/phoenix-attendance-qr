@@ -1,40 +1,53 @@
+import { thailandTimestamp, REPORT_TIME_ZONE, sessionTimes } from './time.js';
 export function report(data, filters = {}) {
   const sessions = data.sessions.filter(
     (s) =>
       (!filters.session || s.session_id === filters.session) &&
-      (!filters.date || s.date === filters.date) &&
+      (!filters.date ||
+        sessionTimes(s, data.settings.offset).date === filters.date) &&
       (!filters.course || s.course === filters.course),
   );
+  const attendanceBySession = new Map();
+  for (const record of data.attendance) {
+    const records = attendanceBySession.get(record.session_id) || [];
+    records.push(record);
+    attendanceBySession.set(record.session_id, records);
+  }
+  const now = Date.parse(data.now);
   const result = [];
   for (const s of sessions) {
-    const records = data.attendance.filter(
-      (a) => a.session_id === s.session_id,
-    );
-    for (const a of records)
-      result.push({ ...a, course: s.course, date: s.date });
+    const date = sessionTimes(s, data.settings.offset).date;
+    const records = attendanceBySession.get(s.session_id) || [];
+    const recordedStudents = new Set(records.map((a) => a.student_id));
+    const missingStatus =
+      Date.parse(s.date + 'T' + s.end_time + ':00' + data.settings.offset) < now
+        ? 'Absent'
+        : 'Pending';
+    for (const a of records) result.push({ ...a, course: s.course, date });
     if (data.settings.enrolled)
       for (const student of data.students)
-        if (!records.some((a) => a.student_id === student.student_id))
+        if (!recordedStudents.has(student.student_id))
           result.push({
             session_id: s.session_id,
             course: s.course,
-            date: s.date,
+            date,
             student_id: student.student_id,
             student_name: student.name,
-            status:
-              Date.parse(
-                s.date + 'T' + s.end_time + ':00' + data.settings.offset,
-              ) < Date.parse(data.now)
-                ? 'Absent'
-                : 'Pending',
+            status: missingStatus,
           });
   }
-  return result.filter(
+  return filterReport(result, filters);
+}
+export function filterReport(rows, filters = {}) {
+  return rows.filter(
     (a) =>
-      !filters.student ||
-      `${a.student_id} ${a.student_name}`
-        .toLowerCase()
-        .includes(filters.student.toLowerCase()),
+      (!filters.session || a.session_id === filters.session) &&
+      (!filters.date || a.date === filters.date) &&
+      (!filters.course || a.course === filters.course) &&
+      (!filters.student ||
+        `${a.student_id} ${a.student_name}`
+          .toLowerCase()
+          .includes(filters.student.toLowerCase())),
   );
 }
 export const columns = [
@@ -50,7 +63,20 @@ export const columns = [
 export function csv(rows) {
   return (
     '\uFEFF' +
-    [columns, ...rows.map((r) => columns.map((k) => r[k] ?? ''))]
+    [
+      columns.map((k) =>
+        ['scan_in', 'scan_out'].includes(k)
+          ? `${k} (${REPORT_TIME_ZONE} UTC+7)`
+          : k,
+      ),
+      ...rows.map((r) =>
+        columns.map((k) =>
+          ['scan_in', 'scan_out'].includes(k)
+            ? thailandTimestamp(r[k], '')
+            : (r[k] ?? ''),
+        ),
+      ),
+    ]
       .map((row) =>
         row
           .map(

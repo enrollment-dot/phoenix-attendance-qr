@@ -11,7 +11,7 @@ function allowlisted(value) {
     throw new Error(
       'Pending session data is invalid. Contact your administrator before creating another session.',
     );
-  const result = { request_id: value.request_id };
+  const result = { request_id: value.request_id.toLowerCase() };
   for (const field of fields) {
     if (!['string', 'number'].includes(typeof value[field]))
       throw new Error('Pending session data is invalid.');
@@ -28,12 +28,13 @@ export function beginAttempt(values) {
   if (existing) return existing;
   const attempt = allowlisted({ ...values, request_id: crypto.randomUUID() });
   sessionStorage.setItem(KEY, JSON.stringify(attempt));
-  if (!pendingAttempt())
+  if (JSON.stringify(pendingAttempt()) !== JSON.stringify(attempt))
     throw new Error(
       'Could not preserve the session request. Nothing was submitted.',
     );
   return attempt;
 }
-export function clearAttempt() {
-  sessionStorage.removeItem(KEY);
+export function clearAttempt(requestId) {
+  if (pendingAttempt()?.request_id === requestId)
+    sessionStorage.removeItem(KEY);
 }
