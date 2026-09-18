@@ -110,6 +110,9 @@ function login() {
         Object.fromEntries(new FormData(e.target)),
       );
       if (!current()) return;
+      if (!result || typeof result.token !== 'string' || !result.token.trim()) {
+        throw new Error('The service returned an invalid login confirmation.');
+      }
       token = result.token;
       await refresh();
     });

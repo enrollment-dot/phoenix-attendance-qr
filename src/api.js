@@ -41,7 +41,7 @@ async function request(action, payload, token) {
             controller.abort(
               new DOMException('Request deadline', 'TimeoutError'),
             ),
-          30000,
+          action === 'login' ? 60000 : 30000,
         );
         response = await fetch(endpoint, {
           method: 'POST',
