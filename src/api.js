@@ -51,8 +51,10 @@ async function request(action, payload, token) {
           credentials: 'omit',
           signal,
         });
+        // Reads can be replayed; login only issues another expiring cached token.
+        // Keep this allowlist explicit: attendance/session writes must never retry.
         if (
-          action !== 'session' ||
+          !['login', 'dashboard', 'session'].includes(action) ||
           attempt !== 0 ||
           !response.redirected ||
           response.status !== 404
