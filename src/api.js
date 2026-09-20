@@ -24,7 +24,7 @@ export async function api(action, payload = {}, token = '') {
 async function request(action, payload, token) {
   if (!configured)
     throw new ApiError(
-      'YLP Attendance is not configured yet. Contact your YLP administrator.',
+      'Young Leadership Academy is not configured yet. Contact your administrator.',
       'configuration',
     );
   let response, signal, timer;
@@ -114,7 +114,7 @@ function transportError(error, signal) {
   // Never log exception messages, URLs, request payloads, or credentials.
   if (import.meta.env.DEV)
     console.warn(
-      '[YLP Attendance API]',
+      '[Young Leadership Academy API]',
       kind,
       ['TimeoutError', 'TypeError', 'AbortError'].includes(error?.name)
         ? error.name

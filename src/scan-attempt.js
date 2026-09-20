@@ -21,7 +21,7 @@ function clean(value) {
     value.student_name.length > 100
   )
     throw new Error(
-      'Cannot read the pending scan. Contact your YLP administrator before submitting again.',
+      'Cannot read the pending scan. Contact your Academy administrator before submitting again.',
     );
   return Object.fromEntries(
     fields.map((key) => [

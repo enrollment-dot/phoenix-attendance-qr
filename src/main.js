@@ -47,7 +47,7 @@ const field = (label, name, type = 'text', extra = '') =>
   `<label>${label}<input name="${name}" type="${type}" ${extra} required></label>`;
 function frame(content, attendee = false) {
   pageVersion++;
-  root.innerHTML = `<div class="shell"><aside><a class="brand" href="#" aria-label="YLP Attendance"><span class="mark" aria-hidden="true">Y</span><span>YLP<small>ATTENDANCE</small></span></a><div class="workspace">${attendee ? 'YLP STUDENTS' : 'YLP TEACHING TEAM'}</div><nav>${attendee ? '<a href="#">← Back to home</a>' : `<button data-nav="dashboard" class="${view === 'dashboard' ? 'selected' : ''}">▦ &nbsp; Overview</button><button data-nav="reports" class="${view === 'reports' ? 'selected' : ''}">≡ &nbsp; Attendance</button><button data-nav="scanner">▣ &nbsp; Scan a QR</button>`}</nav><div class="aside-bottom">Your class.<br>Your attendance.<hr><span class="tiny">YLP · YLP CLASS ATTENDANCE</span></div></aside><main><header><span>${attendee ? 'YLP / Student attendance' : 'YLP / ' + (view === 'reports' ? 'Attendance' : 'Overview')}</span>${token ? '<button class="text" id="logout">Sign out</button>' : '<span class="tiny">YLP ATTENDANCE</span>'}</header><div id="notice" role="status" aria-live="polite"></div>${content}<footer>YLP Attendance · For teachers and students</footer></main></div>`;
+  root.innerHTML = `<div class="shell"><aside><a class="brand" href="#" aria-label="Young Leadership Academy"><img class="mark" src="yla-logo-mark.png" alt="" /><span>Young Leadership Academy<small>LEARN • LEAD • GROW</small></span></a><div class="workspace">${attendee ? 'STUDENTS' : 'TEACHING TEAM'}</div><nav>${attendee ? '<a href="#">← Back to home</a>' : `<button data-nav="dashboard" class="${view === 'dashboard' ? 'selected' : ''}">▦ &nbsp; Overview</button><button data-nav="reports" class="${view === 'reports' ? 'selected' : ''}">≡ &nbsp; Attendance</button><button data-nav="scanner">▣ &nbsp; Scan a QR</button>`}</nav><div class="aside-bottom">Your class.<br>Your attendance.<hr><span class="tiny">LEARN • LEAD • GROW</span></div></aside><main><header><span>${attendee ? 'Young Leadership Academy / Student attendance' : 'Young Leadership Academy / ' + (view === 'reports' ? 'Attendance' : 'Overview')}</span>${token ? '<button class="text" id="logout">Sign out</button>' : '<span class="tiny">LEARN • LEAD • GROW</span>'}</header><div id="notice" role="status" aria-live="polite"></div>${content}<footer>Young Leadership Academy · For teachers and students</footer></main></div>`;
   root.querySelectorAll('a[href="#"]').forEach(
     (a) =>
       (a.onclick = () => {
@@ -99,7 +99,7 @@ async function busy(button, fn) {
 }
 function login() {
   frame(
-    `<div class="page-title"><div><p class="eyebrow">YLP ATTENDANCE</p><h1>Attendance for every YLP class.</h1><p>Create class sessions, share attendance QR codes, and review student records.</p></div></div><section class="login-grid"><div class="card"><span class="step">TEACHER &amp; ADMIN ACCESS</span><h2>Sign in to YLP Attendance</h2><p>Use the admin password provided by your YLP administrator.</p>${!configured ? '<div class="notice">YLP Attendance is not configured yet. Ask your YLP administrator to complete setup.</div>' : ''}<form id="login">${field('Admin password', 'password', 'password', 'autocomplete="current-password" minlength="16"')}<button class="primary full">Sign in →</button></form></div><div class="welcome-panel"><span class="large-qr">▦</span><h2>Joining a YLP class?</h2><p>Open the QR shared by your teacher. Choose Scan In when you arrive and Scan Out when you leave.</p><button id="student-scanner" class="light">Scan a class QR</button></div></section>`,
+    `<div class="page-title"><div><p class="eyebrow">YOUNG LEADERSHIP ACADEMY</p><h1>Attendance for every Academy class.</h1><p>Create class sessions, share attendance QR codes, and review student records.</p></div></div><section class="login-grid"><div class="card"><span class="step">TEACHER &amp; ADMIN ACCESS</span><h2>Sign in to Young Leadership Academy</h2><p>Use the admin password provided by your Academy administrator.</p>${!configured ? '<div class="notice">Young Leadership Academy is not configured yet. Ask your administrator to complete setup.</div>' : ''}<form id="login">${field('Admin password', 'password', 'password', 'autocomplete="current-password" minlength="16"')}<button class="primary full">Sign in →</button></form></div><div class="welcome-panel"><span class="large-qr">▦</span><h2>Joining a Young Leadership Academy class?</h2><p>Open the QR shared by your teacher. Choose Scan In when you arrive and Scan Out when you leave.</p><button id="student-scanner" class="light">Scan a class QR</button></div></section>`,
   );
   document.querySelector('#login').onsubmit = (e) => {
     e.preventDefault();
@@ -136,7 +136,7 @@ function dashboard() {
     pct = percentage(all),
     active = data.sessions.filter((s) => s.status === 'active');
   frame(
-    `<div class="page-title"><div><p class="eyebrow">YLP CLASS SESSIONS</p><h1>Class overview</h1><p>Manage your YLP sessions and review attendance.</p></div><button class="primary" id="create">＋ Create session</button></div><div class="stats"><div class="card"><span>Class sessions</span><strong>${data.sessions.length}</strong><small>${active.length} enabled for scanning</small></div><div class="card"><span>Enrolled students</span><strong>${data.students.length}</strong><small>Active students on the YLP roster</small></div><div class="card"><span>Attendance rate</span><strong>${pct === null ? '—' : pct + '<em>%</em>'}</strong><small>${data.settings.enrolled ? 'Scanned in across non-pending records' : 'Recorded attendees only; roster validation is off'}</small></div></div><section class="card sessions"><div class="section-title"><div><h2>Class sessions</h2><p>Share a session QR with your class for Scan In and Scan Out.</p></div><button class="text" id="refresh">↻ Refresh</button></div>${
+    `<div class="page-title"><div><p class="eyebrow">ACADEMY CLASS SESSIONS</p><h1>Class overview</h1><p>Manage your Academy sessions and review attendance.</p></div><button class="primary" id="create">＋ Create session</button></div><div class="stats"><div class="card"><span>Class sessions</span><strong>${data.sessions.length}</strong><small>${active.length} enabled for scanning</small></div><div class="card"><span>Enrolled students</span><strong>${data.students.length}</strong><small>Active students on the Academy roster</small></div><div class="card"><span>Attendance rate</span><strong>${pct === null ? '—' : pct + '<em>%</em>'}</strong><small>${data.settings.enrolled ? 'Scanned in across non-pending records' : 'Recorded attendees only; roster validation is off'}</small></div></div><section class="card sessions"><div class="section-title"><div><h2>Class sessions</h2><p>Share a session QR with your class for Scan In and Scan Out.</p></div><button class="text" id="refresh">↻ Refresh</button></div>${
       data.sessions.length
         ? `<div class="session-list">${[...data.sessions]
             .reverse()
@@ -160,7 +160,7 @@ function dashboard() {
 }
 function createForm() {
   frame(
-    `<div class="page-title"><div><p class="eyebrow">NEW YLP SESSION</p><h1>Create a session</h1><p>Times use ${REPORT_TIME_ZONE_LABEL}. Sessions start and end on the same day.</p></div></div><section class="card form-card"><form id="create-form">${field('Course name', 'course', 'text', 'maxlength="120" placeholder="e.g. English · Intermediate"')}<div class="form-grid">${field('Session date', 'date', 'date')}${field('Late threshold (minutes)', 'late_threshold', 'number', 'min="0" max="240" value="10"')}${field('Start time', 'start_time', 'time')}${field('End time', 'end_time', 'time')}</div><p class="helper">Scanning opens ${data.settings.openMinutes} minutes before class and closes ${data.settings.closeMinutes} minutes after class. Close a session manually to stop scans sooner.</p><div class="actions"><button type="button" class="secondary" id="cancel">Cancel</button><button class="primary">Create & display QR →</button></div></form></section>`,
+    `<div class="page-title"><div><p class="eyebrow">NEW ACADEMY SESSION</p><h1>Create a session</h1><p>Times use ${REPORT_TIME_ZONE_LABEL}. Sessions start and end on the same day.</p></div></div><section class="card form-card"><form id="create-form">${field('Course name', 'course', 'text', 'maxlength="120" placeholder="e.g. English · Intermediate"') }<div class="form-grid">${field('Session date', 'date', 'date')}${field('Late threshold (minutes)', 'late_threshold', 'number', 'min="0" max="240" value="10"')}${field('Start time', 'start_time', 'time')}${field('End time', 'end_time', 'time')}</div><p class="helper">Scanning opens ${data.settings.openMinutes} minutes before class and closes ${data.settings.closeMinutes} minutes after class. Close a session manually to stop scans sooner.</p><div class="actions"><button type="button" class="secondary" id="cancel">Cancel</button><button class="primary">Create & display QR →</button></div></form></section>`,
   );
   const form = document.querySelector('#create-form');
   const submit = form.querySelector('button.primary');
@@ -275,7 +275,7 @@ function createForm() {
 }
 async function showQr(s) {
   frame(
-    `<div class="page-title"><div><p class="eyebrow">SESSION QR</p><h1>${esc(s.course)}</h1><p>${esc(sessionLabel(s, data.settings.offset))}</p></div><button id="back" class="secondary">Back to overview</button></div><section class="card qr-card"><span class="badge present">${esc(s.status)}</span><h2>Record your YLP attendance</h2><canvas id="qr" aria-label="Class attendance QR code"></canvas><p>Open your phone camera and point it at this QR.<br>Enter your student ID, then choose Scan In or Scan Out.</p><div class="actions"><button id="copy" class="secondary">Copy student link</button><button id="download" class="secondary">Download QR</button>${s.status === 'active' ? '<button id="close" class="danger">Close session</button>' : ''}</div><p class="helper">Share this QR only with students in this YLP class. It gives access to this session.</p></section>`,
+    `<div class="page-title"><div><p class="eyebrow">SESSION QR</p><h1>${esc(s.course)}</h1><p>${esc(sessionLabel(s, data.settings.offset))}</p></div><button id="back" class="secondary">Back to overview</button></div><section class="card qr-card"><span class="badge present">${esc(s.status)}</span><h2>Record your attendance</h2><canvas id="qr" aria-label="Class attendance QR code"></canvas><p>Open your phone camera and point it at this QR.<br>Enter your student ID, then choose Scan In or Scan Out.</p><div class="actions"><button id="copy" class="secondary">Copy student link</button><button id="download" class="secondary">Download QR</button>${s.status === 'active' ? '<button id="close" class="danger">Close session</button>' : ''}</div><p class="helper">Share this QR only with students in this Academy class. It gives access to this session.</p></section>`,
   );
   const current = pageGuard();
   document.querySelector('#back').onclick = dashboard;
@@ -293,7 +293,7 @@ async function showQr(s) {
     });
   document.querySelector('#download').onclick = () => {
     const a = document.createElement('a');
-    a.download = `ylp-${s.session_id}.png`;
+    a.download = `young-leadership-academy-${s.session_id}.png`;
     a.href = document.querySelector('#qr').toDataURL();
     a.click();
   };
@@ -314,7 +314,7 @@ async function showQr(s) {
 }
 function reports() {
   frame(
-    `<div class="page-title"><div><p class="eyebrow">YLP ATTENDANCE RECORDS</p><h1>Attendance report</h1><p>Review student attendance by session, course, date, or student.</p></div><button class="primary" id="export">↓ Export CSV</button></div><section class="card"><form id="filters" class="filters"><label>Session<select name="session"><option value="">All sessions</option>${data.sessions.map((s) => `<option value="${esc(s.session_id)}">${esc(s.course)} · ${esc(sessionTimes(s, data.settings.offset).date)}</option>`).join('')}</select></label><label>Course<select name="course"><option value="">All courses</option>${[...new Set(data.sessions.map((s) => s.course))].map((c) => `<option>${esc(c)}</option>`).join('')}</select></label><label>Date<input name="date" type="date"></label><label>Student<input name="student" placeholder="Name or ID" type="search"></label></form><div id="report-summary" class="section-title"></div><div class="table-wrap"><table><thead><tr>${['Student', 'Course / date', 'Scan In', 'Scan Out', 'Minutes', 'Status'].map((v) => `<th>${v}</th>`).join('')}</tr></thead><tbody id="rows"></tbody></table></div><p class="helper">Timestamps shown in ${REPORT_TIME_ZONE_LABEL}. Dates beside course names are the scheduled session dates. Absent is calculated after class ends; upcoming students are Pending. Percentage counts students with Scan In, including late and early departures. ${data.settings.enrolled ? 'The current active roster is used for all courses.' : 'Enrollment validation is disabled: percentage covers recorded attendees only.'}</p></section>`,
+    `<div class="page-title"><div><p class="eyebrow">ACADEMY ATTENDANCE RECORDS</p><h1>Attendance report</h1><p>Review student attendance by session, course, date, or student.</p></div><button class="primary" id="export">↓ Export CSV</button></div><section class="card"><form id="filters" class="filters"><label>Session<select name="session"><option value="">All sessions</option>${data.sessions.map((s) => `<option value="${esc(s.session_id)}">${esc(s.course)} · ${esc(sessionTimes(s, data.settings.offset).date)}</option>`).join('')}</select></label><label>Course<select name="course"><option value="">All courses</option>${[...new Set(data.sessions.map((s) => s.course))].map((c) => `<option>${esc(c)}</option>`).join('')}</select></label><label>Date<input name="date" type="date"></label><label>Student<input name="student" placeholder="Name or ID" type="search"></label></form><div id="report-summary" class="section-title"></div><div class="table-wrap"><table><thead><tr>${['Student', 'Course / date', 'Scan In', 'Scan Out', 'Minutes', 'Status'].map((v) => `<th>${v}</th>`).join('')}</tr></thead><tbody id="rows"></tbody></table></div><p class="helper">Timestamps shown in ${REPORT_TIME_ZONE_LABEL}. Dates beside course names are the scheduled session dates. Absent is calculated after class ends; upcoming students are Pending. Percentage counts students with Scan In, including late and early departures. ${data.settings.enrolled ? 'The current active roster is used for all courses.' : 'Enrollment validation is disabled: percentage covers recorded attendees only.'}</p></section>`,
   );
   const allRows = report(data);
   let current = [];
@@ -343,7 +343,7 @@ function reports() {
       ),
       a = document.createElement('a');
     a.href = u;
-    a.download = 'ylp-attendance.csv';
+    a.download = 'young-leadership-academy-attendance.csv';
     a.click();
     setTimeout(() => URL.revokeObjectURL(u), 1000);
   };
@@ -364,7 +364,7 @@ async function student() {
     const s = await api('session', credentials);
     if (!loadingCurrent()) return;
     frame(
-      `<section class="card student-card"><p class="eyebrow">YLP CLASS ATTENDANCE</p><h1>${esc(s.course)}</h1><p>${esc(sessionLabel(s, s.offset))}</p><hr><form id="scan-form">${field('Student ID', 'student_id', 'text', 'autocomplete="username" pattern="[a-zA-Z0-9_-]+" maxlength="40" placeholder="Your student ID"')}${field('Student name', 'student_name', 'text', 'autocomplete="name" maxlength="100" placeholder="Your full name"')}<div class="scan-actions"><button name="direction" value="in" class="primary">↳ Scan In</button><button name="direction" value="out" class="secondary">↗ Scan Out</button></div></form><p class="helper">Choose Scan In when you arrive and Scan Out when you leave. Use the same student ID both times. Enrolled students use the name on the YLP roster.</p></section>`,
+      `<section class="card student-card"><p class="eyebrow">ACADEMY CLASS ATTENDANCE</p><h1>${esc(s.course)}</h1><p>${esc(sessionLabel(s, s.offset))}</p><hr><form id="scan-form">${field('Student ID', 'student_id', 'text', 'autocomplete="username" pattern="[a-zA-Z0-9_-]+" maxlength="40" placeholder="Your student ID"')}${field('Student name', 'student_name', 'text', 'autocomplete="name" maxlength="100" placeholder="Your full name"')}<div class="scan-actions"><button name="direction" value="in" class="primary">↳ Scan In</button><button name="direction" value="out" class="secondary">↗ Scan Out</button></div></form><p class="helper">Choose Scan In when you arrive and Scan Out when you leave. Use the same student ID both times. Enrolled students use the name on the Academy roster.</p></section>`,
       true,
     );
     const current = pageGuard();
@@ -391,7 +391,7 @@ async function student() {
         });
         if (!s.scan_request_idempotency)
           notice(
-            'Scan submissions need a backend update for safe retries. Contact your YLP administrator.',
+            'Scan submissions need a backend update for safe retries. Contact your Academy administrator.',
           );
         else if (pending && showNotice)
           notice(
@@ -438,7 +438,7 @@ async function student() {
         if (!current()) return;
         clearScan(s.session_id, attempt.request_id);
         frame(
-          `<section class="card student-card result"><div class="check">✓</div><p class="eyebrow">ATTENDANCE SAVED</p><h1>${payload.direction === 'in' ? 'You’re checked in.' : 'You’re checked out.'}</h1><p>${esc(r.student_name)} · ${esc(r.student_id)}</p><div class="receipt"><b>${esc(s.course)}</b><p>${esc(r.status)} · ${thailandTimestamp(r.updated_at)} · ${REPORT_TIME_ZONE_LABEL}</p>${r.duration_minutes !== '' ? `<p>${esc(r.duration_minutes)} minutes attended</p>` : ''}</div><p>Your YLP attendance is saved. You can close this page.</p><button class="secondary full" id="return">Return to session</button></section>`,
+          `<section class="card student-card result"><div class="check">✓</div><p class="eyebrow">ATTENDANCE SAVED</p><h1>${payload.direction === 'in' ? 'You’re checked in.' : 'You’re checked out.'}</h1><p>${esc(r.student_name)} · ${esc(r.student_id)}</p><div class="receipt"><b>${esc(s.course)}</b><p>${esc(r.status)} · ${thailandTimestamp(r.updated_at)} · ${REPORT_TIME_ZONE_LABEL}</p>${r.duration_minutes !== '' ? `<p>${esc(r.duration_minutes)} minutes attended</p>` : ''}</div><p>Your attendance is saved. You can close this page.</p><button class="secondary full" id="return">Return to session</button></section>`,
           true,
         );
         document.querySelector('#return').onclick = student;
@@ -468,7 +468,7 @@ async function student() {
   } catch (e) {
     if (!loadingCurrent()) return;
     frame(
-      '<section class="card student-card"><h1>Unable to open class</h1><p>Try loading the class again. If it still does not open, ask your YLP teacher for help.</p><button class="secondary" id="retry">Try again</button></section>',
+      '<section class="card student-card"><h1>Unable to open class</h1><p>Try loading the class again. If it still does not open, ask your Academy teacher for help.</p><button class="secondary" id="retry">Try again</button></section>',
       true,
     );
     notice(e.message);
@@ -477,7 +477,7 @@ async function student() {
 }
 async function scannerPage() {
   frame(
-    `<div class="page-title"><div><p class="eyebrow">YLP STUDENT ATTENDANCE</p><h1>Scan your class QR</h1><p>Allow camera access, then point your camera at the QR shared by your teacher.</p></div></div><section class="card student-card"><div id="reader"></div><button id="start-camera" class="primary full">Open camera</button><p class="helper">If the camera does not open, check your browser’s camera permission or use your phone’s camera app. You can also paste the class link below.</p><form id="paste"><label>Or paste a class link<input name="url" type="url" required placeholder="https://…"></label><button class="secondary full">Open class link</button></form></section>`,
+    `<div class="page-title"><div><p class="eyebrow">ACADEMY STUDENT ATTENDANCE</p><h1>Scan your class QR</h1><p>Allow camera access, then point your camera at the QR shared by your teacher.</p></div></div><section class="card student-card"><div id="reader"></div><button id="start-camera" class="primary full">Open camera</button><p class="helper">If the camera does not open, check your browser’s camera permission or use your phone’s camera app. You can also paste the class link below.</p><form id="paste"><label>Or paste a class link<input name="url" type="url" required placeholder="https://…"></label><button class="secondary full">Open class link</button></form></section>`,
     true,
   );
   const current = pageGuard();
