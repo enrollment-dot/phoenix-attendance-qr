@@ -343,7 +343,7 @@ function students() {
   const students = Array.isArray(data?.students) ? [...data.students] : [];
   let filtered = students;
   frame(
-    \`<div class="page-title"><div><p class="eyebrow">ACADEMY ROSTER</p><h1>Students</h1><p>Manage the active Academy roster used for attendance validation.</p></div><div class="actions"><button class="secondary" id="import">Import CSV</button><button class="primary" id="add">＋ Add student</button></div></div><section class="card"><div class="section-title"><div><h2>Student roster</h2><p>Active students can Scan In and Scan Out. Deactivated students remain in attendance history.</p></div><label class="search-field">Search<input id="student-search" type="search" placeholder="ID or name"></label></div><div id="student-editor"></div><div class="table-wrap"><table><thead><tr><th>Student ID</th><th>Name</th><th>Status</th><th>Action</th></tr></thead><tbody id="student-rows"></tbody></table></div><input id="csv-input" type="file" accept=".csv,text/csv" hidden></section>\`,
+    `<div class="page-title"><div><p class="eyebrow">ACADEMY ROSTER</p><h1>Students</h1><p>Manage the active Academy roster used for attendance validation.</p></div><div class="actions"><button class="secondary" id="import">Import CSV</button><button class="primary" id="add">＋ Add student</button></div></div><section class="card"><div class="section-title"><div><h2>Student roster</h2><p>Active students can Scan In and Scan Out. Deactivated students remain in attendance history.</p></div><label class="search-field">Search<input id="student-search" type="search" placeholder="ID or name"></label></div><div id="student-editor"></div><div class="table-wrap"><table><thead><tr><th>Student ID</th><th>Name</th><th>Status</th><th>Action</th></tr></thead><tbody id="student-rows"></tbody></table></div><input id="csv-input" type="file" accept=".csv,text/csv" hidden></section>`,
   );
   const rows = document.querySelector('#student-rows');
   const editor = document.querySelector('#student-editor');
@@ -352,13 +352,13 @@ function students() {
     const q = search.value.trim().toLowerCase();
     filtered = students.filter((s) => !q || s.student_id.toLowerCase().includes(q) || s.name.toLowerCase().includes(q));
     rows.innerHTML = filtered.length
-      ? filtered.map((s) => \`<tr><td><b>\${esc(s.student_id)}</b></td><td>\${esc(s.name)}</td><td><span class="badge \${s.active ? 'present' : 'absent'}">\${s.active ? 'Active' : 'Inactive'}</span></td><td><button class="text" data-edit="\${esc(s.student_id)}">Edit</button> <button class="text" data-toggle="\${esc(s.student_id)}">\${s.active ? 'Deactivate' : 'Activate'}</button></td></tr>\`).join('')
+      ? filtered.map((s) => `<tr><td><b>${esc(s.student_id)}</b></td><td>${esc(s.name)}</td><td><span class="badge ${s.active ? 'present' : 'absent'}">${s.active ? 'Active' : 'Inactive'}</span></td><td><button class="text" data-edit="${esc(s.student_id)}">Edit</button> <button class="text" data-toggle="${esc(s.student_id)}">${s.active ? 'Deactivate' : 'Activate'}</button></td></tr>`).join('')
       : '<tr><td colspan="4" class="empty">No students match this search.</td></tr>';
     rows.querySelectorAll('[data-edit]').forEach((b) => b.onclick = () => openEditor(students.find((s) => s.student_id === b.dataset.edit)));
     rows.querySelectorAll('[data-toggle]').forEach((b) => b.onclick = () => toggleStudent(students.find((s) => s.student_id === b.dataset.toggle)));
   };
   const openEditor = (student = null) => {
-    editor.innerHTML = \`<div class="card inline-editor"><h3>\${student ? 'Edit student' : 'Add student'}</h3><form id="student-form"><div class="form-grid"><label>Student ID<input name="student_id" maxlength="40" pattern="[A-Za-z0-9_-]+" required \${student ? 'readonly' : ''} value="\${student ? esc(student.student_id) : ''}" placeholder="e.g. YLA001"></label><label>Student name<input name="name" maxlength="100" required value="\${student ? esc(student.name) : ''}" placeholder="Full name"></label></div><div class="actions"><button type="button" class="secondary" id="cancel-student">Cancel</button><button class="primary">\${student ? 'Save changes' : 'Add student'}</button></div></form></div>\`;
+    editor.innerHTML = `<div class="card inline-editor"><h3>${student ? 'Edit student' : 'Add student'}</h3><form id="student-form"><div class="form-grid"><label>Student ID<input name="student_id" maxlength="40" pattern="[A-Za-z0-9_-]+" required ${student ? 'readonly' : ''} value="${student ? esc(student.student_id) : ''}" placeholder="e.g. YLA001"></label><label>Student name<input name="name" maxlength="100" required value="${student ? esc(student.name) : ''}" placeholder="Full name"></label></div><div class="actions"><button type="button" class="secondary" id="cancel-student">Cancel</button><button class="primary">${student ? 'Save changes' : 'Add student'}</button></div></form></div>`;
     document.querySelector('#cancel-student').onclick = () => editor.innerHTML = '';
     document.querySelector('#student-form').onsubmit = (e) => {
       e.preventDefault();
@@ -378,7 +378,7 @@ function students() {
   };
   const toggleStudent = (student) => {
     if (!student) return;
-    const button = document.querySelector(\`[data-toggle="\${CSS.escape(student.student_id)}"]\`);
+    const button = document.querySelector(`[data-toggle="${CSS.escape(student.student_id)}"]`);
     busy(button, async () => {
       const result = await api('setStudentActive', { student_id: student.student_id, active: !student.active }, token);
       const saved = result?.data ?? result;
@@ -422,7 +422,7 @@ function students() {
         } catch { skipped++; }
       }
       renderRows();
-      notice(\`CSV import complete: \${added} added, \${skipped} skipped.\`, false);
+      notice(`CSV import complete: ${added} added, ${skipped} skipped.`, false);
       e.target.value = '';
     });
   };
