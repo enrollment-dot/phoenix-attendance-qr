@@ -187,50 +187,38 @@ for (const action of ['login', 'dashboard']) {
   }) => {
     await mock(page);
     const requests = [];
-    let redirectReady = false;
-    const echoServer = createServer((req, res) => {
-      if (req.url === '/start') {
-        res.writeHead(302, { location: '/echo' });
-        res.end();
-        return;
-      }
-      if (req.url === '/echo') {
-        res.writeHead(404, { 'Content-Type': 'text/html' });
-        res.end('Temporary response unavailable');
-        return;
-      }
-      res.writeHead(404);
-      res.end();
-    });
-    await new Promise((resolve) => echoServer.listen(0, '127.0.0.1', resolve));
-    const port = echoServer.address().port;
-    try {
-      await page.route('**/__test_api', async (route) => {
-        if (route.request().postDataJSON().action !== action)
-          return route.fallback();
-        requests.push({
-          method: route.request().method(),
-          url: route.request().url(),
-          body: route.request().postData(),
-        });
-        if (requests.length > 1) return route.fallback();
-        await route.continue({ url: `http://127.0.0.1:${port}/start` });
+    await page.route('**/echo', async (route) => {
+      await route.fulfill({
+        status: 404,
+        headers: { 'Content-Type': 'text/html' },
+        body: 'Temporary response unavailable',
       });
-      await page.goto('/');
-      await page.getByLabel('Admin password').fill('test-password-long-enough');
-      await page.getByRole('button', { name: 'Sign in →' }).click();
-      await expect(
-        page.getByRole('heading', { name: 'Class overview' }),
-      ).toBeVisible();
-      expect(requests).toHaveLength(2);
-      expect(requests[0]).toEqual(requests[1]);
-      expect(requests[0].method).toBe('POST');
-      expect(new URL(requests[0].url).pathname).toBe('/__test_api');
-      if (action === 'dashboard')
-        expect(JSON.parse(requests[0].body).token).toBe('test-admin');
-    } finally {
-      echoServer.closeAllConnections();
-      await new Promise((resolve) => echoServer.close(resolve));
-    }
+    });
+    await page.route('**/__test_api', async (route) => {
+      if (route.request().postDataJSON().action !== action)
+        return route.fallback();
+      requests.push({
+        method: route.request().method(),
+        url: route.request().url(),
+        body: route.request().postData(),
+      });
+      if (requests.length > 1) return route.fallback();
+      await route.fulfill({
+        status: 302,
+        headers: { location: '/echo' },
+      });
+    });
+    await page.goto('/');
+    await page.getByLabel('Admin password').fill('test-password-long-enough');
+    await page.getByRole('button', { name: 'Sign in →' }).click();
+    await expect(
+      page.getByRole('heading', { name: 'Class overview' }),
+    ).toBeVisible();
+    expect(requests).toHaveLength(2);
+    expect(requests[0]).toEqual(requests[1]);
+    expect(requests[0].method).toBe('POST');
+    expect(new URL(requests[0].url).pathname).toBe('/__test_api');
+    if (action === 'dashboard')
+      expect(JSON.parse(requests[0].body).token).toBe('test-admin');
   });
 }
