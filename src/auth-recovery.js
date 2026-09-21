@@ -1,0 +1,99 @@
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL ||
+  'https://yvtgwzvjpztvztozcfir.supabase.co';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+
+let recoveryClient = null;
+let recoverySession = null;
+
+function recoveryCode() {
+  return new URLSearchParams(location.search).get('code');
+}
+
+export function hasRecoveryRedirect() {
+  const hashParams = new URLSearchParams(location.hash.replace(/^#/, ''));
+  return hashParams.get('type') === 'recovery' || Boolean(recoveryCode());
+}
+
+function clearRecoveryUrl() {
+  if (!location.hash && !location.search) return;
+  history.replaceState(null, document.title, location.pathname);
+}
+
+export async function initializeRecovery() {
+  if (!hasRecoveryRedirect()) return { active: false };
+
+  if (!supabaseAnonKey) {
+    clearRecoveryUrl();
+    return { active: false, error: 'configuration' };
+  }
+
+  const code = recoveryCode();
+  recoveryClient = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      autoRefreshToken: false,
+      detectSessionInUrl: !code,
+      flowType: code ? 'pkce' : 'implicit',
+      persistSession: false,
+    },
+  });
+
+  try {
+    if (code) {
+      const { error } = await recoveryClient.auth.exchangeCodeForSession(code);
+      if (error) {
+        clearRecoveryUrl();
+        recoveryClient = null;
+        return { active: false, error: 'invalid' };
+      }
+    }
+    const { data, error } = await recoveryClient.auth.getSession();
+    if (error || !data.session?.access_token) {
+      clearRecoveryUrl();
+      recoveryClient = null;
+      return { active: false, error: 'invalid' };
+    }
+    recoverySession = data.session;
+    clearRecoveryUrl();
+    return { active: true };
+  } catch {
+    clearRecoveryUrl();
+    recoveryClient = null;
+    return { active: false, error: 'invalid' };
+  }
+}
+
+export async function updateRecoveryPassword(password) {
+  if (!recoveryClient || !recoverySession?.access_token)
+    throw new RecoveryError('invalid');
+  try {
+    const { error } = await recoveryClient.auth.updateUser({ password });
+    if (error) throw error;
+    await recoveryClient.auth.signOut({ scope: 'local' });
+    recoverySession = null;
+    recoveryClient = null;
+  } catch (error) {
+    if (error instanceof RecoveryError) throw error;
+    throw new RecoveryError(
+      error?.status === 401 || error?.status === 403 ? 'expired' : 'update',
+    );
+  }
+}
+
+export function recoveryMessage(kind) {
+  if (kind === 'configuration')
+    return 'Password recovery is not configured for this staging app. Ask the administrator to enable the staging Supabase key.';
+  if (kind === 'expired')
+    return 'This password-recovery link has expired. Request a new recovery email and try again.';
+  if (kind === 'invalid')
+    return 'This password-recovery link is invalid or has already been used. Request a new recovery email and try again.';
+  return 'The new password could not be saved. Request a new recovery email and try again.';
+}
+
+export class RecoveryError extends Error {
+  constructor(kind) {
+    super(recoveryMessage(kind));
+    this.kind = kind;
+  }
+}
