@@ -52,7 +52,7 @@ const field = (label, name, type = 'text', extra = '') =>
   `<label>${label}<input name="${name}" type="${type}" ${extra} required></label>`;
 function frame(content, attendee = false) {
   pageVersion++;
-  root.innerHTML = `<div class="shell"><aside><a class="brand" href="#" aria-label="Young Leadership Academy"><img class="mark" src="yla-logo-mark.png" alt="" /><span>Young Leadership Academy<small>LEARN • LEAD • GROW</small></span></a><div class="workspace">${attendee ? 'STUDENTS' : 'TEACHING TEAM'}</div><nav>${attendee ? '<a href="#">← Back to home</a>' : `<button data-nav="dashboard" class="${view === 'dashboard' ? 'selected' : ''}">▦ &nbsp; Overview</button><button data-nav="reports" class="${view === 'reports' ? 'selected' : ''}">≡ &nbsp; Attendance</button><button data-nav="scanner">▣ &nbsp; Scan a QR</button>`}</nav><div class="aside-bottom">Your class.<br>Your attendance.<hr><span class="tiny">LEARN • LEAD • GROW</span></div></aside><main><header><span>${attendee ? 'Young Leadership Academy / Student attendance' : 'Young Leadership Academy / ' + (view === 'reports' ? 'Attendance' : 'Overview')}</span>${token ? '<button class="text" id="logout">Sign out</button>' : '<span class="tiny">LEARN • LEAD • GROW</span>'}</header><div id="notice" role="status" aria-live="polite"></div>${content}<footer>Young Leadership Academy · For teachers and students</footer></main></div>`;
+  root.innerHTML = `<div class="shell"><aside><a class="brand" href="#" aria-label="Young Leadership Academy"><img class="mark" src="yla-logo-mark.png" alt="" /><span>Young Leadership Academy<small>LEARN • LEAD • GROW</small></span></a><div class="workspace">${attendee ? 'STUDENTS' : 'TEACHING TEAM'}</div><nav>${attendee ? '<a href="#">← Back to home</a>' : `<button data-nav="dashboard" class="${view === 'dashboard' ? 'selected' : ''}">▦ &nbsp; Overview</button><button data-nav="reports" class="${view === 'reports' ? 'selected' : ''}">≡ &nbsp; Attendance</button><button data-nav="students" class="${view === 'students' ? 'selected' : ''}">♙ &nbsp; Students</button><button data-nav="scanner">▣ &nbsp; Scan a QR</button>`}</nav><div class="aside-bottom">Your class.<br>Your attendance.<hr><span class="tiny">LEARN • LEAD • GROW</span></div></aside><main><header><span>${attendee ? 'Young Leadership Academy / Student attendance' : 'Young Leadership Academy / ' + (view === 'reports' ? 'Attendance' : 'Overview')}</span>${token ? '<button class="text" id="logout">Sign out</button>' : '<span class="tiny">LEARN • LEAD • GROW</span>'}</header><div id="notice" role="status" aria-live="polite"></div>${content}<footer>Young Leadership Academy · For teachers and students</footer></main></div>`;
   root.querySelectorAll('a[href="#"]').forEach(
     (a) =>
       (a.onclick = () => {
@@ -339,6 +339,95 @@ async function showQr(s) {
       });
   });
 }
+function students() {
+  const students = Array.isArray(data?.students) ? [...data.students] : [];
+  let filtered = students;
+  frame(
+    \`<div class="page-title"><div><p class="eyebrow">ACADEMY ROSTER</p><h1>Students</h1><p>Manage the active Academy roster used for attendance validation.</p></div><div class="actions"><button class="secondary" id="import">Import CSV</button><button class="primary" id="add">＋ Add student</button></div></div><section class="card"><div class="section-title"><div><h2>Student roster</h2><p>Active students can Scan In and Scan Out. Deactivated students remain in attendance history.</p></div><label class="search-field">Search<input id="student-search" type="search" placeholder="ID or name"></label></div><div id="student-editor"></div><div class="table-wrap"><table><thead><tr><th>Student ID</th><th>Name</th><th>Status</th><th>Action</th></tr></thead><tbody id="student-rows"></tbody></table></div><input id="csv-input" type="file" accept=".csv,text/csv" hidden></section>\`,
+  );
+  const rows = document.querySelector('#student-rows');
+  const editor = document.querySelector('#student-editor');
+  const search = document.querySelector('#student-search');
+  const renderRows = () => {
+    const q = search.value.trim().toLowerCase();
+    filtered = students.filter((s) => !q || s.student_id.toLowerCase().includes(q) || s.name.toLowerCase().includes(q));
+    rows.innerHTML = filtered.length
+      ? filtered.map((s) => \`<tr><td><b>\${esc(s.student_id)}</b></td><td>\${esc(s.name)}</td><td><span class="badge \${s.active ? 'present' : 'absent'}">\${s.active ? 'Active' : 'Inactive'}</span></td><td><button class="text" data-edit="\${esc(s.student_id)}">Edit</button> <button class="text" data-toggle="\${esc(s.student_id)}">\${s.active ? 'Deactivate' : 'Activate'}</button></td></tr>\`).join('')
+      : '<tr><td colspan="4" class="empty">No students match this search.</td></tr>';
+    rows.querySelectorAll('[data-edit]').forEach((b) => b.onclick = () => openEditor(students.find((s) => s.student_id === b.dataset.edit)));
+    rows.querySelectorAll('[data-toggle]').forEach((b) => b.onclick = () => toggleStudent(students.find((s) => s.student_id === b.dataset.toggle)));
+  };
+  const openEditor = (student = null) => {
+    editor.innerHTML = \`<div class="card inline-editor"><h3>\${student ? 'Edit student' : 'Add student'}</h3><form id="student-form"><div class="form-grid"><label>Student ID<input name="student_id" maxlength="40" pattern="[A-Za-z0-9_-]+" required \${student ? 'readonly' : ''} value="\${student ? esc(student.student_id) : ''}" placeholder="e.g. YLA001"></label><label>Student name<input name="name" maxlength="100" required value="\${student ? esc(student.name) : ''}" placeholder="Full name"></label></div><div class="actions"><button type="button" class="secondary" id="cancel-student">Cancel</button><button class="primary">\${student ? 'Save changes' : 'Add student'}</button></div></form></div>\`;
+    document.querySelector('#cancel-student').onclick = () => editor.innerHTML = '';
+    document.querySelector('#student-form').onsubmit = (e) => {
+      e.preventDefault();
+      busy(e.submitter, async () => {
+        const v = Object.fromEntries(new FormData(e.target));
+        const result = student ? await api('updateStudent', v, token) : await api('createStudent', v, token);
+        const saved = result?.data ?? result;
+        if (!saved?.student_id) throw new Error('The student record could not be confirmed.');
+        const i = students.findIndex((s) => s.student_id === saved.student_id);
+        if (i < 0) students.push(saved); else students[i] = saved;
+        editor.innerHTML = '';
+        renderRows();
+        notice(student ? 'Student updated.' : 'Student added.', false);
+      });
+    };
+    document.querySelector('#student-form input[name="name"]').focus();
+  };
+  const toggleStudent = (student) => {
+    if (!student) return;
+    const button = document.querySelector(\`[data-toggle="\${CSS.escape(student.student_id)}"]\`);
+    busy(button, async () => {
+      const result = await api('setStudentActive', { student_id: student.student_id, active: !student.active }, token);
+      const saved = result?.data ?? result;
+      student.active = saved.active;
+      student.name = saved.name;
+      renderRows();
+      notice(student.active ? 'Student activated.' : 'Student deactivated.', false);
+    });
+  };
+  document.querySelector('#add').onclick = () => openEditor();
+  search.oninput = renderRows;
+  document.querySelector('#import').onclick = () => document.querySelector('#csv-input').click();
+  document.querySelector('#csv-input').onchange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    busy(document.querySelector('#import'), async () => {
+      const text = await file.text();
+      const lines = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+      if (!lines.length) throw new Error('The CSV file is empty.');
+      const parse = (line) => {
+        const out = []; let cur = ''; let quoted = false;
+        for (let i = 0; i < line.length; i++) {
+          const ch = line[i];
+          if (ch === '"') { if (quoted && line[i + 1] === '"') { cur += '"'; i++; } else quoted = !quoted; }
+          else if (ch === ',' && !quoted) { out.push(cur.trim()); cur = ''; }
+          else cur += ch;
+        }
+        out.push(cur.trim()); return out;
+      };
+      const first = parse(lines[0]).map((v) => v.toLowerCase());
+      const hasHeader = first.includes('student_id') || first.includes('student id');
+      const start = hasHeader ? 1 : 0;
+      let added = 0, skipped = 0;
+      for (const line of lines.slice(start)) {
+        const [student_id, name] = parse(line);
+        if (!student_id || !name || students.some((s) => s.student_id === student_id.trim())) { skipped++; continue; }
+        try {
+          const result = await api('createStudent', { student_id: student_id.trim(), name: name.trim() }, token);
+          const saved = result?.data ?? result;
+          if (saved?.student_id) { students.push(saved); added++; } else skipped++;
+        } catch { skipped++; }
+      }
+      renderRows();
+      notice(\`CSV import complete: \${added} added, \${skipped} skipped.\`, false);
+      e.target.value = '';
+    });
+  };
+  renderRows();
+}
 function reports() {
   frame(
     `<div class="page-title"><div><p class="eyebrow">ACADEMY ATTENDANCE RECORDS</p><h1>Attendance report</h1><p>Review student attendance by session, course, date, or student.</p></div><button class="primary" id="export">↓ Export CSV</button></div><section class="card"><form id="filters" class="filters"><label>Session<select name="session"><option value="">All sessions</option>${data.sessions.map((s) => `<option value="${esc(s.session_id)}">${esc(s.course)} · ${esc(sessionTimes(s, data.settings.offset).date)}</option>`).join('')}</select></label><label>Course<select name="course"><option value="">All courses</option>${[...new Set(data.sessions.map((s) => s.course))].map((c) => `<option>${esc(c)}</option>`).join('')}</select></label><label>Date<input name="date" type="date"></label><label>Student<input name="student" placeholder="Name or ID" type="search"></label></form><div id="report-summary" class="section-title"></div><div class="table-wrap"><table><thead><tr>${['Student', 'Course / date', 'Scan In', 'Scan Out', 'Minutes', 'Status'].map((v) => `<th>${v}</th>`).join('')}</tr></thead><tbody id="rows"></tbody></table></div><p class="helper">Timestamps shown in ${REPORT_TIME_ZONE_LABEL}. Dates beside course names are the scheduled session dates. Absent is calculated after class ends; upcoming students are Pending. Percentage counts students with Scan In, including late and early departures. ${data.settings.enrolled ? 'The current active roster is used for all courses.' : 'Enrollment validation is disabled: percentage covers recorded attendees only.'}</p></section>`,
@@ -552,6 +641,7 @@ function render() {
   if (view === 'scanner') return scannerPage();
   if (!token || !data) return login();
   if (view === 'reports') return reports();
+  if (view === 'students') return students();
   dashboard();
 }
 window.addEventListener('hashchange', render);
