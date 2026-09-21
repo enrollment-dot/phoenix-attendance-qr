@@ -187,12 +187,23 @@ for (const action of ['login', 'dashboard']) {
   }) => {
     await mock(page);
     const requests = [];
+    let redirectReady = false;
     const echoServer = createServer((req, res) => {
-      res.setHeader('Access-Control-Allow-Origin', '*');
-      res.writeHead(404, { 'Content-Type': 'text/html' });
-      res.end('Temporary response unavailable');
+      if (req.url === '/start') {
+        res.writeHead(302, { location: '/echo' });
+        res.end();
+        return;
+      }
+      if (req.url === '/echo') {
+        res.writeHead(404, { 'Content-Type': 'text/html' });
+        res.end('Temporary response unavailable');
+        return;
+      }
+      res.writeHead(404);
+      res.end();
     });
     await new Promise((resolve) => echoServer.listen(0, '127.0.0.1', resolve));
+    const port = echoServer.address().port;
     try {
       await page.route('**/__test_api', async (route) => {
         if (route.request().postDataJSON().action !== action)
@@ -203,12 +214,7 @@ for (const action of ['login', 'dashboard']) {
           body: route.request().postData(),
         });
         if (requests.length > 1) return route.fallback();
-        await route.fulfill({
-          status: 302,
-          headers: {
-            location: `http://127.0.0.1:${echoServer.address().port}/echo`,
-          },
-        });
+        await route.continue({ url: `http://127.0.0.1:${port}/start` });
       });
       await page.goto('/');
       await page.getByLabel('Admin password').fill('test-password-long-enough');
