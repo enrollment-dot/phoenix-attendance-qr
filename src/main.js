@@ -17,6 +17,11 @@ import './style.css';
 import QRCode from 'qrcode';
 import { api, configured } from './api.js';
 import {
+  initializeRecovery,
+  recoveryMessage,
+  updateRecoveryPassword,
+} from './auth-recovery.js';
+import {
   report,
   filterReport,
   csv,
@@ -120,6 +125,28 @@ function login() {
   document.querySelector('#student-scanner').onclick = () => {
     view = 'scanner';
     render();
+  };
+}
+function resetPassword(kind = null) {
+  frame(
+    `<div class="page-title"><div><p class="eyebrow">YOUNG LEADERSHIP ACADEMY</p><h1>Reset your password.</h1><p>Choose a new password for your Academy administrator account.</p></div></div><section class="login-grid"><div class="card"><span class="step">ADMIN PASSWORD RECOVERY</span><h2>Set a new password</h2><p>Use at least 16 characters. Your password is sent directly to Supabase Auth and is never displayed or logged.</p>${kind ? `<div class="notice error">${esc(recoveryMessage(kind))}</div><button class="secondary full" id="return-login">Return to sign in</button>` : `<form id="reset-password"><label>New password<input name="password" type="password" autocomplete="new-password" minlength="16" required></label><label>Confirm new password<input name="confirm_password" type="password" autocomplete="new-password" minlength="16" required></label><button class="primary full">Save new password →</button></form>`}</div><div class="welcome-panel"><span class="large-qr">✓</span><h2>Secure account access</h2><p>After the password changes, this recovery session will be signed out and you will return to the normal admin sign-in screen.</p></div></section>`,
+  );
+  document.querySelector('#return-login')?.addEventListener('click', () => {
+    render();
+  });
+  const form = document.querySelector('#reset-password');
+  if (!form) return;
+  form.onsubmit = (e) => {
+    e.preventDefault();
+    busy(e.submitter, async () => {
+      const values = Object.fromEntries(new FormData(form));
+      if (values.password !== values.confirm_password) {
+        throw new Error('The passwords do not match.');
+      }
+      await updateRecoveryPassword(values.password);
+      notice('Password updated. Please sign in with your new password.', false);
+      setTimeout(() => render(), 700);
+    });
   };
 }
 async function refresh() {
@@ -529,4 +556,10 @@ function render() {
 }
 window.addEventListener('hashchange', render);
 window.addEventListener('pagehide', stopCamera);
-render();
+async function bootstrap() {
+  const recovery = await initializeRecovery();
+  if (recovery.active) resetPassword();
+  else if (recovery.error) resetPassword(recovery.error);
+  else render();
+}
+bootstrap();

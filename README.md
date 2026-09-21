@@ -6,6 +6,8 @@ Static frontend for Young Leadership Academy and the existing Google Apps Script
 
 Run `npm ci`, then set `VITE_API_URL` in an ignored `.env.local` file to your deployed Apps Script URL ending in /exec. Run `npm run dev`.
 
+For the temporary staging-only Supabase password-recovery screen, also set `VITE_SUPABASE_ANON_KEY` in `.env.local`. The staging Supabase URL defaults to `https://yvtgwzvjpztvztozcfir.supabase.co` and may be overridden with `VITE_SUPABASE_URL`. The recovery access session is kept in memory only, URL fragments are cleared after initialization, and the app never logs or displays credentials or tokens. Configure these variables only for the staging/frontend build; do not add them to production configuration.
+
 ## Production build
 
 Run `npm run build`. Output is in ignored `dist/`. Vite configuration values are public in the built app; never put passwords or tokens in them.
