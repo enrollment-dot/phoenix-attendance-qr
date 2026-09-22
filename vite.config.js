@@ -5,7 +5,7 @@ const stagingApiUrl =
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
-  const apiUrl = process.env.GITHUB_ACTIONS ? stagingApiUrl : env.VITE_API_URL;
+  const apiUrl = env.VITE_API_URL || (process.env.GITHUB_ACTIONS ? stagingApiUrl : undefined);
 
   return {
     base: './',
