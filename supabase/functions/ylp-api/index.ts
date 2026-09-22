@@ -782,6 +782,24 @@ export async function handleRequest(request: Request, backend: BackendAdapter, c
         if (typeof payload.session_id !== 'string' || !payload.session_id) throw new ValidationError('Session not found.');
         result = await backend.closeSession(payload.session_id, token);
         break;
+      case 'migrateSession': {
+        await requireAdmin(token, config, backend);
+        if (!config.migrationMode) throw new ValidationError('Migration mode is disabled.');
+        const migrationPayload = payload as unknown as CreateSessionPayload & { qr_token?: unknown; status?: unknown };
+        if (typeof migrationPayload.qr_token !== 'string' || typeof migrationPayload.status !== 'string' || !['active', 'closed'].includes(migrationPayload.status)) {
+          throw new ValidationError('Migration session payload is invalid.');
+        }
+        const requestId = normalizeUuidV4(migrationPayload.request_id);
+        const qrTokenHash = await hashQrToken(migrationPayload.qr_token);
+        const qrTokenCiphertext = await encryptQrToken(migrationPayload.qr_token, requestId, config.qrKeyring);
+        const input = await buildCreateSessionRpcInput(migrationPayload, config.sessionTimeOffset, qrTokenHash, qrTokenCiphertext);
+        result = await backend.createSession(input, token);
+        result = await mapCreateSessionResponse(result, config.qrKeyring, config.sessionTimeOffset);
+        if (migrationPayload.status === 'closed' && result.ok === true) {
+          result = await backend.closeSession(requestId, token);
+        }
+        break;
+      }
       case 'createSession': {
         await requireAdmin(token, config, backend);
         const createPayload = payload as unknown as CreateSessionPayload;
@@ -845,6 +863,7 @@ if (import.meta.main) {
   const qrKeyId = Deno.env.get('YLP_QR_ENCRYPTION_KEY_ID');
   const qrKeysJson = Deno.env.get('YLP_QR_ENCRYPTION_KEYS_JSON');
   const rateLimitHmacSecret = Deno.env.get('YLP_RATE_LIMIT_HMAC_SECRET_V1');
+  const migrationMode = Deno.env.get('YLP_MIGRATION_MODE') === 'true';
   if (!supabaseUrl || !supabaseAnonKey || !serviceRoleKey || !allowedOrigin || !adminLoginEmail || !allowedRoles || !sessionTimeOffset || !qrKeyId || !qrKeysJson || !rateLimitHmacSecret) {
     throw new Error('Draft runtime configuration is incomplete.');
   }
@@ -861,6 +880,7 @@ if (import.meta.main) {
     qrKeyring: parseQrKeyring(qrKeysJson, qrKeyId),
     allowedOrigin,
     rateLimitHmacSecret,
+    migrationMode,
   };
   Deno.serve((request) => handleRequest(request, new SupabaseRpcBackend(config), config));
 }
