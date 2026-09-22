@@ -85,7 +85,9 @@ aside {
   display: grid;
   place-items: center;
   width: 43px;
-  height: 46px;
+  height: auto;
+  aspect-ratio: 913 / 790;
+  max-height: 46px;
   border-radius: 12px;
   flex: 0 0 auto;
   object-fit: contain;
@@ -602,7 +604,9 @@ td small {
   }
   .mark {
     width: 36px;
-    height: 39px;
+    height: auto;
+    aspect-ratio: 913 / 790;
+    max-height: 39px;
     font-size: 25px;
   }
   .workspace,
