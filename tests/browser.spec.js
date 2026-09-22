@@ -25,8 +25,8 @@ const row = {
 };
 async function mock(page, supportsRetries = true) {
   let record = null;
-  await page.route('**/__test_api', async (route) => {
-    const r = route.request().postDataJSON();
+  await page.route('http://127.0.0.1:5184/__test_api', async (route) => {
+    const r = JSON.parse(route.request().postData() || '{}');
     let data = {},
       error = '';
     switch (r.action) {
