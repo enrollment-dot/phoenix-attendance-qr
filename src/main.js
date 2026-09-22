@@ -302,17 +302,42 @@ function createForm() {
 }
 async function showQr(s) {
   frame(
-    `<div class="page-title"><div><p class="eyebrow">SESSION QR</p><h1>${esc(s.course)}</h1><p>${esc(sessionLabel(s, data.settings.offset))}</p></div><button id="back" class="secondary">Back to overview</button></div><section class="card qr-card"><span class="badge present">${esc(s.status)}</span><h2>Record your attendance</h2><canvas id="qr" aria-label="Class attendance QR code"></canvas><p>Open your phone camera and point it at this QR.<br>Enter your student ID, then choose Scan In or Scan Out.</p><div class="actions"><button id="copy" class="secondary">Copy student link</button><button id="download" class="secondary">Download QR</button>${s.status === 'active' ? '<button id="close" class="danger">Close session</button>' : ''}</div><p class="helper">Share this QR only with students in this Academy class. It gives access to this session.</p></section>`,
+    `<div class="page-title"><div><p class="eyebrow">SESSION QR</p><h1>${esc(s.course)}</h1><p>${esc(sessionLabel(s, data.settings.offset))}</p></div><button id="back" class="secondary">Back to overview</button></div><section class="card qr-card"><span class="badge present">${esc(s.status)}</span><div class="qr-brand"><h2>Young Leadership Academy</h2><p>LEARN • LEAD • GROW</p></div><canvas id="qr" aria-label="Young Leadership Academy class attendance QR code"></canvas><h3 class="qr-session-name">${esc(s.course)}</h3><p>Open your phone camera and point it at this QR.<br>Enter your student ID, then choose Scan In or Scan Out.</p><div class="actions"><button id="copy" class="secondary">Copy student link</button><button id="download" class="secondary">Download QR</button>${s.status === 'active' ? '<button id="close" class="danger">Close session</button>' : ''}</div><p class="helper">Share this QR only with students in this Academy class. It gives access to this session.</p></section>`,
   );
   const current = pageGuard();
   document.querySelector('#back').onclick = dashboard;
-  await QRCode.toCanvas(document.querySelector('#qr'), scanLink(s), {
+  const canvas = document.querySelector('#qr');
+  await QRCode.toCanvas(canvas, scanLink(s), {
     width: 320,
     margin: 4,
-    errorCorrectionLevel: 'M',
+    errorCorrectionLevel: 'H',
     color: { dark: '#152c2a', light: '#ffffff' },
   });
+  const logo = new Image();
+  logo.src = 'yla-logo-mark.png';
+  await new Promise((resolve) => {
+    logo.onload = resolve;
+    logo.onerror = resolve;
+  });
   if (!current()) return;
+  if (logo.complete && logo.naturalWidth > 0) {
+    const ctx = canvas.getContext('2d');
+    const size = 76;
+    const x = (canvas.width - size) / 2;
+    const y = (canvas.height - size) / 2;
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.roundRect(x, y, size, size, 12);
+    ctx.fill();
+    const logoSize = 52;
+    ctx.drawImage(
+      logo,
+      (canvas.width - logoSize) / 2,
+      (canvas.height - logoSize) / 2,
+      logoSize,
+      logoSize,
+    );
+  }
   document.querySelector('#copy').onclick = (e) =>
     busy(e.target, async () => {
       await navigator.clipboard.writeText(scanLink(s));
