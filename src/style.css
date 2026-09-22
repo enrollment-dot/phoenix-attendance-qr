@@ -85,7 +85,9 @@ aside {
   display: grid;
   place-items: center;
   width: 43px;
-  height: 46px;
+  height: auto;
+  aspect-ratio: 913 / 790;
+  max-height: 46px;
   border-radius: 12px;
   flex: 0 0 auto;
   object-fit: contain;
@@ -416,8 +418,30 @@ input::placeholder {
   text-align: center;
   max-width: 850px;
 }
-.qr-card h2 {
-  margin: 22px 0 6px;
+.qr-brand {
+  margin: 18px 0 20px;
+  display: grid;
+  gap: 4px;
+  justify-items: center;
+}
+.qr-brand strong {
+  font: 800 clamp(24px, 3vw, 34px) Manrope, system-ui;
+  letter-spacing: -0.8px;
+  color: #183e32;
+}
+.qr-brand span {
+  color: #56705f;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 2px;
+}
+.qr-session-name {
+  margin: 18px 0 2px;
+}
+.qr-attendance-title {
+  color: #203833;
+  margin: 0 0 8px;
+  font-size: 20px;
 }
 .qr-card canvas {
   max-width: 100%;
@@ -580,7 +604,9 @@ td small {
   }
   .mark {
     width: 36px;
-    height: 39px;
+    height: auto;
+    aspect-ratio: 913 / 790;
+    max-height: 39px;
     font-size: 25px;
   }
   .workspace,
