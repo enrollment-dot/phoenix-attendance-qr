@@ -180,3 +180,19 @@ test('safe read-only actions retry redirected 404; writes and other failures do 
       'The service could not deliver the class details. Attendance has not been submitted.',
     );
 });
+
+test('session QR uses the YLA branded layout and embeds the app logo', async ({ page }) => {
+  await mock(page);
+  await page.goto('/');
+  await page.getByText('Sign in to Young Leadership Academy').waitFor();
+  await page.locator('#login input[name="password"]').fill('test-password');
+  await page.locator('#login button[type="submit"]').click();
+  await page.getByText('Class overview').waitFor();
+  await page.getByRole('button', { name: 'Display QR ↗' }).click();
+  await expect(page.locator('.qr-brand strong')).toHaveText('Young Leadership Academy');
+  await expect(page.locator('.qr-brand span')).toHaveText('LEARN • LEAD • GROW');
+  await expect(page.locator('.qr-session-name')).toHaveText('English · Intermediate');
+  await expect(page.locator('.qr-attendance-title')).toHaveText('Record your attendance');
+  await expect(page.locator('#qr')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Download QR' })).toBeVisible();
+});
