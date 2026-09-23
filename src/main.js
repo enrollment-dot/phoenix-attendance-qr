@@ -32,6 +32,7 @@ import {
 const YLA_LOGO_SRC = 'yla-logo-mark.png';
 const root = document.querySelector('#app');
 let token = '',
+  role = '',
   data = null,
   view = 'dashboard',
   pageVersion = 0;
@@ -53,7 +54,7 @@ const field = (label, name, type = 'text', extra = '') =>
   `<label>${label}<input name="${name}" type="${type}" ${extra} required></label>`;
 function frame(content, attendee = false) {
   pageVersion++;
-  root.innerHTML = `<div class="shell"><aside><a class="brand" href="#" aria-label="Young Leadership Academy"><img class="mark" src="${YLA_LOGO_SRC}" alt="" /><span>Young Leadership Academy<small>LEARN • LEAD • GROW</small></span></a><div class="workspace">${attendee ? 'STUDENTS' : 'TEACHING TEAM'}</div><nav>${attendee ? '<a href="#">← Back to home</a>' : `<button data-nav="dashboard" class="${view === 'dashboard' ? 'selected' : ''}">▦ &nbsp; Overview</button><button data-nav="reports" class="${view === 'reports' ? 'selected' : ''}">≡ &nbsp; Attendance</button><button data-nav="students" class="${view === 'students' ? 'selected' : ''}">♙ &nbsp; Students</button><button data-nav="scanner">▣ &nbsp; Scan a QR</button>`}</nav><div class="aside-bottom">Your class.<br>Your attendance.<hr><span class="tiny">LEARN • LEAD • GROW</span></div></aside><main><header><span>${attendee ? 'Young Leadership Academy / Student attendance' : 'Young Leadership Academy / ' + (view === 'reports' ? 'Attendance' : 'Overview')}</span>${token ? '<button class="text" id="logout">Sign out</button>' : '<span class="tiny">LEARN • LEAD • GROW</span>'}</header><div id="notice" role="status" aria-live="polite"></div>${content}<footer>Young Leadership Academy · For teachers and students</footer></main></div>`;
+  root.innerHTML = `<div class="shell"><aside><a class="brand" href="#" aria-label="Young Leadership Academy"><img class="mark" src="${YLA_LOGO_SRC}" alt="" /><span>Young Leadership Academy<small>LEARN • LEAD • GROW</small></span></a><div class="workspace">${attendee ? 'STUDENTS' : 'TEACHING TEAM'}</div><nav>${attendee ? '<a href="#">← Back to home</a>' : `<button data-nav="dashboard" class="${view === 'dashboard' ? 'selected' : ''}">▦ &nbsp; Overview</button><button data-nav="reports" class="${view === 'reports' ? 'selected' : ''}">≡ &nbsp; Attendance</button><button data-nav="students" class="${view === 'students' ? 'selected' : ''}">♙ &nbsp; Students</button>${role === 'admin' ? `<button data-nav="accounts" class="${view === 'accounts' ? 'selected' : ''}">♙ &nbsp; Accounts</button>` : ''}<button data-nav="scanner">▣ &nbsp; Scan a QR</button>`}</nav><div class="aside-bottom">Your class.<br>Your attendance.<hr><span class="tiny">LEARN • LEAD • GROW</span></div></aside><main><header><span>${attendee ? 'Young Leadership Academy / Student attendance' : 'Young Leadership Academy / ' + (view === 'reports' ? 'Attendance' : 'Overview')}</span>${token ? '<button class="text" id="logout">Sign out</button>' : '<span class="tiny">LEARN • LEAD • GROW</span>'}</header><div id="notice" role="status" aria-live="polite"></div>${content}<footer>Young Leadership Academy · For teachers and students</footer></main></div>`;
   root.querySelectorAll('a[href="#"]').forEach(
     (a) =>
       (a.onclick = () => {
@@ -71,6 +72,7 @@ function frame(content, attendee = false) {
   root.querySelector('#logout')?.addEventListener('click', async () => {
     const previousToken = token;
     token = '';
+    role = '';
     data = null;
     render();
     try {
@@ -120,6 +122,7 @@ function login() {
         throw new Error('The service returned an invalid login confirmation.');
       }
       token = result.token;
+      role = result.role === 'admin' || result.role === 'operator' ? result.role : '';
       await refresh();
     });
   };
@@ -455,6 +458,29 @@ function students() {
   };
   renderRows();
 }
+function accounts() {
+  if (role !== 'admin') { view = 'dashboard'; return dashboard(); }
+  let rows = [];
+  frame('<div class="page-title"><div><p class="eyebrow">ACADEMY ACCESS CONTROL</p><h1>Accounts</h1><p>Admin accounts can manage Academy access. Operators can create sessions but cannot manage students, attendance, or accounts.</p></div><button class="primary" id="add-account">＋ Add account</button></div><section class="card"><div id="account-editor"></div><div class="table-wrap"><table><thead><tr><th>Email</th><th>Username</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead><tbody id="account-rows"><tr><td colspan="5" class="empty">Loading accounts…</td></tr></tbody></table></div></section>');
+  const editor = document.querySelector('#account-editor');
+  const table = document.querySelector('#account-rows');
+  const load = async () => { const result = await api('adminAccounts', {}, token); rows = Array.isArray(result) ? result : []; renderRows(); };
+  const renderRows = () => {
+    table.innerHTML = rows.length ? rows.map((a) => `<tr><td><b>${esc(a.email)}</b></td><td>${esc(a.username || '—')}</td><td><span class="badge">${esc(a.role)}</span></td><td><span class="badge ${a.active ? 'present' : 'absent'}">${a.active ? 'Active' : 'Inactive'}</span></td><td><button class="text" data-edit="${esc(a.admin_id)}">Edit</button> <button class="text" data-toggle="${esc(a.admin_id)}">${a.active ? 'Deactivate' : 'Activate'}</button> <button class="text" data-remove="${esc(a.admin_id)}">Remove</button></td></tr>`).join('') : '<tr><td colspan="5" class="empty">No accounts found.</td></tr>';
+    table.querySelectorAll('[data-edit]').forEach((b) => b.onclick = () => openEditor(rows.find((a) => a.admin_id === b.dataset.edit)));
+    table.querySelectorAll('[data-toggle]').forEach((b) => b.onclick = () => toggleAccount(rows.find((a) => a.admin_id === b.dataset.toggle)));
+    table.querySelectorAll('[data-remove]').forEach((b) => b.onclick = () => removeAccount(rows.find((a) => a.admin_id === b.dataset.remove)));
+  };
+  const openEditor = (account = null) => {
+    editor.innerHTML = `<div class="card inline-editor"><h3>${account ? 'Edit account' : 'Add account'}</h3><form id="account-form"><div class="form-grid">${account ? `<label>Email<input value="${esc(account.email)}" disabled></label>` : `<label>Email<input name="email" type="email" autocomplete="email" required placeholder="operator@example.com"></label>`}<label>Username<input name="username" maxlength="40" pattern="[A-Za-z0-9._-]{3,40}" value="${esc(account?.username || '')}" required placeholder="academy.operator"></label></div><div class="form-grid"><label>Role<select name="role"><option value="operator" ${account?.role === 'operator' ? 'selected' : ''}>Operator</option><option value="admin" ${account?.role === 'admin' ? 'selected' : ''}>Admin</option></select></label><label>${account ? 'New password (optional)' : 'Password'}<input name="password" type="password" autocomplete="new-password" minlength="16" ${account ? '' : 'required'} placeholder="Minimum 16 characters"></label></div><div class="actions"><button type="button" class="secondary" id="cancel-account">Cancel</button><button class="primary">${account ? 'Save account' : 'Create account'}</button></div></form></div>`;
+    document.querySelector('#cancel-account').onclick = () => editor.innerHTML = '';
+    document.querySelector('#account-form').onsubmit = (e) => { e.preventDefault(); busy(e.submitter, async () => { const v = Object.fromEntries(new FormData(e.target)); if (account) { const payload = { admin_id: account.admin_id, username: v.username, role: v.role, active: account.active }; if (v.password) payload.password = v.password; await api('updateAdminAccount', payload, token); notice('Account updated.', false); } else { await api('createAdminAccount', { email: v.email, password: v.password, username: v.username, role: v.role }, token); notice('Account created.', false); } editor.innerHTML = ''; await load(); }); };
+  };
+  const toggleAccount = (account) => { if (!account) return; const button = document.querySelector(`[data-toggle="${CSS.escape(account.admin_id)}"]`); busy(button, async () => { await api('updateAdminAccount', { admin_id: account.admin_id, username: account.username, role: account.role, active: !account.active }, token); await load(); notice(account.active ? 'Account deactivated.' : 'Account activated.', false); }); };
+  const removeAccount = (account) => { if (!account) return; if (!confirm(`Remove ${account.email}? This permanently removes the authentication account.`)) return; const button = document.querySelector(`[data-remove="${CSS.escape(account.admin_id)}"]`); busy(button, async () => { await api('removeAdminAccount', { admin_id: account.admin_id }, token); await load(); notice('Account removed.', false); }); };
+  document.querySelector('#add-account').onclick = () => openEditor();
+  load().catch((e) => notice(e.message));
+}
 function reports() {
   frame(
     `<div class="page-title"><div><p class="eyebrow">ACADEMY ATTENDANCE RECORDS</p><h1>Attendance report</h1><p>Review student attendance by session, course, date, or student.</p></div><button class="primary" id="export">↓ Export CSV</button></div><section class="card"><form id="filters" class="filters"><label>Session<select name="session"><option value="">All sessions</option>${data.sessions.map((s) => `<option value="${esc(s.session_id)}">${esc(s.course)} · ${esc(sessionTimes(s, data.settings.offset).date)}</option>`).join('')}</select></label><label>Course<select name="course"><option value="">All courses</option>${[...new Set(data.sessions.map((s) => s.course))].map((c) => `<option>${esc(c)}</option>`).join('')}</select></label><label>Date<input name="date" type="date"></label><label>Student<input name="student" placeholder="Name or ID" type="search"></label></form><div id="report-summary" class="section-title"></div><div class="table-wrap"><table><thead><tr>${['Student', 'Course / date', 'Scan In', 'Scan Out', 'Minutes', 'Status'].map((v) => `<th>${v}</th>`).join('')}</tr></thead><tbody id="rows"></tbody></table></div><p class="helper">Timestamps shown in ${REPORT_TIME_ZONE_LABEL}. Dates beside course names are the scheduled session dates. Absent is calculated after class ends; upcoming students are Pending. Percentage counts students with Scan In, including late and early departures. ${data.settings.enrolled ? 'The current active roster is used for all courses.' : 'Enrollment validation is disabled: percentage covers recorded attendees only.'}</p></section>`,
@@ -669,6 +695,7 @@ function render() {
   if (!token || !data) return login();
   if (view === 'reports') return reports();
   if (view === 'students') return students();
+  if (view === 'accounts') return accounts();
   dashboard();
 }
 window.addEventListener('hashchange', render);
