@@ -1,0 +1,39 @@
+name: Staging Feature Tests
+
+on:
+  push:
+    branches:
+      - feat/admin-account-management-ui
+  pull_request:
+    branches:
+      - feat/admin-account-management-ui
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      VITE_API_URL: https://yvtgwzvjpztvztozcfir.supabase.co/functions/v1/ylp-api
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Production build
+        run: npm run build
+
+      - name: Browser tests
+        run: npm run test:browser
