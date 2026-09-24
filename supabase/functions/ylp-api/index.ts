@@ -777,21 +777,21 @@ export async function handleRequest(request: Request, backend: BackendAdapter, c
         result = await mapDashboardResponse(await backend.dashboard(token), config.qrKeyring, config.sessionTimeOffset);
         break;
       case 'students':
-        await requireAdmin(token, config, backend);
+        await requireAdminRole(token, config, backend, ['admin']);
         result = await backend.students();
         break;
       case 'createStudent':
-        await requireAdmin(token, config, backend);
+        await requireAdminRole(token, config, backend, ['admin']);
         if (typeof payload.student_id !== 'string' || typeof payload.name !== 'string') throw new ValidationError('Student ID and name are required.');
         result = await backend.createStudent(payload.student_id, payload.name);
         break;
       case 'updateStudent':
-        await requireAdmin(token, config, backend);
+        await requireAdminRole(token, config, backend, ['admin']);
         if (typeof payload.student_id !== 'string' || typeof payload.name !== 'string') throw new ValidationError('Student ID and name are required.');
         result = await backend.updateStudent(payload.student_id, payload.name);
         break;
       case 'setStudentActive':
-        await requireAdmin(token, config, backend);
+        await requireAdminRole(token, config, backend, ['admin']);
         if (typeof payload.student_id !== 'string' || typeof payload.active !== 'boolean') throw new ValidationError('Student ID and active status are required.');
         result = await backend.setStudentActive(payload.student_id, payload.active);
         break;
