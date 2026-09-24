@@ -758,6 +758,62 @@ export class SupabaseRpcBackend implements BackendAdapter {
     return this.rpc('ylp_student_set_active_v1', { p_student_id: studentId, p_active: active });
   }
 
+  async adminAccounts(): Promise<unknown> {
+    return this.rpc('ylp_admin_accounts_v1', {});
+  }
+
+  async createAdminAccount(email: string, password: string, username: string | null, role: string): Promise<unknown> {
+    const response = await fetch(this.config.supabaseUrl + '/auth/v1/admin/users', {
+      method: 'POST',
+      headers: {
+        apikey: this.config.supabaseServiceRoleKey,
+        authorization: 'Bearer ' + this.config.supabaseServiceRoleKey,
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({ email, password, email_confirm: true }),
+    });
+    if (!response.ok) throw new Error('auth user creation failed');
+    const created = await response.json() as Record<string, unknown>;
+    const nestedUser = created.user && typeof created.user === 'object' ? created.user as Record<string, unknown> : null;
+    const adminId = typeof created.id === 'string' ? created.id : nestedUser && typeof nestedUser.id === 'string' ? nestedUser.id : null;
+    if (!adminId) throw new Error('auth user creation returned no user id');
+    try {
+      return await this.rpc('ylp_admin_account_create_profile_v1', { p_admin_id: adminId, p_username: username, p_role: role });
+    } catch (error) {
+      await fetch(this.config.supabaseUrl + '/auth/v1/admin/users/' + encodeURIComponent(adminId), {
+        method: 'DELETE',
+        headers: { apikey: this.config.supabaseServiceRoleKey, authorization: 'Bearer ' + this.config.supabaseServiceRoleKey },
+      });
+      throw error;
+    }
+  }
+
+  async updateAdminAccount(adminId: string, username: string | null, role: string, active: boolean, password?: string): Promise<unknown> {
+    if (password) {
+      const response = await fetch(this.config.supabaseUrl + '/auth/v1/admin/users/' + encodeURIComponent(adminId), {
+        method: 'PUT',
+        headers: {
+          apikey: this.config.supabaseServiceRoleKey,
+          authorization: 'Bearer ' + this.config.supabaseServiceRoleKey,
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({ password }),
+      });
+      if (!response.ok) throw new Error('auth user update failed');
+    }
+    return this.rpc('ylp_admin_account_update_v1', { p_admin_id: adminId, p_username: username, p_role: role, p_active: active });
+  }
+
+  async removeAdminAccount(adminId: string): Promise<unknown> {
+    const removed = await this.rpc('ylp_admin_account_remove_profile_v1', { p_admin_id: adminId });
+    const deleted = await fetch(this.config.supabaseUrl + '/auth/v1/admin/users/' + encodeURIComponent(adminId), {
+      method: 'DELETE',
+      headers: { apikey: this.config.supabaseServiceRoleKey, authorization: 'Bearer ' + this.config.supabaseServiceRoleKey },
+    });
+    if (!deleted.ok) throw new Error('auth user removal failed');
+    return removed;
+  }
+
   async consumeRateLimit(scope: RateLimitScope, subjectHash: string, limit: number, windowSeconds: number): Promise<RateLimitDecision> {
     const result = await this.rpc('ylp_consume_rate_limit_v1', { p_scope: scope, p_subject_hash: subjectHash, p_limit: limit, p_window_seconds: windowSeconds });
     if (!result || typeof result !== 'object' || typeof (result as Record<string, unknown>).allowed !== 'boolean') throw new Error('invalid rate-limit response');
@@ -814,6 +870,29 @@ export async function handleRequest(request: Request, backend: BackendAdapter, c
         await requireAdminRole(token, config, backend, ['admin']);
         if (typeof payload.student_id !== 'string' || typeof payload.active !== 'boolean') throw new ValidationError('Student ID and active status are required.');
         result = await backend.setStudentActive(payload.student_id, payload.active);
+        break;
+      case 'adminAccounts':
+        await requireAdminRole(token, config, backend, ['admin']);
+        result = await backend.adminAccounts();
+        break;
+      case 'createAdminAccount':
+        await requireAdminRole(token, config, backend, ['admin']);
+        if (typeof payload.email !== 'string' || typeof payload.password !== 'string' || typeof payload.username !== 'string' || typeof payload.role !== 'string' || !payload.email.trim() || !payload.password || !payload.username.trim() || !['admin', 'operator'].includes(payload.role)) throw new ValidationError('Email, password, username, and role are required.');
+        if (payload.password.length < 16) throw new ValidationError('Password must be at least 16 characters.');
+        if (!/^[A-Za-z0-9._-]{3,40}$/.test(payload.username.trim())) throw new ValidationError('Username is invalid.');
+        result = await backend.createAdminAccount(payload.email.trim(), payload.password, payload.username.trim(), payload.role);
+        break;
+      case 'updateAdminAccount':
+        await requireAdminRole(token, config, backend, ['admin']);
+        if (typeof payload.admin_id !== 'string' || typeof payload.username !== 'string' || typeof payload.role !== 'string' || typeof payload.active !== 'boolean' || !['admin', 'operator'].includes(payload.role)) throw new ValidationError('Account ID, username, role, and active status are required.');
+        if (!/^[A-Za-z0-9._-]{3,40}$/.test(payload.username.trim())) throw new ValidationError('Username is invalid.');
+        if (payload.password !== undefined && (typeof payload.password !== 'string' || payload.password.length < 16)) throw new ValidationError('Password must be at least 16 characters.');
+        result = await backend.updateAdminAccount(payload.admin_id, payload.username.trim(), payload.role, payload.active, typeof payload.password === 'string' && payload.password ? payload.password : undefined);
+        break;
+      case 'removeAdminAccount':
+        await requireAdminRole(token, config, backend, ['admin']);
+        if (typeof payload.admin_id !== 'string' || !payload.admin_id) throw new ValidationError('Account ID is required.');
+        result = await backend.removeAdminAccount(payload.admin_id);
         break;
       case 'closeSession':
         await requireAdmin(token, config, backend);
