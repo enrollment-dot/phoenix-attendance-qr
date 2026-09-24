@@ -306,7 +306,7 @@ function createForm() {
 }
 async function showQr(s) {
   frame(
-    `<div class="page-title"><div><p class="eyebrow">SESSION QR</p><h1>${esc(s.course)}</h1><p>${esc(sessionLabel(s, data.settings.offset))}</p></div><button id="back" class="secondary">Back to overview</button></div><section class="card qr-card"><span class="badge present">${esc(s.status)}</span><div class="qr-brand" aria-label="Young Leadership Academy"><strong>Young Leadership Academy</strong><span>LEARN • LEAD • GROW</span></div><canvas id="qr" aria-label="Class attendance QR code"></canvas><h2 class="qr-session-name">${esc(s.course)}</h2><h3 class="qr-attendance-title">Record your attendance</h3><p>Open your phone camera and point it at this QR.<br>Enter your student ID, then choose Scan In or Scan Out.</p><div class="actions"><button id="copy" class="secondary">Copy student link</button><button id="download" class="secondary">Download QR</button>${s.status === 'active' ? '<button id="close" class="danger">Close session</button>' : ''}</div><p class="helper">Share this QR only with students in this Academy class. It gives access to this session.</p></section>`,
+    `<div class="page-title"><div><p class="eyebrow">SESSION QR</p><h1>${esc(s.course)}</h1><p>${esc(sessionLabel(s, data.settings.offset))}</p></div><button id="back" class="secondary">Back to overview</button></div><section class="card qr-card"><span class="badge present">${esc(s.status)}</span><div class="qr-brand" aria-label="Young Leadership Academy"><strong>Young Leadership Academy</strong><span>LEARN • LEAD • GROW</span></div><canvas id="qr" aria-label="Class attendance QR code"></canvas><h2 class="qr-session-name">${esc(s.course)}</h2><h3 class="qr-attendance-title">Record your attendance</h3><p>Open your phone camera and point it at this QR.<br>Enter your student ID, then choose Scan In or Scan Out.</p><div class="actions"><button id="copy" class="secondary">Copy student link</button><button id="download" class="secondary">Download QR</button>${s.status === 'active' ? '<button id="close" class="danger">Close session</button>' : '<button id="delete-session" class="danger">Delete session</button>'}</div><p class="helper">Share this QR only with students in this Academy class. It gives access to this session.</p></section>`,
   );
   const current = pageGuard();
   document.querySelector('#back').onclick = dashboard;
@@ -368,6 +368,14 @@ async function showQr(s) {
         if (current()) showQr(s);
       });
   });
+  document.querySelector('#delete-session')?.addEventListener('click', (e) => {
+    if (!confirm('Delete this closed session? Sessions with attendance history cannot be deleted.')) return;
+    busy(e.target, async () => {
+      await api('deleteSession', { session_id: s.session_id }, token);
+      data.sessions = data.sessions.filter((session) => session.session_id !== s.session_id);
+      dashboard();
+    });
+  });
 }
 function students() {
   const students = Array.isArray(data?.students) ? [...data.students] : [];
@@ -425,7 +433,7 @@ function students() {
     const file = e.target.files?.[0];
     if (!file) return;
     busy(document.querySelector('#import'), async () => {
-      const text = await file.text();
+      const text = (await file.text()).replace(/^\uFEFF/, '');
       const lines = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
       if (!lines.length) throw new Error('The CSV file is empty.');
       const parse = (line) => {
@@ -438,21 +446,52 @@ function students() {
         }
         out.push(cur.trim()); return out;
       };
-      const first = parse(lines[0]).map((v) => v.toLowerCase());
-      const hasHeader = first.includes('student_id') || first.includes('student id');
+      const first = parse(lines[0]).map((v) => v.replace(/^\uFEFF/, '').trim().toLowerCase().replace(/\s+/g, '_'));
+      const hasHeader = first.includes('student_id') || first.includes('studentid');
       const start = hasHeader ? 1 : 0;
       let added = 0, skipped = 0;
-      for (const line of lines.slice(start)) {
-        const [student_id, name] = parse(line);
-        if (!student_id || !name || students.some((s) => s.student_id === student_id.trim())) { skipped++; continue; }
+      const failures = [];
+      const seen = new Set(students.map((s) => s.student_id.trim().toLowerCase()));
+      for (let rowIndex = start; rowIndex < lines.length; rowIndex++) {
+        const line = lines[rowIndex];
+        const [rawStudentId, rawName] = parse(line);
+        const student_id = rawStudentId?.replace(/^\uFEFF/, '').trim();
+        const name = rawName?.trim();
+        if (!student_id || !name) {
+          skipped++;
+          failures.push(`row ${rowIndex + 1}: Student ID and name are required`);
+          continue;
+        }
+        const key = student_id.toLowerCase();
+        if (seen.has(key)) {
+          skipped++;
+          failures.push(`row ${rowIndex + 1}: ${student_id} already exists or is duplicated in this import`);
+          continue;
+        }
         try {
-          const result = await api('createStudent', { student_id: student_id.trim(), name: name.trim() }, token);
+          const result = await api('createStudent', { student_id, name }, token);
           const saved = result?.data ?? result;
-          if (saved?.student_id) { students.push(saved); added++; } else skipped++;
-        } catch { skipped++; }
+          if (!saved?.student_id) {
+            skipped++;
+            failures.push(`row ${rowIndex + 1}: server did not confirm the student record`);
+            continue;
+          }
+          students.push(saved);
+          seen.add(key);
+          added++;
+        } catch (error) {
+          skipped++;
+          failures.push(`row ${rowIndex + 1}: ${error?.message || 'server rejected the student'}`);
+        }
       }
       renderRows();
-      notice(`CSV import complete: ${added} added, ${skipped} skipped.`, false);
+      const summary = `CSV import complete: ${added} added, ${skipped} skipped.`;
+      notice(
+        failures.length
+          ? `${summary} ${failures.slice(0, 3).join(' • ')}${failures.length > 3 ? ` • +${failures.length - 3} more` : ''}`
+          : summary,
+        !!failures.length,
+      );
       e.target.value = '';
     });
   };
