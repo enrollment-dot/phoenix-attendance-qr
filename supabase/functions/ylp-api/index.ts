@@ -779,7 +779,8 @@ export class SupabaseRpcBackend implements BackendAdapter {
     const adminId = typeof created.id === 'string' ? created.id : nestedUser && typeof nestedUser.id === 'string' ? nestedUser.id : null;
     if (!adminId) throw new Error('auth user creation returned no user id');
     try {
-      return await this.rpc('ylp_admin_account_create_profile_v1', { p_admin_id: adminId, p_username: username, p_role: role });
+      const profile = await this.rpc('ylp_admin_account_create_profile_v1', { p_admin_id: adminId, p_username: username, p_role: role });
+      return { ok: true, data: profile };
     } catch (error) {
       await fetch(this.config.supabaseUrl + '/auth/v1/admin/users/' + encodeURIComponent(adminId), {
         method: 'DELETE',
@@ -802,7 +803,8 @@ export class SupabaseRpcBackend implements BackendAdapter {
       });
       if (!response.ok) throw new Error('auth user update failed');
     }
-    return this.rpc('ylp_admin_account_update_v1', { p_admin_id: adminId, p_username: username, p_role: role, p_active: active });
+    const profile = await this.rpc('ylp_admin_account_update_v1', { p_admin_id: adminId, p_username: username, p_role: role, p_active: active });
+    return { ok: true, data: profile };
   }
 
   async removeAdminAccount(adminId: string): Promise<unknown> {
@@ -812,7 +814,7 @@ export class SupabaseRpcBackend implements BackendAdapter {
       headers: { apikey: this.config.supabaseServiceRoleKey, authorization: 'Bearer ' + this.config.supabaseServiceRoleKey },
     });
     if (!deleted.ok) throw new Error('auth user removal failed');
-    return removed;
+    return { ok: true, data: removed };
   }
 
   async consumeRateLimit(scope: RateLimitScope, subjectHash: string, limit: number, windowSeconds: number): Promise<RateLimitDecision> {
