@@ -612,6 +612,20 @@ async function requireAdmin(token: string, config: EdgeConfig, backend: BackendA
   return claims;
 }
 
+async function requireAdminRole(
+  token: string,
+  config: EdgeConfig,
+  backend: BackendAdapter,
+  allowedRoles: string[],
+): Promise<JwtClaims> {
+  const claims = await requireAdmin(token, config, backend);
+  const row = await backend.authorizeAdmin(claims.sub, claims.session_id);
+  if (!row || typeof row !== 'object') throw new AuthenticationError();
+  const role = (row as Record<string, unknown>).role;
+  if (typeof role !== 'string' || !allowedRoles.includes(role)) throw new AuthenticationError();
+  return claims;
+}
+
 export function json<T>(body: ApiResponse<T>, origin: string): Response {
   return new Response(JSON.stringify(body), { status: 200, headers: {
     'content-type': 'application/json; charset=utf-8',
@@ -685,6 +699,10 @@ export class SupabaseRpcBackend implements BackendAdapter {
 
   closeSession(sessionId: string, _token: string): Promise<unknown> {
     return this.rpc('ylp_close_session_v1', { p_session_id: sessionId });
+  }
+
+  deleteSession(sessionId: string, _token: string): Promise<unknown> {
+    return this.rpc('ylp_delete_session_v1', { p_session_id: sessionId });
   }
 
   session(sessionId: string, qrTokenHash: string): Promise<unknown> {
@@ -781,6 +799,11 @@ export async function handleRequest(request: Request, backend: BackendAdapter, c
         await requireAdmin(token, config, backend);
         if (typeof payload.session_id !== 'string' || !payload.session_id) throw new ValidationError('Session not found.');
         result = await backend.closeSession(payload.session_id, token);
+        break;
+      case 'deleteSession':
+        await requireAdminRole(token, config, backend, ['admin']);
+        if (typeof payload.session_id !== 'string' || !payload.session_id) throw new ValidationError('Session not found.');
+        result = await backend.deleteSession(payload.session_id, token);
         break;
       case 'migrateSession': {
         await requireAdmin(token, config, backend);
