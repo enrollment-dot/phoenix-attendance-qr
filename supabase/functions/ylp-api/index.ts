@@ -824,19 +824,32 @@ export class SupabaseRpcBackend implements BackendAdapter {
   }
 }
 
-function assertOrigin(request: Request, config: EdgeConfig): void {
-  const origin = request.headers.get('origin');
-  if (origin && origin !== config.allowedOrigin) throw new ValidationError('Origin is not allowed.');
+function parseAllowedOrigins(value: string): string[] {
+  return value.split(',').map((origin) => origin.trim()).filter(Boolean);
+}
+
+function resolveAllowedOrigin(request: Request, config: EdgeConfig): string {
+  const allowedOrigins = parseAllowedOrigins(config.allowedOrigin);
+  if (!allowedOrigins.length) throw new ValidationError('Origin is not allowed.');
+  const requestOrigin = request.headers.get('origin');
+  if (!requestOrigin) return allowedOrigins[0];
+  if (!allowedOrigins.includes(requestOrigin)) throw new ValidationError('Origin is not allowed.');
+  return requestOrigin;
 }
 
 export async function handleRequest(request: Request, backend: BackendAdapter, config: EdgeConfig): Promise<Response> {
-  if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: {
-    'access-control-allow-origin': config.allowedOrigin,
-    'access-control-allow-headers': 'authorization, content-type, apikey, x-client-info',
-    'access-control-allow-methods': 'POST, OPTIONS', vary: 'Origin',
-  } });
+  const responseOrigin = request.headers.get('origin');
+  const allowedOrigin = responseOrigin ? parseAllowedOrigins(config.allowedOrigin).find((origin) => origin === responseOrigin) ?? '' : parseAllowedOrigins(config.allowedOrigin)[0] ?? '';
+  if (request.method === 'OPTIONS') {
+    if (!allowedOrigin) return new Response(null, { status: 403, headers: { vary: 'Origin' } });
+    return new Response(null, { status: 204, headers: {
+      'access-control-allow-origin': allowedOrigin,
+      'access-control-allow-headers': 'authorization, content-type, apikey, x-client-info',
+      'access-control-allow-methods': 'POST, OPTIONS', vary: 'Origin',
+    } });
+  }
   try {
-    assertOrigin(request, config);
+    const resolvedOrigin = resolveAllowedOrigin(request, config);
     if (request.method !== 'POST') throw new ValidationError('Request method is not allowed.');
     const body = await request.json() as ApiRequest;
     const payload = requirePayload(body);
@@ -956,9 +969,9 @@ export async function handleRequest(request: Request, backend: BackendAdapter, c
       default:
         throw new ValidationError('Unknown action.');
     }
-    return json(result && typeof result === 'object' && 'ok' in result ? result as ApiResponse : normalizeBackendResponse(result), config.allowedOrigin);
+    return json(result && typeof result === 'object' && 'ok' in result ? result as ApiResponse : normalizeBackendResponse(result), resolvedOrigin);
   } catch (error) {
-    return json(publicError(error), config.allowedOrigin);
+    return json(publicError(error), allowedOrigin);
   }
 }
 
