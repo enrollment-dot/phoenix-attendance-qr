@@ -672,16 +672,36 @@ export class SupabaseRpcBackend implements BackendAdapter {
   }
 
   async login(payload: Record<string, unknown>, _token: string): Promise<unknown> {
+    if (typeof payload.username !== 'string' || !payload.username.trim()) throw new AuthenticationError();
     if (typeof payload.password !== 'string' || !payload.password) throw new AuthenticationError();
+
+    const identity = await this.rpc('ylp_admin_login_identity_v1', {
+      p_username: payload.username.trim(),
+    });
+    const row = Array.isArray(identity) ? identity[0] : identity;
+    if (!row || typeof row !== 'object') throw new AuthenticationError();
+
+    const admin = row as Record<string, unknown>;
+    if (
+      typeof admin.email !== 'string' ||
+      !admin.email ||
+      typeof admin.role !== 'string' ||
+      admin.active !== true
+    ) {
+      throw new AuthenticationError();
+    }
+
     const response = await fetch(`${this.config.supabaseUrl}/auth/v1/token?grant_type=password`, { method: 'POST', headers: {
       apikey: this.config.supabaseAnonKey,
       'content-type': 'application/json',
-    }, body: JSON.stringify({ email: this.config.adminLoginEmail, password: payload.password }) });
+    }, body: JSON.stringify({ email: admin.email, password: payload.password }) });
     if (!response.ok) throw new AuthenticationError();
+
     const result = await response.json() as { access_token?: unknown };
     if (typeof result.access_token !== 'string' || !result.access_token) throw new AuthenticationError();
+
     await requireAdmin(result.access_token, this.config, this);
-    return { ok: true, data: { token: result.access_token } };
+    return { ok: true, data: { token: result.access_token, role: admin.role } };
   }
 
   async authorizeAdmin(adminId: string, sessionId: string): Promise<unknown> {
