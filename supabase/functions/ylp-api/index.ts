@@ -759,7 +759,8 @@ export class SupabaseRpcBackend implements BackendAdapter {
   }
 
   async adminAccounts(): Promise<unknown> {
-    return this.rpc('ylp_admin_accounts_v1', {});
+    const result = await this.rpc('ylp_admin_accounts_v1', {});
+    return { ok: true, data: result };
   }
 
   async createAdminAccount(email: string, password: string, username: string | null, role: string): Promise<unknown> {
@@ -1006,3 +1007,4 @@ if (import.meta.main) {
   };
   Deno.serve((request) => handleRequest(request, new SupabaseRpcBackend(config), config));
 }
+
