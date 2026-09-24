@@ -101,7 +101,10 @@ export function percentage(rows) {
     : null;
 }
 export function scanLink(session) {
-  const u = new URL(location.href);
+  // QR codes must always point to the stable public app URL, not the
+  // Vercel preview/deployment URL used by the teacher's browser.
+  const configuredBase = import.meta.env.VITE_PUBLIC_APP_URL?.trim();
+  const u = new URL(configuredBase || location.origin);
   u.hash = new URLSearchParams({
     session: session.session_id,
     token: session.qr_token,
@@ -110,7 +113,9 @@ export function scanLink(session) {
 }
 export function parseScan(value) {
   const u = new URL(value, location.href);
-  if (u.origin !== location.origin || u.pathname !== location.pathname)
+  const configuredBase = import.meta.env.VITE_PUBLIC_APP_URL?.trim();
+  const publicOrigin = new URL(configuredBase || location.origin).origin;
+  if (u.origin !== publicOrigin || u.pathname !== new URL(configuredBase || location.origin).pathname)
     throw new Error('This QR is not for this attendance app.');
   const p = new URLSearchParams(u.hash.slice(1));
   if (!p.get('session') || !p.get('token'))
