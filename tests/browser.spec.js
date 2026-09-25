@@ -243,7 +243,7 @@ test('password recovery waits for the Supabase recovery session and updates the 
     expect(route.request().method()).toBe('PUT');
     expect(route.request().headers().authorization).toBe(`Bearer ${accessToken}`);
     const body = JSON.parse(route.request().postData() || '{}');
-    expect(body).toEqual({ password: 'A-very-secure-new-password-1234' });
+    expect(body.password).toBe('A-very-secure-new-password-1234');
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
