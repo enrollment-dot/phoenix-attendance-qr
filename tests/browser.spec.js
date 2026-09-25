@@ -221,7 +221,19 @@ test('password recovery waits for the Supabase recovery session and updates the 
         contentType: 'application/json',
         body: JSON.stringify({
           id: '00000000-0000-4000-8000-000000000001',
+          aud: 'authenticated',
+          role: 'authenticated',
           email: 'recovery-test@example.invalid',
+          email_confirmed_at: '2026-01-01T00:00:00Z',
+          phone: '',
+          confirmed_at: '2026-01-01T00:00:00Z',
+          last_sign_in_at: '2026-01-01T00:00:00Z',
+          app_metadata: { provider: 'email', providers: ['email'] },
+          user_metadata: {},
+          identities: [],
+          created_at: '2026-01-01T00:00:00Z',
+          updated_at: '2026-01-01T00:00:00Z',
+          is_anonymous: false,
         }),
       });
       return;
