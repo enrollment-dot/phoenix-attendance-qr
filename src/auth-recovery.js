@@ -23,17 +23,24 @@ function clearRecoveryUrl() {
 
 async function waitForRecoverySession(client) {
   let settled = false;
-  let unsubscribe = () => {};
+  let subscription = null;
+  let timer = null;
   let resolveWait;
 
   const waitPromise = new Promise((resolve) => {
     resolveWait = resolve;
   });
 
+  const cleanup = () => {
+    if (timer) clearTimeout(timer);
+    subscription?.unsubscribe();
+    subscription = null;
+  };
+
   const finish = (session) => {
     if (settled) return;
     settled = true;
-    unsubscribe();
+    cleanup();
     resolveWait(session || null);
   };
 
@@ -43,7 +50,8 @@ async function waitForRecoverySession(client) {
     }
   });
 
-  unsubscribe = data.subscription.unsubscribe;
+  subscription = data.subscription;
+  if (settled) subscription.unsubscribe();
 
   const existing = await client.auth.getSession();
   if (existing.data.session?.access_token) {
@@ -51,16 +59,8 @@ async function waitForRecoverySession(client) {
     return existing.data.session;
   }
 
-  const timeout = new Promise((resolve) => {
-    setTimeout(() => resolve(null), 5000);
-  });
-
-  return Promise.race([waitPromise, timeout]).finally(() => {
-    if (!settled) {
-      settled = true;
-      unsubscribe();
-    }
-  });
+  timer = setTimeout(() => finish(null), 5000);
+  return waitPromise;
 }
 
 export async function initializeRecovery() {
