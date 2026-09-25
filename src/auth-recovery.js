@@ -33,10 +33,14 @@ export async function initializeRecovery() {
   }
 
   const code = recoveryCode();
+  const hashParams = new URLSearchParams(location.hash.replace(/^#/, ''));
+  const accessToken = hashParams.get('access_token');
+  const refreshToken = hashParams.get('refresh_token');
+
   recoveryClient = createClient(supabaseUrl, supabaseAnonKey, {
     auth: {
       autoRefreshToken: false,
-      detectSessionInUrl: !code,
+      detectSessionInUrl: false,
       flowType: code ? 'pkce' : 'implicit',
       persistSession: false,
       skipAutoInitialize: true,
@@ -45,19 +49,29 @@ export async function initializeRecovery() {
 
   try {
     if (code) {
-      const { error } = await recoveryClient.auth.exchangeCodeForSession(code);
+      const { error } =
+        await recoveryClient.auth.exchangeCodeForSession(code);
       if (error) {
         clearRecoveryUrl();
         recoveryClient = null;
         return { active: false, error: 'invalid' };
       }
-    }
+    } else {
+      if (!accessToken || !refreshToken) {
+        clearRecoveryUrl();
+        recoveryClient = null;
+        return { active: false, error: 'invalid' };
+      }
 
-    const { error } = await recoveryClient.auth.initialize();
-    if (error) {
-      clearRecoveryUrl();
-      recoveryClient = null;
-      return { active: false, error: 'invalid' };
+      const { data, error } = await recoveryClient.auth.setSession({
+        access_token: accessToken,
+        refresh_token: refreshToken,
+      });
+      if (error || !data.session?.access_token) {
+        clearRecoveryUrl();
+        recoveryClient = null;
+        return { active: false, error: 'invalid' };
+      }
     }
 
     const session = (await recoveryClient.auth.getSession()).data.session;
