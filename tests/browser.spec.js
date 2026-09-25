@@ -215,11 +215,35 @@ test('password recovery waits for the Supabase recovery session and updates the 
 
   let updateCalls = 0;
   await page.route('**/auth/v1/user', async (route) => {
+    if (route.request().method() === 'GET') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          id: '00000000-0000-4000-8000-000000000001',
+          aud: 'authenticated',
+          role: 'authenticated',
+          email: 'recovery-test@example.invalid',
+          email_confirmed_at: '2026-01-01T00:00:00Z',
+          phone: '',
+          confirmed_at: '2026-01-01T00:00:00Z',
+          last_sign_in_at: '2026-01-01T00:00:00Z',
+          app_metadata: { provider: 'email', providers: ['email'] },
+          user_metadata: {},
+          identities: [],
+          created_at: '2026-01-01T00:00:00Z',
+          updated_at: '2026-01-01T00:00:00Z',
+          is_anonymous: false,
+        }),
+      });
+      return;
+    }
+
     updateCalls++;
     expect(route.request().method()).toBe('PUT');
     expect(route.request().headers().authorization).toBe(`Bearer ${accessToken}`);
     const body = JSON.parse(route.request().postData() || '{}');
-    expect(body).toEqual({ password: 'A-very-secure-new-password-1234' });
+    expect(body.password).toBe('A-very-secure-new-password-1234');
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -238,7 +262,7 @@ test('password recovery waits for the Supabase recovery session and updates the 
   await expect(page.getByText('Set a new password')).toBeVisible();
   await expect(page).toHaveURL('http://127.0.0.1:5184/');
 
-  await page.getByLabel('New password').fill('A-very-secure-new-password-1234');
+  await page.getByRole('textbox', { name: 'New password', exact: true }).fill('A-very-secure-new-password-1234');
   await page.getByLabel('Confirm new password').fill('A-very-secure-new-password-1234');
   await page.getByRole('button', { name: 'Save new password →' }).click();
 

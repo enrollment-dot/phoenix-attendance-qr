@@ -12,54 +12,16 @@ function recoveryCode() {
 
 export function hasRecoveryRedirect() {
   const hashParams = new URLSearchParams(location.hash.replace(/^#/, ''));
-  return hashParams.get('type') === 'recovery' || Boolean(recoveryCode());
+  return (
+    hashParams.get('type') === 'recovery' ||
+    (hashParams.has('access_token') && hashParams.has('refresh_token')) ||
+    Boolean(recoveryCode())
+  );
 }
 
 function clearRecoveryUrl() {
   if (!location.hash && !location.search) return;
   history.replaceState(null, document.title, location.pathname);
-}
-
-async function waitForRecoverySession(client) {
-  let settled = false;
-  let subscription = null;
-  let timer = null;
-  let resolveWait;
-
-  const waitPromise = new Promise((resolve) => {
-    resolveWait = resolve;
-  });
-
-  const cleanup = () => {
-    if (timer) clearTimeout(timer);
-    subscription?.unsubscribe();
-    subscription = null;
-  };
-
-  const finish = (session) => {
-    if (settled) return;
-    settled = true;
-    cleanup();
-    resolveWait(session || null);
-  };
-
-  const { data } = client.auth.onAuthStateChange((event, session) => {
-    if (event === 'PASSWORD_RECOVERY' || (event === 'INITIAL_SESSION' && session)) {
-      finish(session);
-    }
-  });
-
-  subscription = data.subscription;
-  if (settled) subscription.unsubscribe();
-
-  const existing = await client.auth.getSession();
-  if (existing.data.session?.access_token) {
-    finish(existing.data.session);
-    return existing.data.session;
-  }
-
-  timer = setTimeout(() => finish(null), 5000);
-  return waitPromise;
 }
 
 export async function initializeRecovery() {
@@ -71,10 +33,14 @@ export async function initializeRecovery() {
   }
 
   const code = recoveryCode();
+  const hashParams = new URLSearchParams(location.hash.replace(/^#/, ''));
+  const accessToken = hashParams.get('access_token');
+  const refreshToken = hashParams.get('refresh_token');
+
   recoveryClient = createClient(supabaseUrl, supabaseAnonKey, {
     auth: {
       autoRefreshToken: false,
-      detectSessionInUrl: !code,
+      detectSessionInUrl: false,
       flowType: code ? 'pkce' : 'implicit',
       persistSession: false,
       skipAutoInitialize: true,
@@ -83,40 +49,32 @@ export async function initializeRecovery() {
 
   try {
     if (code) {
-      const { error } = await recoveryClient.auth.exchangeCodeForSession(code);
+      const { error } =
+        await recoveryClient.auth.exchangeCodeForSession(code);
       if (error) {
         clearRecoveryUrl();
         recoveryClient = null;
         return { active: false, error: 'invalid' };
       }
     } else {
-      // Register the recovery listener before explicitly initializing Auth.
-      // This avoids losing PASSWORD_RECOVERY during automatic URL processing.
-      const recoveryPromise = waitForRecoverySession(recoveryClient);
-      const { error } = await recoveryClient.auth.initialize();
-      if (error) {
+      if (!accessToken || !refreshToken) {
         clearRecoveryUrl();
         recoveryClient = null;
         return { active: false, error: 'invalid' };
       }
-      const session = (await recoveryClient.auth.getSession()).data.session;
-      if (session?.access_token) {
-        recoverySession = session;
-        clearRecoveryUrl();
-        return { active: true };
-      }
-      const listenerSession = await recoveryPromise;
-      if (!listenerSession?.access_token) {
+
+      const { data, error } = await recoveryClient.auth.setSession({
+        access_token: accessToken,
+        refresh_token: refreshToken,
+      });
+      if (error || !data.session?.access_token) {
         clearRecoveryUrl();
         recoveryClient = null;
         return { active: false, error: 'invalid' };
       }
-      recoverySession = listenerSession;
-      clearRecoveryUrl();
-      return { active: true };
     }
 
-    const session = await waitForRecoverySession(recoveryClient);
+    const session = (await recoveryClient.auth.getSession()).data.session;
     if (!session?.access_token) {
       clearRecoveryUrl();
       recoveryClient = null;

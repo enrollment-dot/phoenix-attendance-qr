@@ -741,12 +741,16 @@ function render() {
   if (view === 'accounts') return accounts();
   dashboard();
 }
-window.addEventListener('hashchange', render);
 window.addEventListener('pagehide', stopCamera);
 async function bootstrap() {
   const recovery = await initializeRecovery();
   if (recovery.active) resetPassword();
   else if (recovery.error) resetPassword(recovery.error);
   else render();
+
+  // Only start normal hash navigation after recovery initialization has
+  // finished, so Supabase clearing the recovery hash cannot render login
+  // over the password-reset screen.
+  window.addEventListener('hashchange', render);
 }
 bootstrap();
