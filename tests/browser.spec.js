@@ -197,3 +197,50 @@ test('session QR uses the YLA branded layout and embeds the app logo', async ({ 
   await expect(page.locator('#qr')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Download QR' })).toBeVisible();
 });
+
+
+test('password recovery waits for the Supabase recovery session and updates the password', async ({ page }) => {
+  const payload = btoa(
+    JSON.stringify({
+      sub: '833b0210-83f0-4b54-b832-9054560c2d84',
+      aud: 'authenticated',
+      role: 'authenticated',
+      email: 'enrollment@sifedu.org',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+      iat: Math.floor(Date.now() / 1000),
+    }),
+  );
+  const accessToken = `eyJhbGciOiJub25lIn0.${payload.replace(/=+$/, '')}.test-signature`;
+  const refreshToken = 'recovery-refresh-token-test';
+
+  let updateCalls = 0;
+  await page.route('**/auth/v1/user', async (route) => {
+    updateCalls++;
+    expect(route.request().method()).toBe('PUT');
+    expect(route.request().headers().authorization).toBe(`Bearer ${accessToken}`);
+    const body = JSON.parse(route.request().postData() || '{}');
+    expect(body).toEqual({ password: 'A-very-secure-new-password-1234' });
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        id: '833b0210-83f0-4b54-b832-9054560c2d84',
+        email: 'enrollment@sifedu.org',
+      }),
+    });
+  });
+
+  await page.goto(
+    `/#access_token=${encodeURIComponent(accessToken)}&refresh_token=${encodeURIComponent(refreshToken)}&expires_in=3600&token_type=bearer&type=recovery`,
+  );
+
+  await expect(page.getByText('Reset your password.')).toBeVisible();
+  await expect(page.getByText('Set a new password')).toBeVisible();
+
+  await page.getByLabel('New password').fill('A-very-secure-new-password-1234');
+  await page.getByLabel('Confirm new password').fill('A-very-secure-new-password-1234');
+  await page.getByRole('button', { name: 'Save new password →' }).click();
+
+  await expect(page.getByText('Password updated. Please sign in with your new password.')).toBeVisible();
+  expect(updateCalls).toBe(1);
+});
