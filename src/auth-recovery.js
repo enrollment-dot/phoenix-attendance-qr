@@ -1,7 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL ||
-  'https://yvtgwzvjpztvztozcfir.supabase.co';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
 let recoveryClient = null;
@@ -66,7 +65,7 @@ async function waitForRecoverySession(client) {
 export async function initializeRecovery() {
   if (!hasRecoveryRedirect()) return { active: false };
 
-  if (!supabaseAnonKey) {
+  if (!supabaseUrl || !supabaseAnonKey) {
     clearRecoveryUrl();
     return { active: false, error: 'configuration' };
   }
@@ -127,7 +126,7 @@ export async function updateRecoveryPassword(password) {
 
 export function recoveryMessage(kind) {
   if (kind === 'configuration')
-    return 'Password recovery is not configured for this staging app. Ask the administrator to enable the staging Supabase key.';
+    return 'Password recovery is not configured for this app. Ask the administrator to verify the Supabase environment configuration.';
   if (kind === 'expired')
     return 'This password-recovery link has expired. Request a new recovery email and try again.';
   if (kind === 'invalid')
