@@ -262,7 +262,7 @@ test('password recovery waits for the Supabase recovery session and updates the 
   await expect(page.getByText('Set a new password')).toBeVisible();
   await expect(page).toHaveURL('http://127.0.0.1:5184/');
 
-  await page.getByLabel('New password').fill('A-very-secure-new-password-1234');
+  await page.getByRole('textbox', { name: 'New password', exact: true }).fill('A-very-secure-new-password-1234');
   await page.getByLabel('Confirm new password').fill('A-very-secure-new-password-1234');
   await page.getByRole('button', { name: 'Save new password →' }).click();
 
