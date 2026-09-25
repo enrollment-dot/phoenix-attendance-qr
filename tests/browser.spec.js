@@ -197,3 +197,51 @@ test('session QR uses the YLA branded layout and embeds the app logo', async ({ 
   await expect(page.locator('#qr')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Download QR' })).toBeVisible();
 });
+
+
+test('password recovery waits for the Supabase recovery session and updates the password', async ({ page }) => {
+  const payload = btoa(
+    JSON.stringify({
+      sub: '00000000-0000-4000-8000-000000000001',
+      aud: 'authenticated',
+      role: 'authenticated',
+      email: 'recovery-test@example.invalid',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+      iat: Math.floor(Date.now() / 1000),
+    }),
+  );
+  const accessToken = `eyJhbGciOiJub25lIn0.${payload.replace(/=+$/, '')}.test-signature`;
+  const refreshToken = 'recovery-refresh-token-test';
+
+  let updateCalls = 0;
+  await page.route('**/auth/v1/user', async (route) => {
+    updateCalls++;
+    expect(route.request().method()).toBe('PUT');
+    expect(route.request().headers().authorization).toBe(`Bearer ${accessToken}`);
+    const body = JSON.parse(route.request().postData() || '{}');
+    expect(body).toEqual({ password: 'A-very-secure-new-password-1234' });
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        id: '00000000-0000-4000-8000-000000000001',
+        email: 'recovery-test@example.invalid',
+      }),
+    });
+  });
+
+  await page.goto(
+    `/#access_token=${encodeURIComponent(accessToken)}&refresh_token=${encodeURIComponent(refreshToken)}&expires_in=3600&token_type=bearer&type=recovery`,
+  );
+
+  await expect(page.getByText('Reset your password.')).toBeVisible();
+  await expect(page.getByText('Set a new password')).toBeVisible();
+  await expect(page).toHaveURL('http://127.0.0.1:5184/');
+
+  await page.getByLabel('New password').fill('A-very-secure-new-password-1234');
+  await page.getByLabel('Confirm new password').fill('A-very-secure-new-password-1234');
+  await page.getByRole('button', { name: 'Save new password →' }).click();
+
+  await expect(page.getByText('Password updated. Please sign in with your new password.')).toBeVisible();
+  expect(updateCalls).toBe(1);
+});

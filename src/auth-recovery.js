@@ -21,6 +21,48 @@ function clearRecoveryUrl() {
   history.replaceState(null, document.title, location.pathname);
 }
 
+async function waitForRecoverySession(client) {
+  let settled = false;
+  let subscription = null;
+  let timer = null;
+  let resolveWait;
+
+  const waitPromise = new Promise((resolve) => {
+    resolveWait = resolve;
+  });
+
+  const cleanup = () => {
+    if (timer) clearTimeout(timer);
+    subscription?.unsubscribe();
+    subscription = null;
+  };
+
+  const finish = (session) => {
+    if (settled) return;
+    settled = true;
+    cleanup();
+    resolveWait(session || null);
+  };
+
+  const { data } = client.auth.onAuthStateChange((event, session) => {
+    if (event === 'PASSWORD_RECOVERY' || (event === 'INITIAL_SESSION' && session)) {
+      finish(session);
+    }
+  });
+
+  subscription = data.subscription;
+  if (settled) subscription.unsubscribe();
+
+  const existing = await client.auth.getSession();
+  if (existing.data.session?.access_token) {
+    finish(existing.data.session);
+    return existing.data.session;
+  }
+
+  timer = setTimeout(() => finish(null), 5000);
+  return waitPromise;
+}
+
 export async function initializeRecovery() {
   if (!hasRecoveryRedirect()) return { active: false };
 
@@ -48,13 +90,15 @@ export async function initializeRecovery() {
         return { active: false, error: 'invalid' };
       }
     }
-    const { data, error } = await recoveryClient.auth.getSession();
-    if (error || !data.session?.access_token) {
+
+    const session = await waitForRecoverySession(recoveryClient);
+    if (!session?.access_token) {
       clearRecoveryUrl();
       recoveryClient = null;
       return { active: false, error: 'invalid' };
     }
-    recoverySession = data.session;
+
+    recoverySession = session;
     clearRecoveryUrl();
     return { active: true };
   } catch {
