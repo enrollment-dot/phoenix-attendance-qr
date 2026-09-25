@@ -231,7 +231,7 @@ test('password recovery waits for the Supabase recovery session and updates the 
   });
 
   await page.goto(
-    `/#access_token=${encodeURIComponent(accessToken)}&refresh_token=${encodeURIComponent(refreshToken)}&expires_in=3600&token_type=bearer&type=recovery`,
+    `/#access_token=${encodeURIComponent(accessToken)}&refresh_token=${encodeURIComponent(refreshToken)}&expires_in=3600&token_type=bearer`,
   );
 
   await expect(page.getByText('Reset your password.')).toBeVisible();
