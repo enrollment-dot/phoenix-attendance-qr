@@ -202,10 +202,10 @@ test('session QR uses the YLA branded layout and embeds the app logo', async ({ 
 test('password recovery waits for the Supabase recovery session and updates the password', async ({ page }) => {
   const payload = btoa(
     JSON.stringify({
-      sub: '833b0210-83f0-4b54-b832-9054560c2d84',
+      sub: '00000000-0000-4000-8000-000000000001',
       aud: 'authenticated',
       role: 'authenticated',
-      email: 'enrollment@sifedu.org',
+      email: 'recovery-test@example.invalid',
       exp: Math.floor(Date.now() / 1000) + 3600,
       iat: Math.floor(Date.now() / 1000),
     }),
@@ -224,8 +224,8 @@ test('password recovery waits for the Supabase recovery session and updates the 
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({
-        id: '833b0210-83f0-4b54-b832-9054560c2d84',
-        email: 'enrollment@sifedu.org',
+        id: '00000000-0000-4000-8000-000000000001',
+        email: 'recovery-test@example.invalid',
       }),
     });
   });
@@ -236,6 +236,7 @@ test('password recovery waits for the Supabase recovery session and updates the 
 
   await expect(page.getByText('Reset your password.')).toBeVisible();
   await expect(page.getByText('Set a new password')).toBeVisible();
+  await expect(page).toHaveURL('http://127.0.0.1:5184/');
 
   await page.getByLabel('New password').fill('A-very-secure-new-password-1234');
   await page.getByLabel('Confirm new password').fill('A-very-secure-new-password-1234');
