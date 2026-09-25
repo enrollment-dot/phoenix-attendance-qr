@@ -31,7 +31,7 @@ async function mock(page, supportsRetries = true) {
       error = '';
     switch (r.action) {
       case 'login':
-        data = { token: 'test-admin' };
+        data = { token: 'test-admin', role: 'admin' };
         break;
       case 'dashboard':
         data = {
@@ -185,8 +185,9 @@ test('session QR uses the YLA branded layout and embeds the app logo', async ({ 
   await mock(page);
   await page.goto('/');
   await page.getByText('Sign in to Young Leadership Academy').waitFor();
-  await page.getByLabel('Admin password').fill('test-admin-password-123');
-await page.locator('#login button.primary').click();
+  await page.getByLabel('Username').fill('admin');
+  await page.getByLabel('Password').fill('test-admin-password-123');
+  await page.locator('#login button.primary').click();
   await page.getByText('Class overview').waitFor();
   await page.getByRole('button', { name: 'Display QR ↗' }).click();
   await expect(page.locator('.qr-brand strong')).toHaveText('Young Leadership Academy');

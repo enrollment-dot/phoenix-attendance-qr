@@ -222,7 +222,7 @@ function base64UrlToBytes(value: string): Uint8Array {
 }
 
 function qrAad(sessionId: string): Uint8Array {
-  return new TextEncoder().encode(`YLP-attendance-staging | ${sessionId} | ${QR_AAD_LABEL}`);
+  return new TextEncoder().encode(`YLP-attendance-production | ${sessionId} | ${QR_AAD_LABEL}`);
 }
 
 function decodeAesKey(keyId: string, encoded: string): Promise<CryptoKey> {
@@ -612,6 +612,20 @@ async function requireAdmin(token: string, config: EdgeConfig, backend: BackendA
   return claims;
 }
 
+async function requireAdminRole(
+  token: string,
+  config: EdgeConfig,
+  backend: BackendAdapter,
+  allowedRoles: string[],
+): Promise<JwtClaims> {
+  const claims = await requireAdmin(token, config, backend);
+  const row = await backend.authorizeAdmin(claims.sub, claims.session_id);
+  if (!row || typeof row !== 'object') throw new AuthenticationError();
+  const role = (row as Record<string, unknown>).role;
+  if (typeof role !== 'string' || !allowedRoles.includes(role)) throw new AuthenticationError();
+  return claims;
+}
+
 export function json<T>(body: ApiResponse<T>, origin: string): Response {
   return new Response(JSON.stringify(body), { status: 200, headers: {
     'content-type': 'application/json; charset=utf-8',
@@ -658,16 +672,36 @@ export class SupabaseRpcBackend implements BackendAdapter {
   }
 
   async login(payload: Record<string, unknown>, _token: string): Promise<unknown> {
+    if (typeof payload.username !== 'string' || !payload.username.trim()) throw new AuthenticationError();
     if (typeof payload.password !== 'string' || !payload.password) throw new AuthenticationError();
+
+    const identity = await this.rpc('ylp_admin_login_identity_v1', {
+      p_username: payload.username.trim(),
+    });
+    const row = Array.isArray(identity) ? identity[0] : identity;
+    if (!row || typeof row !== 'object') throw new AuthenticationError();
+
+    const admin = row as Record<string, unknown>;
+    if (
+      typeof admin.email !== 'string' ||
+      !admin.email ||
+      typeof admin.role !== 'string' ||
+      admin.active !== true
+    ) {
+      throw new AuthenticationError();
+    }
+
     const response = await fetch(`${this.config.supabaseUrl}/auth/v1/token?grant_type=password`, { method: 'POST', headers: {
       apikey: this.config.supabaseAnonKey,
       'content-type': 'application/json',
-    }, body: JSON.stringify({ email: this.config.adminLoginEmail, password: payload.password }) });
+    }, body: JSON.stringify({ email: admin.email, password: payload.password }) });
     if (!response.ok) throw new AuthenticationError();
+
     const result = await response.json() as { access_token?: unknown };
     if (typeof result.access_token !== 'string' || !result.access_token) throw new AuthenticationError();
+
     await requireAdmin(result.access_token, this.config, this);
-    return { ok: true, data: { token: result.access_token } };
+    return { ok: true, data: { token: result.access_token, role: admin.role } };
   }
 
   async authorizeAdmin(adminId: string, sessionId: string): Promise<unknown> {
@@ -685,6 +719,10 @@ export class SupabaseRpcBackend implements BackendAdapter {
 
   closeSession(sessionId: string, _token: string): Promise<unknown> {
     return this.rpc('ylp_close_session_v1', { p_session_id: sessionId });
+  }
+
+  deleteSession(sessionId: string, _token: string): Promise<unknown> {
+    return this.rpc('ylp_delete_session_v1', { p_session_id: sessionId });
   }
 
   session(sessionId: string, qrTokenHash: string): Promise<unknown> {
@@ -720,6 +758,65 @@ export class SupabaseRpcBackend implements BackendAdapter {
     return this.rpc('ylp_student_set_active_v1', { p_student_id: studentId, p_active: active });
   }
 
+  async adminAccounts(): Promise<unknown> {
+    const result = await this.rpc('ylp_admin_accounts_v1', {});
+    return { ok: true, data: result };
+  }
+
+  async createAdminAccount(email: string, password: string, username: string | null, role: string): Promise<unknown> {
+    const response = await fetch(this.config.supabaseUrl + '/auth/v1/admin/users', {
+      method: 'POST',
+      headers: {
+        apikey: this.config.supabaseServiceRoleKey,
+        authorization: 'Bearer ' + this.config.supabaseServiceRoleKey,
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({ email, password, email_confirm: true }),
+    });
+    if (!response.ok) throw new Error('auth user creation failed');
+    const created = await response.json() as Record<string, unknown>;
+    const nestedUser = created.user && typeof created.user === 'object' ? created.user as Record<string, unknown> : null;
+    const adminId = typeof created.id === 'string' ? created.id : nestedUser && typeof nestedUser.id === 'string' ? nestedUser.id : null;
+    if (!adminId) throw new Error('auth user creation returned no user id');
+    try {
+      const profile = await this.rpc('ylp_admin_account_create_profile_v1', { p_admin_id: adminId, p_username: username, p_role: role });
+      return { ok: true, data: profile };
+    } catch (error) {
+      await fetch(this.config.supabaseUrl + '/auth/v1/admin/users/' + encodeURIComponent(adminId), {
+        method: 'DELETE',
+        headers: { apikey: this.config.supabaseServiceRoleKey, authorization: 'Bearer ' + this.config.supabaseServiceRoleKey },
+      });
+      throw error;
+    }
+  }
+
+  async updateAdminAccount(adminId: string, username: string | null, role: string, active: boolean, password?: string): Promise<unknown> {
+    if (password) {
+      const response = await fetch(this.config.supabaseUrl + '/auth/v1/admin/users/' + encodeURIComponent(adminId), {
+        method: 'PUT',
+        headers: {
+          apikey: this.config.supabaseServiceRoleKey,
+          authorization: 'Bearer ' + this.config.supabaseServiceRoleKey,
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({ password }),
+      });
+      if (!response.ok) throw new Error('auth user update failed');
+    }
+    const profile = await this.rpc('ylp_admin_account_update_v1', { p_admin_id: adminId, p_username: username, p_role: role, p_active: active });
+    return { ok: true, data: profile };
+  }
+
+  async removeAdminAccount(adminId: string): Promise<unknown> {
+    const removed = await this.rpc('ylp_admin_account_remove_profile_v1', { p_admin_id: adminId });
+    const deleted = await fetch(this.config.supabaseUrl + '/auth/v1/admin/users/' + encodeURIComponent(adminId), {
+      method: 'DELETE',
+      headers: { apikey: this.config.supabaseServiceRoleKey, authorization: 'Bearer ' + this.config.supabaseServiceRoleKey },
+    });
+    if (!deleted.ok) throw new Error('auth user removal failed');
+    return { ok: true, data: removed };
+  }
+
   async consumeRateLimit(scope: RateLimitScope, subjectHash: string, limit: number, windowSeconds: number): Promise<RateLimitDecision> {
     const result = await this.rpc('ylp_consume_rate_limit_v1', { p_scope: scope, p_subject_hash: subjectHash, p_limit: limit, p_window_seconds: windowSeconds });
     if (!result || typeof result !== 'object' || typeof (result as Record<string, unknown>).allowed !== 'boolean') throw new Error('invalid rate-limit response');
@@ -727,19 +824,32 @@ export class SupabaseRpcBackend implements BackendAdapter {
   }
 }
 
-function assertOrigin(request: Request, config: EdgeConfig): void {
-  const origin = request.headers.get('origin');
-  if (origin && origin !== config.allowedOrigin) throw new ValidationError('Origin is not allowed.');
+function parseAllowedOrigins(value: string): string[] {
+  return value.split(',').map((origin) => origin.trim()).filter(Boolean);
+}
+
+function resolveAllowedOrigin(request: Request, config: EdgeConfig): string {
+  const allowedOrigins = parseAllowedOrigins(config.allowedOrigin);
+  if (!allowedOrigins.length) throw new ValidationError('Origin is not allowed.');
+  const requestOrigin = request.headers.get('origin');
+  if (!requestOrigin) return allowedOrigins[0];
+  if (!allowedOrigins.includes(requestOrigin)) throw new ValidationError('Origin is not allowed.');
+  return requestOrigin;
 }
 
 export async function handleRequest(request: Request, backend: BackendAdapter, config: EdgeConfig): Promise<Response> {
-  if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: {
-    'access-control-allow-origin': config.allowedOrigin,
-    'access-control-allow-headers': 'authorization, content-type, apikey, x-client-info',
-    'access-control-allow-methods': 'POST, OPTIONS', vary: 'Origin',
-  } });
+  const responseOrigin = request.headers.get('origin');
+  const allowedOrigin = responseOrigin ? parseAllowedOrigins(config.allowedOrigin).find((origin) => origin === responseOrigin) ?? '' : parseAllowedOrigins(config.allowedOrigin)[0] ?? '';
+  if (request.method === 'OPTIONS') {
+    if (!allowedOrigin) return new Response(null, { status: 403, headers: { vary: 'Origin' } });
+    return new Response(null, { status: 204, headers: {
+      'access-control-allow-origin': allowedOrigin,
+      'access-control-allow-headers': 'authorization, content-type, apikey, x-client-info',
+      'access-control-allow-methods': 'POST, OPTIONS', vary: 'Origin',
+    } });
+  }
   try {
-    assertOrigin(request, config);
+    const resolvedOrigin = resolveAllowedOrigin(request, config);
     if (request.method !== 'POST') throw new ValidationError('Request method is not allowed.');
     const body = await request.json() as ApiRequest;
     const payload = requirePayload(body);
@@ -759,28 +869,56 @@ export async function handleRequest(request: Request, backend: BackendAdapter, c
         result = await mapDashboardResponse(await backend.dashboard(token), config.qrKeyring, config.sessionTimeOffset);
         break;
       case 'students':
-        await requireAdmin(token, config, backend);
+        await requireAdminRole(token, config, backend, ['admin']);
         result = await backend.students();
         break;
       case 'createStudent':
-        await requireAdmin(token, config, backend);
+        await requireAdminRole(token, config, backend, ['admin']);
         if (typeof payload.student_id !== 'string' || typeof payload.name !== 'string') throw new ValidationError('Student ID and name are required.');
         result = await backend.createStudent(payload.student_id, payload.name);
         break;
       case 'updateStudent':
-        await requireAdmin(token, config, backend);
+        await requireAdminRole(token, config, backend, ['admin']);
         if (typeof payload.student_id !== 'string' || typeof payload.name !== 'string') throw new ValidationError('Student ID and name are required.');
         result = await backend.updateStudent(payload.student_id, payload.name);
         break;
       case 'setStudentActive':
-        await requireAdmin(token, config, backend);
+        await requireAdminRole(token, config, backend, ['admin']);
         if (typeof payload.student_id !== 'string' || typeof payload.active !== 'boolean') throw new ValidationError('Student ID and active status are required.');
         result = await backend.setStudentActive(payload.student_id, payload.active);
+        break;
+      case 'adminAccounts':
+        await requireAdminRole(token, config, backend, ['admin']);
+        result = await backend.adminAccounts();
+        break;
+      case 'createAdminAccount':
+        await requireAdminRole(token, config, backend, ['admin']);
+        if (typeof payload.email !== 'string' || typeof payload.password !== 'string' || typeof payload.username !== 'string' || typeof payload.role !== 'string' || !payload.email.trim() || !payload.password || !payload.username.trim() || !['admin', 'operator'].includes(payload.role)) throw new ValidationError('Email, password, username, and role are required.');
+        if (payload.password.length < 16) throw new ValidationError('Password must be at least 16 characters.');
+        if (!/^[A-Za-z0-9._-]{3,40}$/.test(payload.username.trim())) throw new ValidationError('Username is invalid.');
+        result = await backend.createAdminAccount(payload.email.trim(), payload.password, payload.username.trim(), payload.role);
+        break;
+      case 'updateAdminAccount':
+        await requireAdminRole(token, config, backend, ['admin']);
+        if (typeof payload.admin_id !== 'string' || typeof payload.username !== 'string' || typeof payload.role !== 'string' || typeof payload.active !== 'boolean' || !['admin', 'operator'].includes(payload.role)) throw new ValidationError('Account ID, username, role, and active status are required.');
+        if (!/^[A-Za-z0-9._-]{3,40}$/.test(payload.username.trim())) throw new ValidationError('Username is invalid.');
+        if (payload.password !== undefined && (typeof payload.password !== 'string' || payload.password.length < 16)) throw new ValidationError('Password must be at least 16 characters.');
+        result = await backend.updateAdminAccount(payload.admin_id, payload.username.trim(), payload.role, payload.active, typeof payload.password === 'string' && payload.password ? payload.password : undefined);
+        break;
+      case 'removeAdminAccount':
+        await requireAdminRole(token, config, backend, ['admin']);
+        if (typeof payload.admin_id !== 'string' || !payload.admin_id) throw new ValidationError('Account ID is required.');
+        result = await backend.removeAdminAccount(payload.admin_id);
         break;
       case 'closeSession':
         await requireAdmin(token, config, backend);
         if (typeof payload.session_id !== 'string' || !payload.session_id) throw new ValidationError('Session not found.');
         result = await backend.closeSession(payload.session_id, token);
+        break;
+      case 'deleteSession':
+        await requireAdminRole(token, config, backend, ['admin']);
+        if (typeof payload.session_id !== 'string' || !payload.session_id) throw new ValidationError('Session not found.');
+        result = await backend.deleteSession(payload.session_id, token);
         break;
       case 'migrateSession': {
         await requireAdmin(token, config, backend);
@@ -831,9 +969,9 @@ export async function handleRequest(request: Request, backend: BackendAdapter, c
       default:
         throw new ValidationError('Unknown action.');
     }
-    return json(result && typeof result === 'object' && 'ok' in result ? result as ApiResponse : normalizeBackendResponse(result), config.allowedOrigin);
+    return json(result && typeof result === 'object' && 'ok' in result ? result as ApiResponse : normalizeBackendResponse(result), resolvedOrigin);
   } catch (error) {
-    return json(publicError(error), config.allowedOrigin);
+    return json(publicError(error), allowedOrigin);
   }
 }
 
@@ -884,3 +1022,4 @@ if (import.meta.main) {
   };
   Deno.serve((request) => handleRequest(request, new SupabaseRpcBackend(config), config));
 }
+

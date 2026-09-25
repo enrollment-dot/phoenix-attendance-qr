@@ -29,9 +29,11 @@ import {
   scanLink,
   parseScan,
 } from './reports.js';
+// RBAC staging frontend deployment marker: 2026-09-24
 const YLA_LOGO_SRC = 'yla-logo-mark.png';
 const root = document.querySelector('#app');
 let token = '',
+  role = '',
   data = null,
   view = 'dashboard',
   pageVersion = 0;
@@ -53,7 +55,7 @@ const field = (label, name, type = 'text', extra = '') =>
   `<label>${label}<input name="${name}" type="${type}" ${extra} required></label>`;
 function frame(content, attendee = false) {
   pageVersion++;
-  root.innerHTML = `<div class="shell"><aside><a class="brand" href="#" aria-label="Young Leadership Academy"><img class="mark" src="${YLA_LOGO_SRC}" alt="" /><span>Young Leadership Academy<small>LEARN • LEAD • GROW</small></span></a><div class="workspace">${attendee ? 'STUDENTS' : 'TEACHING TEAM'}</div><nav>${attendee ? '<a href="#">← Back to home</a>' : `<button data-nav="dashboard" class="${view === 'dashboard' ? 'selected' : ''}">▦ &nbsp; Overview</button><button data-nav="reports" class="${view === 'reports' ? 'selected' : ''}">≡ &nbsp; Attendance</button><button data-nav="students" class="${view === 'students' ? 'selected' : ''}">♙ &nbsp; Students</button><button data-nav="scanner">▣ &nbsp; Scan a QR</button>`}</nav><div class="aside-bottom">Your class.<br>Your attendance.<hr><span class="tiny">LEARN • LEAD • GROW</span></div></aside><main><header><span>${attendee ? 'Young Leadership Academy / Student attendance' : 'Young Leadership Academy / ' + (view === 'reports' ? 'Attendance' : 'Overview')}</span>${token ? '<button class="text" id="logout">Sign out</button>' : '<span class="tiny">LEARN • LEAD • GROW</span>'}</header><div id="notice" role="status" aria-live="polite"></div>${content}<footer>Young Leadership Academy · For teachers and students</footer></main></div>`;
+  root.innerHTML = `<div class="shell"><aside><a class="brand" href="#" aria-label="Young Leadership Academy"><img class="mark" src="${YLA_LOGO_SRC}" alt="" /><span>Young Leadership Academy<small>LEARN • LEAD • GROW</small></span></a><div class="workspace">${attendee ? 'STUDENTS' : 'TEACHING TEAM'}</div><nav>${attendee ? '<a href="#">← Back to home</a>' : `<button data-nav="dashboard" class="${view === 'dashboard' ? 'selected' : ''}">▦ &nbsp; Overview</button><button data-nav="reports" class="${view === 'reports' ? 'selected' : ''}">≡ &nbsp; Attendance</button>${role === 'admin' ? `<button data-nav="students" class="${view === 'students' ? 'selected' : ''}">♙ &nbsp; Students</button>` : ''}${role === 'admin' ? `<button data-nav="accounts" class="${view === 'accounts' ? 'selected' : ''}">♙ &nbsp; Accounts</button>` : ''}<button data-nav="scanner">▣ &nbsp; Scan a QR</button>`}</nav><div class="aside-bottom">Your class.<br>Your attendance.<hr><span class="tiny">LEARN • LEAD • GROW</span></div></aside><main><header><span>${attendee ? 'Young Leadership Academy / Student attendance' : 'Young Leadership Academy / ' + (view === 'reports' ? 'Attendance' : 'Overview')}</span>${token ? '<button class="text" id="logout">Sign out</button>' : '<span class="tiny">LEARN • LEAD • GROW</span>'}</header><div id="notice" role="status" aria-live="polite"></div>${content}<footer>Young Leadership Academy · For teachers and students</footer></main></div>`;
   root.querySelectorAll('a[href="#"]').forEach(
     (a) =>
       (a.onclick = () => {
@@ -71,6 +73,7 @@ function frame(content, attendee = false) {
   root.querySelector('#logout')?.addEventListener('click', async () => {
     const previousToken = token;
     token = '';
+    role = '';
     data = null;
     render();
     try {
@@ -105,7 +108,7 @@ async function busy(button, fn) {
 }
 function login() {
   frame(
-    `<div class="page-title"><div><p class="eyebrow">YOUNG LEADERSHIP ACADEMY</p><h1>Attendance for every Academy class.</h1><p>Create class sessions, share attendance QR codes, and review student records.</p></div></div><section class="login-grid"><div class="card"><span class="step">TEACHER &amp; ADMIN ACCESS</span><h2>Sign in to Young Leadership Academy</h2><p>Use the admin password provided by your Academy administrator.</p>${!configured ? '<div class="notice">Young Leadership Academy is not configured yet. Ask your administrator to complete setup.</div>' : ''}<form id="login">${field('Admin password', 'password', 'password', 'autocomplete="current-password" minlength="16"')}<button class="primary full">Sign in →</button></form></div><div class="welcome-panel"><span class="large-qr">▦</span><h2>Joining a Young Leadership Academy class?</h2><p>Open the QR shared by your teacher. Choose Scan In when you arrive and Scan Out when you leave.</p><button id="student-scanner" class="light">Scan a class QR</button></div></section>`,
+    `<div class="page-title"><div><p class="eyebrow">YOUNG LEADERSHIP ACADEMY</p><h1>Attendance for every Academy class.</h1><p>Create class sessions, share attendance QR codes, and review student records.</p></div></div><section class="login-grid"><div class="card"><span class="step">TEACHER &amp; ADMIN ACCESS</span><h2>Sign in to Young Leadership Academy</h2><p>Use your Academy username and password.</p>${!configured ? '<div class="notice">Young Leadership Academy is not configured yet. Ask your administrator to complete setup.</div>' : ''}<form id="login">${field('Username', 'username', 'text', 'autocomplete="username"')}${field('Password', 'password', 'password', 'autocomplete="current-password" minlength="16"')}<button class="primary full">Sign in →</button></form></div><div class="welcome-panel"><span class="large-qr">▦</span><h2>Joining a Young Leadership Academy class?</h2><p>Open the QR shared by your teacher. Choose Scan In when you arrive and Scan Out when you leave.</p><button id="student-scanner" class="light">Scan a class QR</button></div></section>`,
   );
   document.querySelector('#login').onsubmit = (e) => {
     e.preventDefault();
@@ -120,6 +123,7 @@ function login() {
         throw new Error('The service returned an invalid login confirmation.');
       }
       token = result.token;
+      role = result.role === 'admin' || result.role === 'operator' ? result.role : '';
       await refresh();
     });
   };
@@ -303,7 +307,7 @@ function createForm() {
 }
 async function showQr(s) {
   frame(
-    `<div class="page-title"><div><p class="eyebrow">SESSION QR</p><h1>${esc(s.course)}</h1><p>${esc(sessionLabel(s, data.settings.offset))}</p></div><button id="back" class="secondary">Back to overview</button></div><section class="card qr-card"><span class="badge present">${esc(s.status)}</span><div class="qr-brand" aria-label="Young Leadership Academy"><strong>Young Leadership Academy</strong><span>LEARN • LEAD • GROW</span></div><canvas id="qr" aria-label="Class attendance QR code"></canvas><h2 class="qr-session-name">${esc(s.course)}</h2><h3 class="qr-attendance-title">Record your attendance</h3><p>Open your phone camera and point it at this QR.<br>Enter your student ID, then choose Scan In or Scan Out.</p><div class="actions"><button id="copy" class="secondary">Copy student link</button><button id="download" class="secondary">Download QR</button>${s.status === 'active' ? '<button id="close" class="danger">Close session</button>' : ''}</div><p class="helper">Share this QR only with students in this Academy class. It gives access to this session.</p></section>`,
+    `<div class="page-title"><div><p class="eyebrow">SESSION QR</p><h1>${esc(s.course)}</h1><p>${esc(sessionLabel(s, data.settings.offset))}</p></div><button id="back" class="secondary">Back to overview</button></div><section class="card qr-card"><span class="badge present">${esc(s.status)}</span><div class="qr-brand" aria-label="Young Leadership Academy"><strong>Young Leadership Academy</strong><span>LEARN • LEAD • GROW</span></div><canvas id="qr" aria-label="Class attendance QR code"></canvas><h2 class="qr-session-name">${esc(s.course)}</h2><h3 class="qr-attendance-title">Record your attendance</h3><p>Open your phone camera and point it at this QR.<br>Enter your student ID, then choose Scan In or Scan Out.</p><div class="actions"><button id="copy" class="secondary">Copy student link</button><button id="download" class="secondary">Download QR</button>${s.status === 'active' ? '<button id="close" class="danger">Close session</button>' : role === 'admin' ? '<button id="delete-session" class="danger">Delete session</button>' : ''}</div><p class="helper">Share this QR only with students in this Academy class. It gives access to this session.</p></section>`,
   );
   const current = pageGuard();
   document.querySelector('#back').onclick = dashboard;
@@ -365,6 +369,14 @@ async function showQr(s) {
         if (current()) showQr(s);
       });
   });
+  document.querySelector('#delete-session')?.addEventListener('click', (e) => {
+    if (!confirm('Delete this closed session? Sessions with attendance history cannot be deleted.')) return;
+    busy(e.target, async () => {
+      await api('deleteSession', { session_id: s.session_id }, token);
+      data.sessions = data.sessions.filter((session) => session.session_id !== s.session_id);
+      dashboard();
+    });
+  });
 }
 function students() {
   const students = Array.isArray(data?.students) ? [...data.students] : [];
@@ -422,7 +434,7 @@ function students() {
     const file = e.target.files?.[0];
     if (!file) return;
     busy(document.querySelector('#import'), async () => {
-      const text = await file.text();
+      const text = (await file.text()).replace(/^\uFEFF/, '');
       const lines = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
       if (!lines.length) throw new Error('The CSV file is empty.');
       const parse = (line) => {
@@ -435,25 +447,79 @@ function students() {
         }
         out.push(cur.trim()); return out;
       };
-      const first = parse(lines[0]).map((v) => v.toLowerCase());
-      const hasHeader = first.includes('student_id') || first.includes('student id');
+      const first = parse(lines[0]).map((v) => v.replace(/^\uFEFF/, '').trim().toLowerCase().replace(/\s+/g, '_'));
+      const hasHeader = first.includes('student_id') || first.includes('studentid');
       const start = hasHeader ? 1 : 0;
       let added = 0, skipped = 0;
-      for (const line of lines.slice(start)) {
-        const [student_id, name] = parse(line);
-        if (!student_id || !name || students.some((s) => s.student_id === student_id.trim())) { skipped++; continue; }
+      const failures = [];
+      const seen = new Set(students.map((s) => s.student_id.trim().toLowerCase()));
+      for (let rowIndex = start; rowIndex < lines.length; rowIndex++) {
+        const line = lines[rowIndex];
+        const [rawStudentId, rawName] = parse(line);
+        const student_id = rawStudentId?.replace(/^\uFEFF/, '').trim();
+        const name = rawName?.trim();
+        if (!student_id || !name) {
+          skipped++;
+          failures.push(`row ${rowIndex + 1}: Student ID and name are required`);
+          continue;
+        }
+        const key = student_id.toLowerCase();
+        if (seen.has(key)) {
+          skipped++;
+          failures.push(`row ${rowIndex + 1}: ${student_id} already exists or is duplicated in this import`);
+          continue;
+        }
         try {
-          const result = await api('createStudent', { student_id: student_id.trim(), name: name.trim() }, token);
+          const result = await api('createStudent', { student_id, name }, token);
           const saved = result?.data ?? result;
-          if (saved?.student_id) { students.push(saved); added++; } else skipped++;
-        } catch { skipped++; }
+          if (!saved?.student_id) {
+            skipped++;
+            failures.push(`row ${rowIndex + 1}: server did not confirm the student record`);
+            continue;
+          }
+          students.push(saved);
+          seen.add(key);
+          added++;
+        } catch (error) {
+          skipped++;
+          failures.push(`row ${rowIndex + 1}: ${error?.message || 'server rejected the student'}`);
+        }
       }
       renderRows();
-      notice(`CSV import complete: ${added} added, ${skipped} skipped.`, false);
+      const summary = `CSV import complete: ${added} added, ${skipped} skipped.`;
+      notice(
+        failures.length
+          ? `${summary} ${failures.slice(0, 3).join(' • ')}${failures.length > 3 ? ` • +${failures.length - 3} more` : ''}`
+          : summary,
+        !!failures.length,
+      );
       e.target.value = '';
     });
   };
   renderRows();
+}
+function accounts() {
+  if (role !== 'admin') { view = 'dashboard'; return dashboard(); }
+  let rows = [];
+  frame('<div class="page-title"><div><p class="eyebrow">ACADEMY ACCESS CONTROL</p><h1>Accounts</h1><p>Admin accounts can manage Academy access. Operators can create sessions but cannot manage students, attendance, or accounts.</p></div><button class="primary" id="add-account">＋ Add account</button></div><section class="card"><div id="account-editor"></div><div class="table-wrap"><table><thead><tr><th>Email</th><th>Username</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead><tbody id="account-rows"><tr><td colspan="5" class="empty">Loading accounts…</td></tr></tbody></table></div></section>');
+  const editor = document.querySelector('#account-editor');
+  const table = document.querySelector('#account-rows');
+  const load = async () => { const result = await api('adminAccounts', {}, token); rows = Array.isArray(result) ? result : []; renderRows(); };
+  const renderRows = () => {
+    table.innerHTML = rows.length ? rows.map((a) => `<tr><td><b>${esc(a.email)}</b></td><td>${esc(a.username || '—')}</td><td><span class="badge">${esc(a.role)}</span></td><td><span class="badge ${a.active ? 'present' : 'absent'}">${a.active ? 'Active' : 'Inactive'}</span></td><td><button class="text" data-edit="${esc(a.admin_id)}">Edit</button> <button class="text" data-toggle="${esc(a.admin_id)}">${a.active ? 'Deactivate' : 'Activate'}</button> <button class="text" data-remove="${esc(a.admin_id)}">Remove</button></td></tr>`).join('') : '<tr><td colspan="5" class="empty">No accounts found.</td></tr>';
+    table.querySelectorAll('[data-edit]').forEach((b) => b.onclick = () => openEditor(rows.find((a) => a.admin_id === b.dataset.edit)));
+    table.querySelectorAll('[data-toggle]').forEach((b) => b.onclick = () => toggleAccount(rows.find((a) => a.admin_id === b.dataset.toggle)));
+    table.querySelectorAll('[data-remove]').forEach((b) => b.onclick = () => removeAccount(rows.find((a) => a.admin_id === b.dataset.remove)));
+  };
+  const openEditor = (account = null) => {
+    editor.innerHTML = `<div class="card inline-editor"><h3>${account ? 'Edit account' : 'Add account'}</h3><form id="account-form"><div class="form-grid">${account ? `<label>Email<input value="${esc(account.email)}" disabled></label>` : `<label>Email<input name="email" type="email" autocomplete="email" required placeholder="operator@example.com"></label>`}<label>Username<input name="username" maxlength="40" pattern="[A-Za-z0-9._\-]{3,40}" value="${esc(account?.username || '')}" required placeholder="academy.operator"></label></div><div class="form-grid"><label>Role<select name="role"><option value="operator" ${account?.role === 'operator' ? 'selected' : ''}>Operator</option><option value="admin" ${account?.role === 'admin' ? 'selected' : ''}>Admin</option></select></label><label>${account ? 'New password (optional)' : 'Password'}<input name="password" type="password" autocomplete="new-password" minlength="16" ${account ? '' : 'required'} placeholder="Minimum 16 characters"></label></div><div class="actions"><button type="button" class="secondary" id="cancel-account">Cancel</button><button class="primary">${account ? 'Save account' : 'Create account'}</button></div></form></div>`;
+    document.querySelector('#cancel-account').onclick = () => editor.innerHTML = '';
+    document.querySelector('#account-form').onsubmit = (e) => { e.preventDefault(); busy(e.submitter, async () => { const v = Object.fromEntries(new FormData(e.target)); if (account) { const payload = { admin_id: account.admin_id, username: v.username, role: v.role, active: account.active }; if (v.password) payload.password = v.password; await api('updateAdminAccount', payload, token); notice('Account updated.', false); } else { await api('createAdminAccount', { email: v.email, password: v.password, username: v.username, role: v.role }, token); notice('Account created.', false); } editor.innerHTML = ''; await load(); }); };
+  };
+  const toggleAccount = (account) => { if (!account) return; const button = document.querySelector(`[data-toggle="${CSS.escape(account.admin_id)}"]`); busy(button, async () => { await api('updateAdminAccount', { admin_id: account.admin_id, username: account.username, role: account.role, active: !account.active }, token); await load(); notice(account.active ? 'Account deactivated.' : 'Account activated.', false); }); };
+  const removeAccount = (account) => { if (!account) return; if (!confirm(`Remove ${account.email}? This permanently removes the authentication account.`)) return; const button = document.querySelector(`[data-remove="${CSS.escape(account.admin_id)}"]`); busy(button, async () => { await api('removeAdminAccount', { admin_id: account.admin_id }, token); await load(); notice('Account removed.', false); }); };
+  document.querySelector('#add-account').onclick = () => openEditor();
+  load().catch((e) => notice(e.message));
 }
 function reports() {
   frame(
@@ -668,7 +734,11 @@ function render() {
   if (view === 'scanner') return scannerPage();
   if (!token || !data) return login();
   if (view === 'reports') return reports();
-  if (view === 'students') return students();
+  if (view === 'students') {
+    if (role !== 'admin') { view = 'dashboard'; return dashboard(); }
+    return students();
+  }
+  if (view === 'accounts') return accounts();
   dashboard();
 }
 window.addEventListener('hashchange', render);
