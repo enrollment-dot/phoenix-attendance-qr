@@ -77,6 +77,7 @@ export async function initializeRecovery() {
       detectSessionInUrl: !code,
       flowType: code ? 'pkce' : 'implicit',
       persistSession: false,
+      skipAutoInitialize: true,
     },
   });
 
@@ -88,6 +89,31 @@ export async function initializeRecovery() {
         recoveryClient = null;
         return { active: false, error: 'invalid' };
       }
+    } else {
+      // Register the recovery listener before explicitly initializing Auth.
+      // This avoids losing PASSWORD_RECOVERY during automatic URL processing.
+      const recoveryPromise = waitForRecoverySession(recoveryClient);
+      const { error } = await recoveryClient.auth.initialize();
+      if (error) {
+        clearRecoveryUrl();
+        recoveryClient = null;
+        return { active: false, error: 'invalid' };
+      }
+      const session = (await recoveryClient.auth.getSession()).data.session;
+      if (session?.access_token) {
+        recoverySession = session;
+        clearRecoveryUrl();
+        return { active: true };
+      }
+      const listenerSession = await recoveryPromise;
+      if (!listenerSession?.access_token) {
+        clearRecoveryUrl();
+        recoveryClient = null;
+        return { active: false, error: 'invalid' };
+      }
+      recoverySession = listenerSession;
+      clearRecoveryUrl();
+      return { active: true };
     }
 
     const session = await waitForRecoverySession(recoveryClient);
