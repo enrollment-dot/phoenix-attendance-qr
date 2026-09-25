@@ -222,7 +222,7 @@ function base64UrlToBytes(value: string): Uint8Array {
 }
 
 function qrAad(sessionId: string): Uint8Array {
-  return new TextEncoder().encode(`YLP-attendance-staging | ${sessionId} | ${QR_AAD_LABEL}`);
+  return new TextEncoder().encode(`YLP-attendance-production | ${sessionId} | ${QR_AAD_LABEL}`);
 }
 
 function decodeAesKey(keyId: string, encoded: string): Promise<CryptoKey> {
