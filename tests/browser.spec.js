@@ -215,6 +215,18 @@ test('password recovery waits for the Supabase recovery session and updates the 
 
   let updateCalls = 0;
   await page.route('**/auth/v1/user', async (route) => {
+    if (route.request().method() === 'GET') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          id: '00000000-0000-4000-8000-000000000001',
+          email: 'recovery-test@example.invalid',
+        }),
+      });
+      return;
+    }
+
     updateCalls++;
     expect(route.request().method()).toBe('PUT');
     expect(route.request().headers().authorization).toBe(`Bearer ${accessToken}`);
