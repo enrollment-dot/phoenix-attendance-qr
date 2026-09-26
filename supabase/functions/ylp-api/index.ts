@@ -221,8 +221,12 @@ function base64UrlToBytes(value: string): Uint8Array {
   }
 }
 
-function qrAad(sessionId: string): Uint8Array {
-  return new TextEncoder().encode(`YLP-attendance-production | ${sessionId} | ${QR_AAD_LABEL}`);
+function qrAad(sessionId: string, environment: 'production' | 'staging' = 'production'): Uint8Array {
+  return new TextEncoder().encode(`YLP-attendance-${environment} | ${sessionId} | ${QR_AAD_LABEL}`);
+}
+
+function qrAadCandidates(sessionId: string): Uint8Array[] {
+  return [qrAad(sessionId, 'production'), qrAad(sessionId, 'staging')];
 }
 
 function decodeAesKey(keyId: string, encoded: string): Promise<CryptoKey> {
@@ -282,18 +286,21 @@ export async function decryptQrToken(envelope: string, sessionId: string, keyrin
     throw new CryptoEnvelopeError('Malformed QR envelope.');
   }
   const key = await decodeAesKey(keyId, keyring.keys[keyId]);
-  try {
-    const plaintext = await crypto.subtle.decrypt(
-      { name: 'AES-GCM', iv: nonce, additionalData: qrAad(sessionId), tagLength: QR_TAG_BYTES * 8 },
-      key,
-      ciphertextAndTag,
-    );
-    const rawQrToken = new TextDecoder('utf-8', { fatal: true }).decode(plaintext);
-    if (!QR_TOKEN.test(rawQrToken)) throw new CryptoEnvelopeError('Invalid QR plaintext.');
-    return rawQrToken;
-  } catch {
-    throw new CryptoEnvelopeError();
+  for (const aad of qrAadCandidates(sessionId)) {
+    try {
+      const plaintext = await crypto.subtle.decrypt(
+        { name: 'AES-GCM', iv: nonce, additionalData: aad, tagLength: QR_TAG_BYTES * 8 },
+        key,
+        ciphertextAndTag,
+      );
+      const rawQrToken = new TextDecoder('utf-8', { fatal: true }).decode(plaintext);
+      if (!QR_TOKEN.test(rawQrToken)) throw new CryptoEnvelopeError('Invalid QR plaintext.');
+      return rawQrToken;
+    } catch {
+      // Try the legacy staging AAD after production AAD for existing sessions.
+    }
   }
+  throw new CryptoEnvelopeError();
 }
 
 /** Build the exact opaque payload accepted by ylp_create_session_v1. */
