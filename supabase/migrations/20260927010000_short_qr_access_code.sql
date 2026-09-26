@@ -126,3 +126,30 @@ revoke all on function public.ylp_resolve_session_access_code_v1(text) from publ
 revoke all on function public.ylp_resolve_session_access_code_v1(text) from anon;
 revoke all on function public.ylp_resolve_session_access_code_v1(text) from authenticated;
 grant execute on function public.ylp_resolve_session_access_code_v1(text) to service_role;
+
+create or replace function public.ylp_get_session_access_code_v1(
+  p_session_id text
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path to ''
+as $function$
+declare
+  v_session public.sessions%rowtype;
+begin
+  select * into v_session from public.sessions where session_id = p_session_id;
+  if not found or v_session.qr_access_code_ciphertext is null then
+    return pg_catalog.jsonb_build_object('ok', false, 'error', 'The session QR access code is unavailable.', 'code', 'qr_access_code_unavailable');
+  end if;
+  return pg_catalog.jsonb_build_object('ok', true, 'data', pg_catalog.jsonb_build_object(
+    'session_id', v_session.session_id,
+    'qr_access_code_ciphertext', v_session.qr_access_code_ciphertext
+  ));
+end;
+$function$;
+
+revoke all on function public.ylp_get_session_access_code_v1(text) from public;
+revoke all on function public.ylp_get_session_access_code_v1(text) from anon;
+revoke all on function public.ylp_get_session_access_code_v1(text) from authenticated;
+grant execute on function public.ylp_get_session_access_code_v1(text) to service_role;
