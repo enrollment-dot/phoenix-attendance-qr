@@ -559,11 +559,12 @@ function reports() {
   update();
 }
 async function student() {
-  const params = new URLSearchParams(location.hash.slice(1)),
-    credentials = {
-      session_id: params.get('session'),
-      qr_token: params.get('token'),
-    };
+  const params = new URLSearchParams(location.hash.slice(1));
+  const shortMatch = /^\/s\/([A-Za-z0-9_-]{22})$/.exec(location.pathname.replace(/\/$/, ''));
+  const accessCode = shortMatch?.[1] || params.get('access');
+  const credentials = accessCode
+    ? { access_code: accessCode }
+    : { session_id: params.get('session'), qr_token: params.get('token') };
   frame(
     '<section class="card student-card"><h1>Loading your class…</h1></section>',
     true,
@@ -633,7 +634,7 @@ async function student() {
         });
         restoreScan();
         e.submitter.textContent = 'Confirming attendance…';
-        const payload = { ...attempt, qr_token: credentials.qr_token };
+        const payload = { ...attempt, ...(credentials.access_code ? { access_code: credentials.access_code } : { qr_token: credentials.qr_token }) };
         const r = await api('scan', payload);
         if (
           r?.request_id !== attempt.request_id ||
@@ -730,7 +731,7 @@ async function stopCamera() {
 }
 function render() {
   stopCamera();
-  if (location.hash.includes('session=')) return student();
+  if (location.hash.includes('session=') || location.hash.includes('access=') || /^\/s\/[A-Za-z0-9_-]{22}\/?$/.test(location.pathname)) return student();
   if (view === 'scanner') return scannerPage();
   if (!token || !data) return login();
   if (view === 'reports') return reports();

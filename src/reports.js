@@ -105,20 +105,27 @@ export function scanLink(session) {
   // Vercel preview/deployment URL used by the teacher's browser.
   const configuredBase = import.meta.env.VITE_PUBLIC_APP_URL?.trim();
   const u = new URL(configuredBase || location.origin);
-  u.hash = new URLSearchParams({
-    session: session.session_id,
-    token: session.qr_token,
-  }).toString();
+  if (typeof session.qr_access_code === 'string' && session.qr_access_code) {
+    return new URL(`s/${session.qr_access_code}`, `${u.origin}${u.pathname.endsWith('/') ? u.pathname : u.pathname + '/'}`).href;
+  }
+  u.hash = new URLSearchParams({ session: session.session_id, token: session.qr_token }).toString();
   return u.href;
 }
 export function parseScan(value) {
   const u = new URL(value, location.href);
   const configuredBase = import.meta.env.VITE_PUBLIC_APP_URL?.trim();
-  const publicOrigin = new URL(configuredBase || location.origin).origin;
-  if (u.origin !== publicOrigin || u.pathname !== new URL(configuredBase || location.origin).pathname)
+  const baseUrl = new URL(configuredBase || location.origin);
+  const publicOrigin = baseUrl.origin;
+  const basePath = baseUrl.pathname.replace(/\/$/, '');
+  if (u.origin !== publicOrigin)
     throw new Error('This QR is not for this attendance app.');
-  const p = new URLSearchParams(u.hash.slice(1));
-  if (!p.get('session') || !p.get('token'))
+  const shortPrefix = `${basePath}/s/`;
+  if (u.pathname.startsWith(shortPrefix)) {
+    const code = u.pathname.slice(shortPrefix.length);
+    if (/^[A-Za-z0-9_-]{22}$/.test(code) && !u.search && !u.hash) return `#access=${code}`;
     throw new Error('Invalid attendance QR.');
+  }
+  const p = new URLSearchParams(u.hash.slice(1));
+  if (!p.get('session') || !p.get('token')) throw new Error('Invalid attendance QR.');
   return u.hash;
 }

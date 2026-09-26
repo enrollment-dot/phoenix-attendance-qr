@@ -23,6 +23,7 @@ const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
 const CONTROL = /[\x00-\x1f\x7f]/;
 const BASE64URL = /^[A-Za-z0-9_-]+$/;
 const QR_TOKEN = /^(?:[A-Za-z0-9_-]{43}|[0-9a-fA-F]{64})$/;
+const QR_ACCESS_CODE = /^[A-Za-z0-9_-]{22}$/;
 const QR_ENVELOPE_VERSION = 'v1';
 const QR_AAD_LABEL = 'qr-token-v1';
 const QR_NONCE_BYTES = 12;
@@ -223,6 +224,51 @@ function base64UrlToBytes(value: string): Uint8Array {
 
 function qrAad(sessionId: string, environment: 'production' | 'staging' = 'production'): Uint8Array {
   return new TextEncoder().encode(`YLP-attendance-${environment} | ${sessionId} | ${QR_AAD_LABEL}`);
+}
+
+const QR_ACCESS_AAD_LABEL = 'qr-access-code-v1';
+function qrAccessAad(sessionId: string): Uint8Array {
+  return new TextEncoder().encode(`YLP-attendance-production | ${sessionId} | ${QR_ACCESS_AAD_LABEL}`);
+}
+
+export function generateQrAccessCode(): string {
+  return bytesToBase64Url(crypto.getRandomValues(new Uint8Array(16)));
+}
+
+export async function hashQrAccessCode(value: unknown): Promise<string> {
+  if (typeof value !== 'string' || !QR_ACCESS_CODE.test(value)) throw new ValidationError('Invalid class QR. Please scan the QR shared by your teacher.');
+  return sha256WebSafeBase64(value);
+}
+
+export async function encryptQrAccessCode(value: string, sessionId: string, keyring: QrKeyring): Promise<string> {
+  if (!QR_ACCESS_CODE.test(value) || !sessionId) throw new CryptoEnvelopeError('Invalid QR access code.');
+  validateKeyring(keyring);
+  const keyId = keyring.currentKeyId;
+  const key = await decodeAesKey(keyId, keyring.keys[keyId]);
+  const nonce = crypto.getRandomValues(new Uint8Array(QR_NONCE_BYTES));
+  const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv: nonce, additionalData: qrAccessAad(sessionId), tagLength: QR_TAG_BYTES * 8 }, key, new TextEncoder().encode(value));
+  return `ylpqr:${QR_ENVELOPE_VERSION}:${keyId}:${bytesToBase64Url(nonce)}:${bytesToBase64Url(new Uint8Array(encrypted))}`;
+}
+
+export async function decryptQrAccessCode(envelope: string, sessionId: string, keyring: QrKeyring): Promise<string> {
+  if (typeof envelope !== 'string' || !sessionId) throw new CryptoEnvelopeError('Malformed QR access code envelope.');
+  validateKeyring(keyring);
+  const parts = envelope.split(':');
+  if (parts.length !== 5 || parts[0] !== 'ylpqr' || parts[1] !== QR_ENVELOPE_VERSION) throw new CryptoEnvelopeError('Unsupported QR envelope version.');
+  const [, , keyId, nonceEncoded, ciphertextEncoded] = parts;
+  if (!keyring.keys[keyId]) throw new CryptoEnvelopeError('QR encryption key is unavailable.');
+  const nonce = base64UrlToBytes(nonceEncoded);
+  const ciphertextAndTag = base64UrlToBytes(ciphertextEncoded);
+  if (nonce.length !== QR_NONCE_BYTES || ciphertextAndTag.length <= QR_TAG_BYTES) throw new CryptoEnvelopeError('Malformed QR access code envelope.');
+  const key = await decodeAesKey(keyId, keyring.keys[keyId]);
+  try {
+    const plaintext = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: nonce, additionalData: qrAccessAad(sessionId), tagLength: QR_TAG_BYTES * 8 }, key, ciphertextAndTag);
+    const value = new TextDecoder('utf-8', { fatal: true }).decode(plaintext);
+    if (!QR_ACCESS_CODE.test(value)) throw new CryptoEnvelopeError('Invalid QR access code.');
+    return value;
+  } catch {
+    throw new CryptoEnvelopeError('The QR access code could not be recovered.');
+  }
 }
 
 function qrAadCandidates(sessionId: string): Uint8Array[] {
@@ -432,7 +478,12 @@ export async function mapDashboardResponse(value: unknown, keyring: QrKeyring, o
     }
     delete session.qr_token_ciphertext;
     delete session.qr_token_hash;
-    sessions.push({ ...session, qr_token: qrToken });
+    let qrAccessCode = '';
+    if (typeof session.qr_access_code_ciphertext === 'string') {
+      try { qrAccessCode = await decryptQrAccessCode(session.qr_access_code_ciphertext, session.session_id as string, keyring); } catch { return { ok: false, error: 'The service could not recover the class QR.' }; }
+    }
+    delete session.qr_access_code_ciphertext;
+    sessions.push({ ...session, qr_token: qrToken, ...(qrAccessCode ? { qr_access_code: qrAccessCode } : {}) });
   }
   const students = source.students.map((item) => {
     const student = item as Record<string, unknown>;
@@ -724,6 +775,18 @@ export class SupabaseRpcBackend implements BackendAdapter {
     return this.rpc('ylp_create_session_v1', input as unknown as Record<string, unknown>);
   }
 
+  setSessionAccessCode(sessionId: string, hash: string, ciphertext: string): Promise<unknown> {
+    return this.rpc('ylp_set_session_access_code_v1', { p_session_id: sessionId, p_qr_access_code_hash: hash, p_qr_access_code_ciphertext: ciphertext });
+  }
+
+  getSessionAccessCode(sessionId: string): Promise<unknown> {
+    return this.rpc('ylp_get_session_access_code_v1', { p_session_id: sessionId });
+  }
+
+  resolveSessionAccessCode(hash: string): Promise<unknown> {
+    return this.rpc('ylp_resolve_session_access_code_v1', { p_qr_access_code_hash: hash });
+  }
+
   closeSession(sessionId: string, _token: string): Promise<unknown> {
     return this.rpc('ylp_close_session_v1', { p_session_id: sessionId });
   }
@@ -953,12 +1016,41 @@ export async function handleRequest(request: Request, backend: BackendAdapter, c
         const qrTokenCiphertext = await encryptQrToken(rawQrToken, normalizeUuidV4(createPayload.request_id), config.qrKeyring);
         const input = await buildCreateSessionRpcInput(createPayload, config.sessionTimeOffset, qrTokenHash, qrTokenCiphertext);
         result = await backend.createSession(input, token);
+        const created = normalizeCreateSessionBackendResponse(result);
+        if (!created.ok) { result = created; break; }
+        const createdData = created.data as Record<string, unknown>;
+        if (typeof createdData.session_id !== 'string') throw new UnknownBehaviorError('The service returned an invalid session ID.');
+        let accessCode = '';
+        const existingAccess = normalizeBackendResponse(await backend.getSessionAccessCode(createdData.session_id));
+        if (existingAccess.ok && existingAccess.data && typeof existingAccess.data === 'object') {
+          const ciphertext = (existingAccess.data as Record<string, unknown>).qr_access_code_ciphertext;
+          if (typeof ciphertext === 'string') accessCode = await decryptQrAccessCode(ciphertext, createdData.session_id, config.qrKeyring);
+        }
+        if (!accessCode) {
+          accessCode = generateQrAccessCode();
+          const accessHash = await hashQrAccessCode(accessCode);
+          const accessCiphertext = await encryptQrAccessCode(accessCode, createdData.session_id, config.qrKeyring);
+          const saved = normalizeBackendResponse(await backend.setSessionAccessCode(createdData.session_id, accessHash, accessCiphertext));
+          if (!saved.ok) throw new UnknownBehaviorError('The service could not preserve the session QR access code.');
+        }
         result = await mapCreateSessionResponse(result, config.qrKeyring, config.sessionTimeOffset);
+        if (result.ok) result.data = { ...(result.data as Record<string, unknown>), qr_access_code: accessCode };
         break;
       }
       case 'session': {
-        if (typeof payload.session_id !== 'string' || !UUID_V4.test(payload.session_id) || typeof payload.qr_token !== 'string') throw new ValidationError('Invalid class QR. Please scan the QR shared by your teacher.');
         await enforceRateLimit(backend, config, 'public-session-global', 'global');
+        if (typeof payload.access_code === 'string') {
+          const accessHash = await hashQrAccessCode(payload.access_code);
+          const resolved = normalizeBackendResponse(await backend.resolveSessionAccessCode(accessHash));
+          if (!resolved.ok) { result = resolved; break; }
+          const d = resolved.data as Record<string, unknown>;
+          if (typeof d.session_id !== 'string' || typeof d.qr_token_ciphertext !== 'string') throw new UnknownBehaviorError('The service returned an invalid QR access record.');
+          const qrToken = await decryptQrToken(d.qr_token_ciphertext, d.session_id, config.qrKeyring);
+          const qrHash = await hashQrToken(qrToken);
+          result = mapPublicSessionResponse(await backend.session(d.session_id, qrHash), config.sessionTimeOffset);
+          break;
+        }
+        if (typeof payload.session_id !== 'string' || !UUID_V4.test(payload.session_id) || typeof payload.qr_token !== 'string') throw new ValidationError('Invalid class QR. Please scan the QR shared by your teacher.');
         const qrHash = await hashQrToken(payload.qr_token);
         result = mapPublicSessionResponse(await backend.session(payload.session_id.toLowerCase(), qrHash), config.sessionTimeOffset);
         break;
@@ -966,6 +1058,17 @@ export async function handleRequest(request: Request, backend: BackendAdapter, c
       case 'scan': {
         const scanPayload = payload as unknown as ScanPayload;
         await enforceRateLimit(backend, config, 'scan-global', 'global');
+        if (typeof scanPayload.access_code === 'string') {
+          const accessHash = await hashQrAccessCode(scanPayload.access_code);
+          const resolved = normalizeBackendResponse(await backend.resolveSessionAccessCode(accessHash));
+          if (!resolved.ok) { result = resolved; break; }
+          const d = resolved.data as Record<string, unknown>;
+          if (typeof d.session_id !== 'string' || typeof d.qr_token_ciphertext !== 'string') throw new UnknownBehaviorError('The service returned an invalid QR access record.');
+          scanPayload.session_id = d.session_id;
+          const qrToken = await decryptQrToken(d.qr_token_ciphertext, d.session_id, config.qrKeyring);
+          scanPayload.qr_token = qrToken;
+        }
+        if (typeof scanPayload.qr_token !== 'string') throw new ValidationError('Invalid class QR. Please scan the QR shared by your teacher.', SCAN_REJECTED);
         const qrHash = await hashQrToken(scanPayload.qr_token);
         const fingerprint = await buildScanFingerprint(scanPayload);
         const studentId = normalizeStudentId(scanPayload.student_id);
