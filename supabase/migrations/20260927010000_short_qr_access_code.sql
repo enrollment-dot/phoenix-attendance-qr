@@ -4,6 +4,10 @@
 
 alter table public.sessions
   add column if not exists qr_access_code_hash text;
+  
+-- Encrypted copy lets authorized admin dashboard reads recover the code for QR display.
+alter table public.sessions
+  add column if not exists qr_access_code_ciphertext text;
 
 create unique index if not exists sessions_qr_access_code_hash_uidx
   on public.sessions (qr_access_code_hash)
@@ -56,6 +60,7 @@ begin
 
   update public.sessions
   set qr_access_code_hash = p_qr_access_code_hash,
+      qr_access_code_ciphertext = p_qr_access_code_ciphertext,
       updated_at = pg_catalog.clock_timestamp()
   where session_id = p_session_id
   returning * into v_session;
@@ -64,7 +69,7 @@ begin
     'ok', true,
     'data', pg_catalog.jsonb_build_object(
       'session_id', v_session.session_id,
-      'qr_access_code_ciphertext', p_qr_access_code_ciphertext
+      'qr_access_code_ciphertext', v_session.qr_access_code_ciphertext
     )
   );
 end;
