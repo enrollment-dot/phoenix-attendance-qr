@@ -8,7 +8,7 @@ export default defineConfig(({ mode }) => {
   const apiUrl = env.VITE_API_URL || (process.env.GITHUB_ACTIONS ? stagingApiUrl : undefined);
 
   return {
-    base: './',
+    base: '/',
     define: {
       'import.meta.env.VITE_API_URL': JSON.stringify(apiUrl),
     },
