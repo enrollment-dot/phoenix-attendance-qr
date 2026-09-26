@@ -181,16 +181,16 @@ test('safe read-only actions retry redirected 404; writes and other failures do 
     );
 });
 
-test('session QR uses the YLA branded layout and embeds the app logo', async ({ page }) => {
+test('session QR uses the SIFer Lab branded layout and embeds the app logo', async ({ page }) => {
   await mock(page);
   await page.goto('/');
-  await page.getByText('Sign in to Young Leadership Academy').waitFor();
+  await page.getByText('Sign in to SIFer Lab').waitFor();
   await page.getByLabel('Username').fill('admin');
   await page.getByLabel('Password').fill('test-admin-password-123');
   await page.locator('#login button.primary').click();
   await page.getByText('Class overview').waitFor();
   await page.getByRole('button', { name: 'Display QR ↗' }).click();
-  await expect(page.locator('.qr-brand strong')).toHaveText('Young Leadership Academy');
+  await expect(page.locator('.qr-brand strong')).toHaveText('SIFer Lab');
   await expect(page.locator('.qr-brand span')).toHaveText('LEARN • LEAD • GROW');
   await expect(page.locator('.qr-session-name')).toHaveText('English · Intermediate');
   await expect(page.locator('.qr-attendance-title')).toHaveText('Record your attendance');
