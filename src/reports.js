@@ -114,10 +114,11 @@ export function scanLink(session) {
 export function parseScan(value) {
   const u = new URL(value, location.href);
   const configuredBase = import.meta.env.VITE_PUBLIC_APP_URL?.trim();
-  const publicOrigin = new URL(configuredBase || location.origin).origin;
-  if (u.origin !== publicOrigin || u.pathname !== new URL(configuredBase || location.origin).pathname)
+  const baseUrl = new URL(configuredBase || location.origin);
+  const publicOrigin = baseUrl.origin;
+  const basePath = baseUrl.pathname.replace(/\/$/, '');
+  if (u.origin !== publicOrigin)
     throw new Error('This QR is not for this attendance app.');
-  const basePath = new URL(configuredBase || location.origin).pathname.replace(/\/$/, '');
   const shortPrefix = `${basePath}/s/`;
   if (u.pathname.startsWith(shortPrefix)) {
     const code = u.pathname.slice(shortPrefix.length);
