@@ -108,7 +108,7 @@ async function busy(button, fn) {
 }
 function login() {
   frame(
-    `<div class="page-title"><div><p class="eyebrow">SIFER LAB</p><h1>Attendance for every SIFer Lab class.</h1><p>Create class sessions, share attendance QR codes, and review student records.</p></div></div><section class="login-grid"><div class="card"><span class="step">TEACHER &amp; ADMIN ACCESS</span><h2>Sign in to SIFer Lab</h2><p>Use your Academy username and password.</p>${!configured ? '<div class="notice">SIFer Lab is not configured yet. Ask your administrator to complete setup.</div>' : ''}<form id="login">${field('Username', 'username', 'text', 'autocomplete="username"')}${field('Password', 'password', 'password', 'autocomplete="current-password" minlength="16"')}<button class="primary full">Sign in →</button></form></div><div class="welcome-panel"><span class="large-qr">▦</span><h2>Joining a SIFer Lab class?</h2><p>Open the QR shared by your teacher. Choose Scan In when you arrive and Scan Out when you leave.</p><button id="student-scanner" class="light">Scan a class QR</button></div></section>`,
+    `<div class="page-title"><div><p class="eyebrow">SIFER LAB</p><h1>Attendance for every SIFer Lab class.</h1><p>Create class sessions, share attendance QR codes, and review student records.</p></div></div><section class="login-grid"><div class="card"><span class="step">TEACHER &amp; ADMIN ACCESS</span><h2>Sign in to SIFer Lab</h2><p>Use your SIFer Lab username and password.</p>${!configured ? '<div class="notice">SIFer Lab is not configured yet. Ask your administrator to complete setup.</div>' : ''}<form id="login">${field('Username', 'username', 'text', 'autocomplete="username"')}${field('Password', 'password', 'password', 'autocomplete="current-password" minlength="16"')}<button class="primary full">Sign in →</button></form></div><div class="welcome-panel"><span class="large-qr">▦</span><h2>Joining a SIFer Lab class?</h2><p>Open the QR shared by your teacher. Choose Scan In when you arrive and Scan Out when you leave.</p><button id="student-scanner" class="light">Scan a class QR</button></div></section>`,
   );
   document.querySelector('#login').onsubmit = (e) => {
     e.preventDefault();
@@ -168,7 +168,7 @@ function dashboard() {
     pct = percentage(all),
     active = data.sessions.filter((s) => s.status === 'active');
   frame(
-    `<div class="page-title"><div><p class="eyebrow">ACADEMY CLASS SESSIONS</p><h1>Class overview</h1><p>Manage your Academy sessions and review attendance.</p></div><button class="primary" id="create">＋ Create session</button></div><div class="stats"><div class="card"><span>Class sessions</span><strong>${data.sessions.length}</strong><small>${active.length} enabled for scanning</small></div><div class="card"><span>Enrolled students</span><strong>${data.students.length}</strong><small>Active students on the SIFer Lab roster</small></div><div class="card"><span>Attendance rate</span><strong>${pct === null ? '—' : pct + '<em>%</em>'}</strong><small>${data.settings.enrolled ? 'Scanned in across non-pending records' : 'Recorded attendees only; roster validation is off'}</small></div></div><section class="card sessions"><div class="section-title"><div><h2>Class sessions</h2><p>Share a session QR with your class for Scan In and Scan Out.</p></div><button class="text" id="refresh">↻ Refresh</button></div>${
+    `<div class="page-title"><div><p class="eyebrow">SIFER LAB CLASS SESSIONS</p><h1>Class overview</h1><p>Manage your SIFer Lab sessions and review attendance.</p></div><button class="primary" id="create">＋ Create session</button></div><div class="stats"><div class="card"><span>Class sessions</span><strong>${data.sessions.length}</strong><small>${active.length} enabled for scanning</small></div><div class="card"><span>Enrolled students</span><strong>${data.students.length}</strong><small>Active students on the SIFer Lab roster</small></div><div class="card"><span>Attendance rate</span><strong>${pct === null ? '—' : pct + '<em>%</em>'}</strong><small>${data.settings.enrolled ? 'Scanned in across non-pending records' : 'Recorded attendees only; roster validation is off'}</small></div></div><section class="card sessions"><div class="section-title"><div><h2>Class sessions</h2><p>Share a session QR with your class for Scan In and Scan Out.</p></div><button class="text" id="refresh">↻ Refresh</button></div>${
       data.sessions.length
         ? `<div class="session-list">${[...data.sessions]
             .reverse()
@@ -351,7 +351,7 @@ async function showQr(s) {
     });
   document.querySelector('#download').onclick = () => {
     const a = document.createElement('a');
-    a.download = `young-leadership-academy-${s.session_id}.png`;
+    a.download = `sifer-lab-${s.session_id}.png`;
     a.href = canvas.toDataURL();
     a.click();
   };
@@ -382,7 +382,7 @@ function students() {
   const students = Array.isArray(data?.students) ? [...data.students] : [];
   let filtered = students;
   frame(
-    `<div class="page-title"><div><p class="eyebrow">ACADEMY ROSTER</p><h1>Students</h1><p>Manage the active SIFer Lab roster used for attendance validation.</p></div><div class="actions"><button class="secondary" id="import">Import CSV</button><button class="primary" id="add">＋ Add student</button></div></div><section class="card"><div class="section-title"><div><h2>Student roster</h2><p>Active students can Scan In and Scan Out. Deactivated students remain in attendance history.</p></div><label class="search-field">Search<input id="student-search" type="search" placeholder="ID or name"></label></div><div id="student-editor"></div><div class="table-wrap"><table><thead><tr><th>Student ID</th><th>Name</th><th>Status</th><th>Action</th></tr></thead><tbody id="student-rows"></tbody></table></div><input id="csv-input" type="file" accept=".csv,text/csv" hidden></section>`,
+    `<div class="page-title"><div><p class="eyebrow">SIFER LAB ROSTER</p><h1>Students</h1><p>Manage the active SIFer Lab roster used for attendance validation.</p></div><div class="actions"><button class="secondary" id="import">Import CSV</button><button class="primary" id="add">＋ Add student</button></div></div><section class="card"><div class="section-title"><div><h2>Student roster</h2><p>Active students can Scan In and Scan Out. Deactivated students remain in attendance history.</p></div><label class="search-field">Search<input id="student-search" type="search" placeholder="ID or name"></label></div><div id="student-editor"></div><div class="table-wrap"><table><thead><tr><th>Student ID</th><th>Name</th><th>Status</th><th>Action</th></tr></thead><tbody id="student-rows"></tbody></table></div><input id="csv-input" type="file" accept=".csv,text/csv" hidden></section>`,
   );
   const rows = document.querySelector('#student-rows');
   const editor = document.querySelector('#student-editor');
@@ -501,7 +501,7 @@ function students() {
 function accounts() {
   if (role !== 'admin') { view = 'dashboard'; return dashboard(); }
   let rows = [];
-  frame('<div class="page-title"><div><p class="eyebrow">ACADEMY ACCESS CONTROL</p><h1>Accounts</h1><p>Admin accounts can manage SIFer Lab access. Operators can create sessions but cannot manage students, attendance, or accounts.</p></div><button class="primary" id="add-account">＋ Add account</button></div><section class="card"><div id="account-editor"></div><div class="table-wrap"><table><thead><tr><th>Email</th><th>Username</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead><tbody id="account-rows"><tr><td colspan="5" class="empty">Loading accounts…</td></tr></tbody></table></div></section>');
+  frame('<div class="page-title"><div><p class="eyebrow">SIFER LAB ACCESS CONTROL</p><h1>Accounts</h1><p>Admin accounts can manage SIFer Lab access. Operators can create sessions but cannot manage students, attendance, or accounts.</p></div><button class="primary" id="add-account">＋ Add account</button></div><section class="card"><div id="account-editor"></div><div class="table-wrap"><table><thead><tr><th>Email</th><th>Username</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead><tbody id="account-rows"><tr><td colspan="5" class="empty">Loading accounts…</td></tr></tbody></table></div></section>');
   const editor = document.querySelector('#account-editor');
   const table = document.querySelector('#account-rows');
   const load = async () => { const result = await api('adminAccounts', {}, token); rows = Array.isArray(result) ? result : []; renderRows(); };
@@ -552,7 +552,7 @@ function reports() {
       ),
       a = document.createElement('a');
     a.href = u;
-    a.download = 'young-leadership-academy-attendance.csv';
+    a.download = 'sifer-lab-attendance.csv';
     a.click();
     setTimeout(() => URL.revokeObjectURL(u), 1000);
   };
@@ -573,7 +573,7 @@ async function student() {
     const s = await api('session', credentials);
     if (!loadingCurrent()) return;
     frame(
-      `<section class="card student-card"><p class="eyebrow">ACADEMY CLASS ATTENDANCE</p><h1>${esc(s.course)}</h1><p>${esc(sessionLabel(s, s.offset))}</p><hr><form id="scan-form">${field('Student ID', 'student_id', 'text', 'autocomplete="username" pattern="[a-zA-Z0-9_-]+" maxlength="40" placeholder="Your student ID"')}${field('Student name', 'student_name', 'text', 'autocomplete="name" maxlength="100" placeholder="Your full name"')}<div class="scan-actions"><button name="direction" value="in" class="primary">↳ Scan In</button><button name="direction" value="out" class="secondary">↗ Scan Out</button></div></form><p class="helper">Choose Scan In when you arrive and Scan Out when you leave. Use the same student ID both times. Enrolled students use the name on the SIFer Lab roster.</p></section>`,
+      `<section class="card student-card"><p class="eyebrow">SIFER LAB CLASS ATTENDANCE</p><h1>${esc(s.course)}</h1><p>${esc(sessionLabel(s, s.offset))}</p><hr><form id="scan-form">${field('Student ID', 'student_id', 'text', 'autocomplete="username" pattern="[a-zA-Z0-9_-]+" maxlength="40" placeholder="Your student ID"')}${field('Student name', 'student_name', 'text', 'autocomplete="name" maxlength="100" placeholder="Your full name"')}<div class="scan-actions"><button name="direction" value="in" class="primary">↳ Scan In</button><button name="direction" value="out" class="secondary">↗ Scan Out</button></div></form><p class="helper">Choose Scan In when you arrive and Scan Out when you leave. Use the same student ID both times. Enrolled students use the name on the SIFer Lab roster.</p></section>`,
       true,
     );
     const current = pageGuard();
