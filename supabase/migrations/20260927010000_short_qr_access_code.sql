@@ -171,35 +171,35 @@ begin
   where key in('enrollment_required','timezone_offset','open_minutes','close_minutes');
  if v_enrollment_required is null or v_offset is null or v_open_minutes is null or v_close_minutes is null
    then raise exception using message='Required YLP settings are missing'; end if;
- return jsonb_build_object(
+ return pg_catalog.jsonb_build_object(
    'session_creation_idempotency',true,
    'sessions',coalesce((
-     select jsonb_agg(jsonb_build_object(
+     select pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object(
        'session_id',s.session_id,'course',s.course,'date',s.scheduled_date,
        'start_time',s.start_time_local,'end_time',s.end_time_local,'status',s.status,
        'qr_token_ciphertext',s.qr_token_ciphertext,
        'qr_access_code_ciphertext',s.qr_access_code_ciphertext
      ) order by s.scheduled_date desc,s.start_time_local desc,s.created_at desc)
      from public.sessions s
-   ),'[]'::jsonb),
+   ),'[]'::pg_catalog.jsonb),
    'students',coalesce((
-     select jsonb_agg(jsonb_build_object('student_id',st.student_id,'name',st.name) order by st.student_id)
+     select pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object('student_id',st.student_id,'name',st.name) order by st.student_id)
      from public.students st where st.active=true
-   ),'[]'::jsonb),
+   ),'[]'::pg_catalog.jsonb),
    'attendance',coalesce((
-     select jsonb_agg(jsonb_build_object(
+     select pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object(
        'session_id',a.session_id,'student_id',a.student_id,'student_name',a.student_name,
        'scan_in',case when a.scan_in is null then '' else to_char(a.scan_in at time zone 'UTC','YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') end,
        'scan_out',case when a.scan_out is null then '' else to_char(a.scan_out at time zone 'UTC','YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') end,
        'duration_minutes',case when a.duration_minutes is null then '' else a.duration_minutes::text end,
        'status',a.status
      ) order by a.updated_at desc,a.created_at desc) from public.attendance a
-   ),'[]'::jsonb),
-   'settings',jsonb_build_object(
+   ),'[]'::pg_catalog.jsonb),
+   'settings',pg_catalog.jsonb_build_object(
      'enrolled',v_enrollment_required,'offset',v_offset,'openMinutes',v_open_minutes,
      'closeMinutes',v_close_minutes
    ),
-   'now',to_char(clock_timestamp() at time zone 'UTC','YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+   'now',pg_catalog.to_char(pg_catalog.clock_timestamp() at time zone 'UTC','YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
  );
 end;
 $function$;
