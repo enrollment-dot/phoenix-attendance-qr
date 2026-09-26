@@ -55,7 +55,7 @@ const field = (label, name, type = 'text', extra = '') =>
   `<label>${label}<input name="${name}" type="${type}" ${extra} required></label>`;
 function frame(content, attendee = false) {
   pageVersion++;
-  root.innerHTML = `<div class="shell"><aside><a class="brand" href="#" aria-label="Young Leadership Academy"><img class="mark" src="${YLA_LOGO_SRC}" alt="" /><span>Young Leadership Academy<small>LEARN • LEAD • GROW</small></span></a><div class="workspace">${attendee ? 'STUDENTS' : 'TEACHING TEAM'}</div><nav>${attendee ? '<a href="#">← Back to home</a>' : `<button data-nav="dashboard" class="${view === 'dashboard' ? 'selected' : ''}">▦ &nbsp; Overview</button><button data-nav="reports" class="${view === 'reports' ? 'selected' : ''}">≡ &nbsp; Attendance</button>${role === 'admin' ? `<button data-nav="students" class="${view === 'students' ? 'selected' : ''}">♙ &nbsp; Students</button>` : ''}${role === 'admin' ? `<button data-nav="accounts" class="${view === 'accounts' ? 'selected' : ''}">♙ &nbsp; Accounts</button>` : ''}<button data-nav="scanner">▣ &nbsp; Scan a QR</button>`}</nav><div class="aside-bottom">Your class.<br>Your attendance.<hr><span class="tiny">LEARN • LEAD • GROW</span></div></aside><main><header><span>${attendee ? 'Young Leadership Academy / Student attendance' : 'Young Leadership Academy / ' + (view === 'reports' ? 'Attendance' : 'Overview')}</span>${token ? '<button class="text" id="logout">Sign out</button>' : '<span class="tiny">LEARN • LEAD • GROW</span>'}</header><div id="notice" role="status" aria-live="polite"></div>${content}<footer>Young Leadership Academy · For teachers and students</footer></main></div>`;
+  root.innerHTML = `<div class="shell"><aside><a class="brand" href="#" aria-label="SIFer Lab"><img class="mark" src="${YLA_LOGO_SRC}" alt="" /><span>SIFer Lab<small>LEARN • LEAD • GROW</small></span></a><div class="workspace">${attendee ? 'STUDENTS' : 'TEACHING TEAM'}</div><nav>${attendee ? '<a href="#">← Back to home</a>' : `<button data-nav="dashboard" class="${view === 'dashboard' ? 'selected' : ''}">▦ &nbsp; Overview</button><button data-nav="reports" class="${view === 'reports' ? 'selected' : ''}">≡ &nbsp; Attendance</button>${role === 'admin' ? `<button data-nav="students" class="${view === 'students' ? 'selected' : ''}">♙ &nbsp; Students</button>` : ''}${role === 'admin' ? `<button data-nav="accounts" class="${view === 'accounts' ? 'selected' : ''}">♙ &nbsp; Accounts</button>` : ''}<button data-nav="scanner">▣ &nbsp; Scan a QR</button>`}</nav><div class="aside-bottom">Your class.<br>Your attendance.<hr><span class="tiny">LEARN • LEAD • GROW</span></div></aside><main><header><span>${attendee ? 'SIFer Lab / Student attendance' : 'SIFer Lab / ' + (view === 'reports' ? 'Attendance' : 'Overview')}</span>${token ? '<button class="text" id="logout">Sign out</button>' : '<span class="tiny">LEARN • LEAD • GROW</span>'}</header><div id="notice" role="status" aria-live="polite"></div>${content}<footer>SIFer Lab · For teachers and students</footer></main></div>`;
   root.querySelectorAll('a[href="#"]').forEach(
     (a) =>
       (a.onclick = () => {
@@ -108,7 +108,7 @@ async function busy(button, fn) {
 }
 function login() {
   frame(
-    `<div class="page-title"><div><p class="eyebrow">YOUNG LEADERSHIP ACADEMY</p><h1>Attendance for every Academy class.</h1><p>Create class sessions, share attendance QR codes, and review student records.</p></div></div><section class="login-grid"><div class="card"><span class="step">TEACHER &amp; ADMIN ACCESS</span><h2>Sign in to Young Leadership Academy</h2><p>Use your Academy username and password.</p>${!configured ? '<div class="notice">Young Leadership Academy is not configured yet. Ask your administrator to complete setup.</div>' : ''}<form id="login">${field('Username', 'username', 'text', 'autocomplete="username"')}${field('Password', 'password', 'password', 'autocomplete="current-password" minlength="16"')}<button class="primary full">Sign in →</button></form></div><div class="welcome-panel"><span class="large-qr">▦</span><h2>Joining a Young Leadership Academy class?</h2><p>Open the QR shared by your teacher. Choose Scan In when you arrive and Scan Out when you leave.</p><button id="student-scanner" class="light">Scan a class QR</button></div></section>`,
+    `<div class="page-title"><div><p class="eyebrow">SIFER LAB</p><h1>Attendance for every SIFer Lab class.</h1><p>Create class sessions, share attendance QR codes, and review student records.</p></div></div><section class="login-grid"><div class="card"><span class="step">TEACHER &amp; ADMIN ACCESS</span><h2>Sign in to SIFer Lab</h2><p>Use your SIFer Lab username and password.</p>${!configured ? '<div class="notice">SIFer Lab is not configured yet. Ask your administrator to complete setup.</div>' : ''}<form id="login">${field('Username', 'username', 'text', 'autocomplete="username"')}${field('Password', 'password', 'password', 'autocomplete="current-password" minlength="16"')}<button class="primary full">Sign in →</button></form></div><div class="welcome-panel"><span class="large-qr">▦</span><h2>Joining a SIFer Lab class?</h2><p>Open the QR shared by your teacher. Choose Scan In when you arrive and Scan Out when you leave.</p><button id="student-scanner" class="light">Scan a class QR</button></div></section>`,
   );
   document.querySelector('#login').onsubmit = (e) => {
     e.preventDefault();
@@ -134,7 +134,7 @@ function login() {
 }
 function resetPassword(kind = null) {
   frame(
-    `<div class="page-title"><div><p class="eyebrow">YOUNG LEADERSHIP ACADEMY</p><h1>Reset your password.</h1><p>Choose a new password for your Academy administrator account.</p></div></div><section class="login-grid"><div class="card"><span class="step">ADMIN PASSWORD RECOVERY</span><h2>Set a new password</h2><p>Use at least 16 characters. Your password is sent directly to Supabase Auth and is never displayed or logged.</p>${kind ? `<div class="notice error">${esc(recoveryMessage(kind))}</div><button class="secondary full" id="return-login">Return to sign in</button>` : `<form id="reset-password"><label>New password<input name="password" type="password" autocomplete="new-password" minlength="16" required></label><label>Confirm new password<input name="confirm_password" type="password" autocomplete="new-password" minlength="16" required></label><button class="primary full">Save new password →</button></form>`}</div><div class="welcome-panel"><span class="large-qr">✓</span><h2>Secure account access</h2><p>After the password changes, this recovery session will be signed out and you will return to the normal admin sign-in screen.</p></div></section>`,
+    `<div class="page-title"><div><p class="eyebrow">SIFER LAB</p><h1>Reset your password.</h1><p>Choose a new password for your SIFer Lab administrator account.</p></div></div><section class="login-grid"><div class="card"><span class="step">ADMIN PASSWORD RECOVERY</span><h2>Set a new password</h2><p>Use at least 16 characters. Your password is sent directly to Supabase Auth and is never displayed or logged.</p>${kind ? `<div class="notice error">${esc(recoveryMessage(kind))}</div><button class="secondary full" id="return-login">Return to sign in</button>` : `<form id="reset-password"><label>New password<input name="password" type="password" autocomplete="new-password" minlength="16" required></label><label>Confirm new password<input name="confirm_password" type="password" autocomplete="new-password" minlength="16" required></label><button class="primary full">Save new password →</button></form>`}</div><div class="welcome-panel"><span class="large-qr">✓</span><h2>Secure account access</h2><p>After the password changes, this recovery session will be signed out and you will return to the normal admin sign-in screen.</p></div></section>`,
   );
   document.querySelector('#return-login')?.addEventListener('click', () => {
     render();
@@ -168,7 +168,7 @@ function dashboard() {
     pct = percentage(all),
     active = data.sessions.filter((s) => s.status === 'active');
   frame(
-    `<div class="page-title"><div><p class="eyebrow">ACADEMY CLASS SESSIONS</p><h1>Class overview</h1><p>Manage your Academy sessions and review attendance.</p></div><button class="primary" id="create">＋ Create session</button></div><div class="stats"><div class="card"><span>Class sessions</span><strong>${data.sessions.length}</strong><small>${active.length} enabled for scanning</small></div><div class="card"><span>Enrolled students</span><strong>${data.students.length}</strong><small>Active students on the Academy roster</small></div><div class="card"><span>Attendance rate</span><strong>${pct === null ? '—' : pct + '<em>%</em>'}</strong><small>${data.settings.enrolled ? 'Scanned in across non-pending records' : 'Recorded attendees only; roster validation is off'}</small></div></div><section class="card sessions"><div class="section-title"><div><h2>Class sessions</h2><p>Share a session QR with your class for Scan In and Scan Out.</p></div><button class="text" id="refresh">↻ Refresh</button></div>${
+    `<div class="page-title"><div><p class="eyebrow">SIFER LAB CLASS SESSIONS</p><h1>Class overview</h1><p>Manage your SIFer Lab sessions and review attendance.</p></div><button class="primary" id="create">＋ Create session</button></div><div class="stats"><div class="card"><span>Class sessions</span><strong>${data.sessions.length}</strong><small>${active.length} enabled for scanning</small></div><div class="card"><span>Enrolled students</span><strong>${data.students.length}</strong><small>Active students on the SIFer Lab roster</small></div><div class="card"><span>Attendance rate</span><strong>${pct === null ? '—' : pct + '<em>%</em>'}</strong><small>${data.settings.enrolled ? 'Scanned in across non-pending records' : 'Recorded attendees only; roster validation is off'}</small></div></div><section class="card sessions"><div class="section-title"><div><h2>Class sessions</h2><p>Share a session QR with your class for Scan In and Scan Out.</p></div><button class="text" id="refresh">↻ Refresh</button></div>${
       data.sessions.length
         ? `<div class="session-list">${[...data.sessions]
             .reverse()
@@ -307,7 +307,7 @@ function createForm() {
 }
 async function showQr(s) {
   frame(
-    `<div class="page-title"><div><p class="eyebrow">SESSION QR</p><h1>${esc(s.course)}</h1><p>${esc(sessionLabel(s, data.settings.offset))}</p></div><button id="back" class="secondary">Back to overview</button></div><section class="card qr-card"><span class="badge present">${esc(s.status)}</span><div class="qr-brand" aria-label="Young Leadership Academy"><strong>Young Leadership Academy</strong><span>LEARN • LEAD • GROW</span></div><canvas id="qr" aria-label="Class attendance QR code"></canvas><h2 class="qr-session-name">${esc(s.course)}</h2><h3 class="qr-attendance-title">Record your attendance</h3><p>Open your phone camera and point it at this QR.<br>Enter your student ID, then choose Scan In or Scan Out.</p><div class="actions"><button id="copy" class="secondary">Copy student link</button><button id="download" class="secondary">Download QR</button>${s.status === 'active' ? '<button id="close" class="danger">Close session</button>' : role === 'admin' ? '<button id="delete-session" class="danger">Delete session</button>' : ''}</div><p class="helper">Share this QR only with students in this Academy class. It gives access to this session.</p></section>`,
+    `<div class="page-title"><div><p class="eyebrow">SESSION QR</p><h1>${esc(s.course)}</h1><p>${esc(sessionLabel(s, data.settings.offset))}</p></div><button id="back" class="secondary">Back to overview</button></div><section class="card qr-card"><span class="badge present">${esc(s.status)}</span><div class="qr-brand" aria-label="SIFer Lab"><strong>SIFer Lab</strong><span>LEARN • LEAD • GROW</span></div><canvas id="qr" aria-label="Class attendance QR code"></canvas><h2 class="qr-session-name">${esc(s.course)}</h2><h3 class="qr-attendance-title">Record your attendance</h3><p>Open your phone camera and point it at this QR.<br>Enter your student ID, then choose Scan In or Scan Out.</p><div class="actions"><button id="copy" class="secondary">Copy student link</button><button id="download" class="secondary">Download QR</button>${s.status === 'active' ? '<button id="close" class="danger">Close session</button>' : role === 'admin' ? '<button id="delete-session" class="danger">Delete session</button>' : ''}</div><p class="helper">Share this QR only with students in this SIFer Lab class. It gives access to this session.</p></section>`,
   );
   const current = pageGuard();
   document.querySelector('#back').onclick = dashboard;
@@ -351,7 +351,7 @@ async function showQr(s) {
     });
   document.querySelector('#download').onclick = () => {
     const a = document.createElement('a');
-    a.download = `young-leadership-academy-${s.session_id}.png`;
+    a.download = `sifer-lab-${s.session_id}.png`;
     a.href = canvas.toDataURL();
     a.click();
   };
@@ -382,7 +382,7 @@ function students() {
   const students = Array.isArray(data?.students) ? [...data.students] : [];
   let filtered = students;
   frame(
-    `<div class="page-title"><div><p class="eyebrow">ACADEMY ROSTER</p><h1>Students</h1><p>Manage the active Academy roster used for attendance validation.</p></div><div class="actions"><button class="secondary" id="import">Import CSV</button><button class="primary" id="add">＋ Add student</button></div></div><section class="card"><div class="section-title"><div><h2>Student roster</h2><p>Active students can Scan In and Scan Out. Deactivated students remain in attendance history.</p></div><label class="search-field">Search<input id="student-search" type="search" placeholder="ID or name"></label></div><div id="student-editor"></div><div class="table-wrap"><table><thead><tr><th>Student ID</th><th>Name</th><th>Status</th><th>Action</th></tr></thead><tbody id="student-rows"></tbody></table></div><input id="csv-input" type="file" accept=".csv,text/csv" hidden></section>`,
+    `<div class="page-title"><div><p class="eyebrow">SIFER LAB ROSTER</p><h1>Students</h1><p>Manage the active SIFer Lab roster used for attendance validation.</p></div><div class="actions"><button class="secondary" id="import">Import CSV</button><button class="primary" id="add">＋ Add student</button></div></div><section class="card"><div class="section-title"><div><h2>Student roster</h2><p>Active students can Scan In and Scan Out. Deactivated students remain in attendance history.</p></div><label class="search-field">Search<input id="student-search" type="search" placeholder="ID or name"></label></div><div id="student-editor"></div><div class="table-wrap"><table><thead><tr><th>Student ID</th><th>Name</th><th>Status</th><th>Action</th></tr></thead><tbody id="student-rows"></tbody></table></div><input id="csv-input" type="file" accept=".csv,text/csv" hidden></section>`,
   );
   const rows = document.querySelector('#student-rows');
   const editor = document.querySelector('#student-editor');
@@ -501,7 +501,7 @@ function students() {
 function accounts() {
   if (role !== 'admin') { view = 'dashboard'; return dashboard(); }
   let rows = [];
-  frame('<div class="page-title"><div><p class="eyebrow">ACADEMY ACCESS CONTROL</p><h1>Accounts</h1><p>Admin accounts can manage Academy access. Operators can create sessions but cannot manage students, attendance, or accounts.</p></div><button class="primary" id="add-account">＋ Add account</button></div><section class="card"><div id="account-editor"></div><div class="table-wrap"><table><thead><tr><th>Email</th><th>Username</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead><tbody id="account-rows"><tr><td colspan="5" class="empty">Loading accounts…</td></tr></tbody></table></div></section>');
+  frame('<div class="page-title"><div><p class="eyebrow">SIFER LAB ACCESS CONTROL</p><h1>Accounts</h1><p>Admin accounts can manage SIFer Lab access. Operators can create sessions but cannot manage students, attendance, or accounts.</p></div><button class="primary" id="add-account">＋ Add account</button></div><section class="card"><div id="account-editor"></div><div class="table-wrap"><table><thead><tr><th>Email</th><th>Username</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead><tbody id="account-rows"><tr><td colspan="5" class="empty">Loading accounts…</td></tr></tbody></table></div></section>');
   const editor = document.querySelector('#account-editor');
   const table = document.querySelector('#account-rows');
   const load = async () => { const result = await api('adminAccounts', {}, token); rows = Array.isArray(result) ? result : []; renderRows(); };
@@ -552,7 +552,7 @@ function reports() {
       ),
       a = document.createElement('a');
     a.href = u;
-    a.download = 'young-leadership-academy-attendance.csv';
+    a.download = 'sifer-lab-attendance.csv';
     a.click();
     setTimeout(() => URL.revokeObjectURL(u), 1000);
   };
@@ -573,7 +573,7 @@ async function student() {
     const s = await api('session', credentials);
     if (!loadingCurrent()) return;
     frame(
-      `<section class="card student-card"><p class="eyebrow">ACADEMY CLASS ATTENDANCE</p><h1>${esc(s.course)}</h1><p>${esc(sessionLabel(s, s.offset))}</p><hr><form id="scan-form">${field('Student ID', 'student_id', 'text', 'autocomplete="username" pattern="[a-zA-Z0-9_-]+" maxlength="40" placeholder="Your student ID"')}${field('Student name', 'student_name', 'text', 'autocomplete="name" maxlength="100" placeholder="Your full name"')}<div class="scan-actions"><button name="direction" value="in" class="primary">↳ Scan In</button><button name="direction" value="out" class="secondary">↗ Scan Out</button></div></form><p class="helper">Choose Scan In when you arrive and Scan Out when you leave. Use the same student ID both times. Enrolled students use the name on the Academy roster.</p></section>`,
+      `<section class="card student-card"><p class="eyebrow">SIFER LAB CLASS ATTENDANCE</p><h1>${esc(s.course)}</h1><p>${esc(sessionLabel(s, s.offset))}</p><hr><form id="scan-form">${field('Student ID', 'student_id', 'text', 'autocomplete="username" pattern="[a-zA-Z0-9_-]+" maxlength="40" placeholder="Your student ID"')}${field('Student name', 'student_name', 'text', 'autocomplete="name" maxlength="100" placeholder="Your full name"')}<div class="scan-actions"><button name="direction" value="in" class="primary">↳ Scan In</button><button name="direction" value="out" class="secondary">↗ Scan Out</button></div></form><p class="helper">Choose Scan In when you arrive and Scan Out when you leave. Use the same student ID both times. Enrolled students use the name on the SIFer Lab roster.</p></section>`,
       true,
     );
     const current = pageGuard();
@@ -600,7 +600,7 @@ async function student() {
         });
         if (!s.scan_request_idempotency)
           notice(
-            'Scan submissions need a backend update for safe retries. Contact your Academy administrator.',
+            'Scan submissions need a backend update for safe retries. Contact your SIFer Lab administrator.',
           );
         else if (pending && showNotice)
           notice(
@@ -677,7 +677,7 @@ async function student() {
   } catch (e) {
     if (!loadingCurrent()) return;
     frame(
-      '<section class="card student-card"><h1>Unable to open class</h1><p>Try loading the class again. If it still does not open, ask your Academy teacher for help.</p><button class="secondary" id="retry">Try again</button></section>',
+      '<section class="card student-card"><h1>Unable to open class</h1><p>Try loading the class again. If it still does not open, ask your SIFer Lab teacher for help.</p><button class="secondary" id="retry">Try again</button></section>',
       true,
     );
     notice(e.message);
