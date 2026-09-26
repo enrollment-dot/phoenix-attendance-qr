@@ -3,6 +3,10 @@
     {
       "source": "/s/:code",
       "destination": "/"
+    },
+    {
+      "source": "/s/:code/:path*",
+      "destination": "/:path*"
     }
   ]
 }
