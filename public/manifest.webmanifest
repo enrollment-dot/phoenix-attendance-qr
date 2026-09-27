@@ -9,7 +9,7 @@
   "theme_color": "#152c2a",
   "icons": [
     {
-      "src": "/icons/sifer-lab-180.png",
+      "src": "/icons/sifer-lab-ios-v2.png",
       "sizes": "180x180",
       "type": "image/png"
     }
