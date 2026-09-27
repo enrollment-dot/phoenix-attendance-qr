@@ -10,8 +10,7 @@
   "theme_color": "#152c2a",
   "icons": [
     {
-      "src": "/sifer-lab-home-icon-v3.png",
-      "sizes": "180x180",
+      "src": "/yla-logo-mark.png",
       "type": "image/png",
       "purpose": "any"
     }
