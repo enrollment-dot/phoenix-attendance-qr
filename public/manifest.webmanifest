@@ -1,0 +1,19 @@
+{
+  "id": "/?sifer-lab-app-v3=1",
+  "name": "SIFer Lab",
+  "short_name": "SIFer Lab",
+  "description": "SIFer Lab — Learn, lead, and grow through class sessions and attendance.",
+  "start_url": "/?sifer-lab-app-v3=1",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f5f7f5",
+  "theme_color": "#152c2a",
+  "icons": [
+    {
+      "src": "/apple-touch-icon.png?v=sifer-lab-v3",
+      "sizes": "120x120",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
