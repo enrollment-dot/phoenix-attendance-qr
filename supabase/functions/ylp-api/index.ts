@@ -951,19 +951,19 @@ export async function handleRequest(request: Request, backend: BackendAdapter, c
         result = await backend.students();
         break;
       case 'createStudent':
-        await requireAdminRole(token, config, backend, ['admin']);
+        await requireAdminRole(token, config, backend, ['super_admin', 'admin']);
         if (typeof payload.student_id !== 'string' || typeof payload.name !== 'string' || typeof payload.enrolled_from !== 'string') throw new ValidationError('Student ID, name, and enrollment date are required.');
         if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(payload.enrolled_from)) throw new ValidationError('Enrollment date must be YYYY-MM-DD.');
         result = await backend.createStudent(payload.student_id, payload.name, payload.enrolled_from);
         break;
       case 'updateStudent':
-        await requireAdminRole(token, config, backend, ['admin']);
+        await requireAdminRole(token, config, backend, ['super_admin', 'admin']);
         if (typeof payload.student_id !== 'string' || typeof payload.name !== 'string' || typeof payload.enrolled_from !== 'string') throw new ValidationError('Student ID, name, and enrollment date are required.');
         if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(payload.enrolled_from)) throw new ValidationError('Enrollment date must be YYYY-MM-DD.');
         result = await backend.updateStudent(payload.student_id, payload.name, payload.enrolled_from);
         break;
       case 'setStudentActive':
-        await requireAdminRole(token, config, backend, ['admin']);
+        await requireAdminRole(token, config, backend, ['super_admin', 'admin']);
         if (typeof payload.student_id !== 'string' || typeof payload.active !== 'boolean') throw new ValidationError('Student ID and active status are required.');
         result = await backend.setStudentActive(payload.student_id, payload.active);
         break;
