@@ -58,3 +58,18 @@ test('backend restricts account management to super_admin', () => {
     );
   }
 });
+
+
+test('backend accepts super_admin even when legacy role allowlist omits it', () => {
+  assert.match(
+    backend,
+    /admin\.role !== 'super_admin' && !config\.adminAllowedRoles\.includes\(admin\.role\)/,
+  );
+});
+
+test('backend account updates allow the super_admin role', () => {
+  const start = backend.indexOf("case 'updateAdminAccount'");
+  const end = backend.indexOf('\\n      case ', start + 1);
+  const block = backend.slice(start, end === -1 ? backend.length : end);
+  assert.match(block, /\['super_admin', 'admin', 'operator'\]\.includes\(payload\.role\)/);
+});

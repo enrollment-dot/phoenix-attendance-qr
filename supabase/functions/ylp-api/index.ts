@@ -666,7 +666,11 @@ async function requireAdmin(token: string, config: EdgeConfig, backend: BackendA
   const row = await backend.authorizeAdmin(claims.sub, claims.session_id);
   if (!row || typeof row !== 'object') throw new AuthenticationError();
   const admin = row as Record<string, unknown>;
-  if (admin.active !== true || typeof admin.role !== 'string' || !config.adminAllowedRoles.includes(admin.role)) throw new AuthenticationError();
+  if (
+    admin.active !== true ||
+    typeof admin.role !== 'string' ||
+    (admin.role !== 'super_admin' && !config.adminAllowedRoles.includes(admin.role))
+  ) throw new AuthenticationError();
   return claims;
 }
 
@@ -947,19 +951,19 @@ export async function handleRequest(request: Request, backend: BackendAdapter, c
         result = await backend.students();
         break;
       case 'createStudent':
-        await requireAdminRole(token, config, backend, ['admin']);
+        await requireAdminRole(token, config, backend, ['super_admin', 'admin']);
         if (typeof payload.student_id !== 'string' || typeof payload.name !== 'string' || typeof payload.enrolled_from !== 'string') throw new ValidationError('Student ID, name, and enrollment date are required.');
         if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(payload.enrolled_from)) throw new ValidationError('Enrollment date must be YYYY-MM-DD.');
         result = await backend.createStudent(payload.student_id, payload.name, payload.enrolled_from);
         break;
       case 'updateStudent':
-        await requireAdminRole(token, config, backend, ['admin']);
+        await requireAdminRole(token, config, backend, ['super_admin', 'admin']);
         if (typeof payload.student_id !== 'string' || typeof payload.name !== 'string' || typeof payload.enrolled_from !== 'string') throw new ValidationError('Student ID, name, and enrollment date are required.');
         if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(payload.enrolled_from)) throw new ValidationError('Enrollment date must be YYYY-MM-DD.');
         result = await backend.updateStudent(payload.student_id, payload.name, payload.enrolled_from);
         break;
       case 'setStudentActive':
-        await requireAdminRole(token, config, backend, ['admin']);
+        await requireAdminRole(token, config, backend, ['super_admin', 'admin']);
         if (typeof payload.student_id !== 'string' || typeof payload.active !== 'boolean') throw new ValidationError('Student ID and active status are required.');
         result = await backend.setStudentActive(payload.student_id, payload.active);
         break;
@@ -989,7 +993,7 @@ export async function handleRequest(request: Request, backend: BackendAdapter, c
         break;
       case 'updateAdminAccount':
         await requireAdminRole(token, config, backend, ['super_admin']);
-        if (typeof payload.admin_id !== 'string' || typeof payload.username !== 'string' || typeof payload.role !== 'string' || typeof payload.active !== 'boolean' || !['admin', 'operator'].includes(payload.role)) throw new ValidationError('Account ID, username, role, and active status are required.');
+        if (typeof payload.admin_id !== 'string' || typeof payload.username !== 'string' || typeof payload.role !== 'string' || typeof payload.active !== 'boolean' || !['super_admin', 'admin', 'operator'].includes(payload.role)) throw new ValidationError('Account ID, username, role, and active status are required.');
         if (!/^[A-Za-z0-9._-]{3,40}$/.test(payload.username.trim())) throw new ValidationError('Username is invalid.');
         if (payload.password !== undefined && (typeof payload.password !== 'string' || payload.password.length < 16)) throw new ValidationError('Password must be at least 16 characters.');
         result = await backend.updateAdminAccount(payload.admin_id, payload.username.trim(), payload.role, payload.active, typeof payload.password === 'string' && payload.password ? payload.password : undefined);
