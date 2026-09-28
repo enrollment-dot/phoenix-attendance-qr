@@ -126,7 +126,7 @@ function login() {
         throw new Error('The service returned an invalid login confirmation.');
       }
       token = result.token;
-      role = result.role === 'admin' || result.role === 'operator' ? result.role : '';
+      role = ['super_admin', 'admin', 'operator'].includes(result.role) ? result.role : '';
       await refresh();
     });
   };
