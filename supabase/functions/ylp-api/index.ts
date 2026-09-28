@@ -820,12 +820,12 @@ export class SupabaseRpcBackend implements BackendAdapter {
     return this.rpc('ylp_students_v1', {});
   }
 
-  async createStudent(studentId: string, name: string): Promise<unknown> {
-    return this.rpc('ylp_student_create_v1', { p_student_id: studentId, p_name: name });
+  async createStudent(studentId: string, name: string, enrolledFrom: string): Promise<unknown> {
+    return this.rpc('ylp_student_create_v1', { p_student_id: studentId, p_name: name, p_enrolled_from: enrolledFrom });
   }
 
-  async updateStudent(studentId: string, name: string): Promise<unknown> {
-    return this.rpc('ylp_student_update_v1', { p_student_id: studentId, p_name: name });
+  async updateStudent(studentId: string, name: string, enrolledFrom: string): Promise<unknown> {
+    return this.rpc('ylp_student_update_v1', { p_student_id: studentId, p_name: name, p_enrolled_from: enrolledFrom });
   }
 
   async setStudentActive(studentId: string, active: boolean): Promise<unknown> {
@@ -948,13 +948,15 @@ export async function handleRequest(request: Request, backend: BackendAdapter, c
         break;
       case 'createStudent':
         await requireAdminRole(token, config, backend, ['admin']);
-        if (typeof payload.student_id !== 'string' || typeof payload.name !== 'string') throw new ValidationError('Student ID and name are required.');
-        result = await backend.createStudent(payload.student_id, payload.name);
+        if (typeof payload.student_id !== 'string' || typeof payload.name !== 'string' || typeof payload.enrolled_from !== 'string') throw new ValidationError('Student ID, name, and enrollment date are required.');
+        if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(payload.enrolled_from)) throw new ValidationError('Enrollment date must be YYYY-MM-DD.');
+        result = await backend.createStudent(payload.student_id, payload.name, payload.enrolled_from);
         break;
       case 'updateStudent':
         await requireAdminRole(token, config, backend, ['admin']);
-        if (typeof payload.student_id !== 'string' || typeof payload.name !== 'string') throw new ValidationError('Student ID and name are required.');
-        result = await backend.updateStudent(payload.student_id, payload.name);
+        if (typeof payload.student_id !== 'string' || typeof payload.name !== 'string' || typeof payload.enrolled_from !== 'string') throw new ValidationError('Student ID, name, and enrollment date are required.');
+        if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(payload.enrolled_from)) throw new ValidationError('Enrollment date must be YYYY-MM-DD.');
+        result = await backend.updateStudent(payload.student_id, payload.name, payload.enrolled_from);
         break;
       case 'setStudentActive':
         await requireAdminRole(token, config, backend, ['admin']);

@@ -12,6 +12,11 @@ function selectedSessions(data, filters = {}) {
   );
 }
 
+function studentEligibleForDate(student, date) {
+  if (!student || !student.enrolled_from) return true;
+  return student.enrolled_from <= date;
+}
+
 function sessionHasEnded(session, data) {
   const date = sessionTimes(session, data.settings.offset).date;
   return Date.parse(
@@ -40,7 +45,7 @@ export function report(data, filters = {}) {
     for (const a of records) result.push({ ...a, course: s.course, date });
     if (data.settings.enrolled)
       for (const student of data.students)
-        if (!recordedStudents.has(student.student_id))
+        if (studentEligibleForDate(student, date) && !recordedStudents.has(student.student_id))
           result.push({
             session_id: s.session_id,
             course: s.course,
@@ -144,7 +149,7 @@ export function sessionAttendanceSummary(data, filters = {}) {
     const group = bySession.get(session.session_id) || [];
     const ended = sessionHasEnded(session, data);
     const eligible = data.settings.enrolled
-      ? group.length
+      ? data.students.filter((student) => studentEligibleForDate(student, date)).length
       : group.filter((row) => row.status !== 'Pending').length;
     const attended = group.filter((row) => row.scan_in).length;
     const absent = ended
@@ -181,10 +186,13 @@ export function studentAttendanceSummary(data, filters = {}) {
   const byStudent = new Map();
 
   for (const student of data.students) {
+    const eligibleSessions = sessions.filter((session) =>
+      studentEligibleForDate(student, sessionTimes(session, data.settings.offset).date),
+    );
     byStudent.set(student.student_id, {
       student_id: student.student_id,
       student_name: student.name,
-      sessions_held: sessions.length,
+      sessions_held: eligibleSessions.length,
       attended: 0,
       absent: 0,
       percentage: null,
@@ -195,6 +203,7 @@ export function studentAttendanceSummary(data, filters = {}) {
     if (!byStudent.has(row.student_id)) continue;
     if (row.status === 'Pending') continue;
     const item = byStudent.get(row.student_id);
+    if (!item || !item.sessions_held) continue;
     if (row.scan_in) item.attended++;
     else item.absent++;
   }
