@@ -397,7 +397,7 @@ function students() {
   const students = Array.isArray(data?.students) ? [...data.students] : [];
   let filtered = students;
   frame(
-    `<div class="page-title"><div><p class="eyebrow">SIFER LAB ROSTER</p><h1>Students</h1><p>Manage the active SIFer Lab roster used for attendance validation.</p></div><div class="actions"><button class="secondary" id="import">Import CSV</button><button class="primary" id="add">＋ Add student</button></div></div><section class="card"><div class="section-title"><div><h2>Student roster</h2><p>Active students can Scan In and Scan Out. Deactivated students remain in attendance history.</p></div><label class="search-field">Search<input id="student-search" type="search" placeholder="ID or name"></label></div><div id="student-editor"></div><div class="table-wrap"><table><thead><tr><th>Student ID</th><th>Name</th><th>Enrolled from</th><th>Status</th><th>Action</th></tr></thead><tbody id="student-rows"></tbody></table></div><input id="csv-input" type="file" accept=".csv,text/csv" hidden></section>${role === 'super_admin' ? '<dialog id="delete-student-dialog" class="confirm-dialog"><form method="dialog" id="delete-student-form"><span class="step">DESTRUCTIVE ACTION</span><h2>Delete student?</h2><p>This permanently deletes <strong data-delete-student-name></strong> and the student attendance history. Enter the <strong>super admin username and password</strong> you used to sign in.</p><label>Username<input name="username" type="text" autocomplete="username" required></label><label>Password<input name="password" type="password" autocomplete="current-password" required minlength="16"></label><div class="actions"><button type="button" class="secondary" id="delete-student-cancel">Cancel</button><button type="submit" class="danger" id="delete-student-confirm">Delete permanently</button></div></form></dialog>' : ''}`,
+    `<div class="page-title"><div><p class="eyebrow">SIFER LAB ROSTER</p><h1>Students</h1><p>Manage the active SIFer Lab roster used for attendance validation.</p></div><div class="actions"><button class="secondary" id="import">Import CSV</button><button class="primary" id="add">＋ Add student</button></div></div><section class="card"><div class="section-title"><div><h2>Student roster</h2><p>Active students can Scan In and Scan Out. Deactivated students remain in attendance history.</p></div><label class="search-field">Search<input id="student-search" type="search" placeholder="ID or name"></label></div><div id="student-editor"></div><div class="table-wrap"><table><thead><tr><th>Student ID</th><th>Name</th><th>Email</th><th>Enrolled from</th><th>Status</th><th>Action</th></tr></thead><tbody id="student-rows"></tbody></table></div><input id="csv-input" type="file" accept=".csv,text/csv" hidden></section>${role === 'super_admin' ? '<dialog id="delete-student-dialog" class="confirm-dialog"><form method="dialog" id="delete-student-form"><span class="step">DESTRUCTIVE ACTION</span><h2>Delete student?</h2><p>This permanently deletes <strong data-delete-student-name></strong> and the student attendance history. Enter the <strong>super admin username and password</strong> you used to sign in.</p><label>Username<input name="username" type="text" autocomplete="username" required></label><label>Password<input name="password" type="password" autocomplete="current-password" required minlength="16"></label><div class="actions"><button type="button" class="secondary" id="delete-student-cancel">Cancel</button><button type="submit" class="danger" id="delete-student-confirm">Delete permanently</button></div></form></dialog>' : ''}`,
   );
   const rows = document.querySelector('#student-rows');
   const editor = document.querySelector('#student-editor');
@@ -406,8 +406,8 @@ function students() {
     const q = search.value.trim().toLowerCase();
     filtered = students.filter((s) => !q || s.student_id.toLowerCase().includes(q) || s.name.toLowerCase().includes(q));
     rows.innerHTML = filtered.length
-      ? filtered.map((s) => `<tr><td><b>${esc(s.student_id)}</b></td><td>${esc(s.name)}</td><td>${esc(s.enrolled_from || '—')}</td><td><span class="badge ${s.active ? 'present' : 'absent'}">${s.active ? 'Active' : 'Inactive'}</span></td><td><button class="text" data-edit="${esc(s.student_id)}">Edit</button> <button class="text" data-toggle="${esc(s.student_id)}">${s.active ? 'Deactivate' : 'Activate'}</button>${role === 'super_admin' ? ` <button class="text" data-delete="${esc(s.student_id)}">Delete</button>` : ''}</td></tr>`).join('')
-      : '<tr><td colspan="5" class="empty">No students match this search.</td></tr>';
+      ? filtered.map((s) => `<tr><td><b>${esc(s.student_id)}</b></td><td>${esc(s.name)}</td><td>${esc(s.email || '—')}</td><td>${esc(s.enrolled_from || '—')}</td><td><span class="badge ${s.active ? 'present' : 'absent'}">${s.active ? 'Active' : 'Inactive'}</span></td><td><button class="text" data-edit="${esc(s.student_id)}">Edit</button> <button class="text" data-toggle="${esc(s.student_id)}">${s.active ? 'Deactivate' : 'Activate'}</button>${role === 'super_admin' ? ` <button class="text" data-delete="${esc(s.student_id)}">Delete</button>` : ''}</td></tr>`).join('')
+      : '<tr><td colspan="6" class="empty">No students match this search.</td></tr>';
     rows.querySelectorAll('[data-edit]').forEach((b) => b.onclick = () => openEditor(students.find((s) => s.student_id === b.dataset.edit)));
     rows.querySelectorAll('[data-toggle]').forEach((b) => b.onclick = () => toggleStudent(students.find((s) => s.student_id === b.dataset.toggle)));
     rows.querySelectorAll('[data-delete]').forEach((b) => b.onclick = () => openDeleteStudent(students.find((s) => s.student_id === b.dataset.delete)));
@@ -422,7 +422,7 @@ function students() {
     dialog.querySelector('input[name="username"]')?.focus();
   };
   const openEditor = (student = null) => {
-    editor.innerHTML = `<div class="card inline-editor"><h3>${student ? 'Edit student' : 'Add student'}</h3><form id="student-form"><div class="form-grid"><label>Student ID<input name="student_id" maxlength="40" pattern="[A-Za-z0-9_-]+" required ${student ? 'readonly' : ''} value="${student ? esc(student.student_id) : ''}" placeholder="e.g. YLA001"></label><label>Student name<input name="name" maxlength="100" required value="${student ? esc(student.name) : ''}" placeholder="Full name"></label><label>Enrolled from<input name="enrolled_from" type="date" required value="${student && student.enrolled_from ? esc(student.enrolled_from) : new Date().toISOString().slice(0,10)}"></label></div><div class="actions"><button type="button" class="secondary" id="cancel-student">Cancel</button><button class="primary">${student ? 'Save changes' : 'Add student'}</button></div></form></div>`;
+    editor.innerHTML = `<div class="card inline-editor"><h3>${student ? 'Edit student' : 'Add student'}</h3><form id="student-form"><div class="form-grid"><label>Student ID<input name="student_id" maxlength="40" pattern="[A-Za-z0-9_-]+" required ${student ? 'readonly' : ''} value="${student ? esc(student.student_id) : ''}" placeholder="e.g. YLP26101"></label><label>Student name<input name="name" maxlength="100" required value="${student ? esc(student.name) : ''}" placeholder="Full name"></label><label>Student email <span class="tiny">(optional)</span><input name="email" type="email" maxlength="254" value="${student ? esc(student.email || '') : ''}" placeholder="student@example.com"></label><label>Enrolled from<input name="enrolled_from" type="date" required value="${student && student.enrolled_from ? esc(student.enrolled_from) : new Date().toISOString().slice(0,10)}"></label></div><div class="actions"><button type="button" class="secondary" id="cancel-student">Cancel</button><button class="primary">${student ? 'Save changes' : 'Add student'}</button></div></form></div>`;
     document.querySelector('#cancel-student').onclick = () => editor.innerHTML = '';
     document.querySelector('#student-form').onsubmit = (e) => {
       e.preventDefault();
@@ -497,10 +497,11 @@ function students() {
       const seen = new Set(students.map((s) => s.student_id.trim().toLowerCase()));
       for (let rowIndex = start; rowIndex < lines.length; rowIndex++) {
         const line = lines[rowIndex];
-        const [rawStudentId, rawName, rawEnrolledFrom] = parse(line);
+        const [rawStudentId, rawName, rawEnrolledFrom, rawEmail] = parse(line);
         const student_id = rawStudentId?.replace(/^\uFEFF/, '').trim();
         const name = rawName?.trim();
         const enrolled_from = rawEnrolledFrom?.trim() || new Date().toISOString().slice(0, 10);
+        const email = rawEmail?.trim() || '';
         if (!student_id || !name) {
           skipped++;
           failures.push(`row ${rowIndex + 1}: Student ID and name are required`);
@@ -513,7 +514,7 @@ function students() {
           continue;
         }
         try {
-          const result = await api('createStudent', { student_id, name, enrolled_from }, token);
+          const result = await api('createStudent', { student_id, name, enrolled_from, email }, token);
           const saved = result?.data ?? result;
           if (!saved?.student_id) {
             skipped++;
