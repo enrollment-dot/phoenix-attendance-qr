@@ -802,7 +802,7 @@ function render() {
   if (!token || !data) return login();
   if (view === 'reports') return reports();
   if (view === 'students') {
-    if (role !== 'admin') { view = 'dashboard'; return dashboard(); }
+    if (!['admin', 'super_admin'].includes(role)) { view = 'dashboard'; return dashboard(); }
     return students();
   }
   if (view === 'accounts') return accounts();
