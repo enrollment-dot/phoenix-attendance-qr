@@ -943,7 +943,7 @@ export async function handleRequest(request: Request, backend: BackendAdapter, c
         result = await mapDashboardResponse(await backend.dashboard(token), config.qrKeyring, config.sessionTimeOffset);
         break;
       case 'students':
-        await requireAdminRole(token, config, backend, ['admin']);
+        await requireAdmin(token, config, backend);
         result = await backend.students();
         break;
       case 'createStudent':
@@ -963,26 +963,39 @@ export async function handleRequest(request: Request, backend: BackendAdapter, c
         if (typeof payload.student_id !== 'string' || typeof payload.active !== 'boolean') throw new ValidationError('Student ID and active status are required.');
         result = await backend.setStudentActive(payload.student_id, payload.active);
         break;
+      case 'deleteStudent': {
+        const currentClaims = await requireAdminRole(token, config, backend, ['super_admin']);
+        if (typeof payload.student_id !== 'string' || !payload.student_id) throw new ValidationError('Student not found.');
+        if (typeof payload.username !== 'string' || !payload.username.trim() || typeof payload.password !== 'string' || !payload.password) throw new AuthenticationError();
+        await enforceRateLimit(backend, config, 'login-global', 'global');
+        const reauth = await backend.login({ username: payload.username.trim(), password: payload.password }, token);
+        const reauthToken = reauth && typeof reauth === 'object' && 'data' in reauth && reauth.data && typeof reauth.data === 'object' && 'token' in reauth.data && typeof reauth.data.token === 'string' ? reauth.data.token : '';
+        if (!reauthToken) throw new AuthenticationError();
+        const reauthClaims = await requireAdminRole(reauthToken, config, backend, ['super_admin']);
+        if (reauthClaims.sub !== currentClaims.sub) throw new AuthenticationError();
+        result = await backend.forceDeleteStudent(payload.student_id, reauthToken);
+        break;
+      }
       case 'adminAccounts':
-        await requireAdminRole(token, config, backend, ['admin']);
+        await requireAdminRole(token, config, backend, ['admin','super_admin']);
         result = await backend.adminAccounts();
         break;
       case 'createAdminAccount':
-        await requireAdminRole(token, config, backend, ['admin']);
-        if (typeof payload.email !== 'string' || typeof payload.password !== 'string' || typeof payload.username !== 'string' || typeof payload.role !== 'string' || !payload.email.trim() || !payload.password || !payload.username.trim() || !['admin', 'operator'].includes(payload.role)) throw new ValidationError('Email, password, username, and role are required.');
+        await requireAdminRole(token, config, backend, ['admin','super_admin']);
+        if (typeof payload.email !== 'string' || typeof payload.password !== 'string' || typeof payload.username !== 'string' || typeof payload.role !== 'string' || !payload.email.trim() || !payload.password || !payload.username.trim() || !['super_admin', 'admin', 'operator'].includes(payload.role)) throw new ValidationError('Email, password, username, and role are required.');
         if (payload.password.length < 16) throw new ValidationError('Password must be at least 16 characters.');
         if (!/^[A-Za-z0-9._-]{3,40}$/.test(payload.username.trim())) throw new ValidationError('Username is invalid.');
         result = await backend.createAdminAccount(payload.email.trim(), payload.password, payload.username.trim(), payload.role);
         break;
       case 'updateAdminAccount':
-        await requireAdminRole(token, config, backend, ['admin']);
+        await requireAdminRole(token, config, backend, ['admin','super_admin']);
         if (typeof payload.admin_id !== 'string' || typeof payload.username !== 'string' || typeof payload.role !== 'string' || typeof payload.active !== 'boolean' || !['admin', 'operator'].includes(payload.role)) throw new ValidationError('Account ID, username, role, and active status are required.');
         if (!/^[A-Za-z0-9._-]{3,40}$/.test(payload.username.trim())) throw new ValidationError('Username is invalid.');
         if (payload.password !== undefined && (typeof payload.password !== 'string' || payload.password.length < 16)) throw new ValidationError('Password must be at least 16 characters.');
         result = await backend.updateAdminAccount(payload.admin_id, payload.username.trim(), payload.role, payload.active, typeof payload.password === 'string' && payload.password ? payload.password : undefined);
         break;
       case 'removeAdminAccount':
-        await requireAdminRole(token, config, backend, ['admin']);
+        await requireAdminRole(token, config, backend, ['admin','super_admin']);
         if (typeof payload.admin_id !== 'string' || !payload.admin_id) throw new ValidationError('Account ID is required.');
         result = await backend.removeAdminAccount(payload.admin_id);
         break;
@@ -992,7 +1005,7 @@ export async function handleRequest(request: Request, backend: BackendAdapter, c
         result = await backend.closeSession(payload.session_id, token);
         break;
       case 'deleteSession': {
-        const currentClaims = await requireAdminRole(token, config, backend, ['admin']);
+        const currentClaims = await requireAdminRole(token, config, backend, ['super_admin']);
         if (typeof payload.session_id !== 'string' || !payload.session_id) throw new ValidationError('Session not found.');
         if (typeof payload.username !== 'string' || !payload.username.trim() || typeof payload.password !== 'string' || !payload.password) {
           throw new AuthenticationError();
@@ -1013,7 +1026,7 @@ export async function handleRequest(request: Request, backend: BackendAdapter, c
             : '';
         if (!reauthToken) throw new AuthenticationError();
 
-        const reauthClaims = await requireAdminRole(reauthToken, config, backend, ['admin']);
+        const reauthClaims = await requireAdminRole(reauthToken, config, backend, ['super_admin']);
         if (reauthClaims.sub !== currentClaims.sub) throw new AuthenticationError();
 
         result = await backend.forceDeleteSession(payload.session_id, reauthToken);
