@@ -183,7 +183,9 @@ export function studentAttendanceSummary(data, filters = {}) {
   const sessions = selectedSessions(data, filters).filter((s) =>
     sessionHasEnded(s, data),
   );
-  const rows = report(data, { ...filters, student: '' });
+  const rows = report(data, { ...filters, student: '' }).filter((row) =>
+    sessions.some((session) => session.session_id === row.session_id),
+  );
   const byStudent = new Map();
 
   for (const student of data.students) {
