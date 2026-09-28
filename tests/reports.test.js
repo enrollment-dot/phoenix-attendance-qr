@@ -15,9 +15,9 @@ const data = {
     closeMinutes: 15,
   },
   students: [
-    { student_id: 'A', name: 'Alice', active: true },
-    { student_id: 'B', name: 'Bob', active: true },
-    { student_id: 'C', name: 'Cara', active: true },
+    { student_id: 'A', name: 'Alice', active: true, enrolled_from: '2026-09-20' },
+    { student_id: 'B', name: 'Bob', active: true, enrolled_from: '2026-09-20' },
+    { student_id: 'C', name: 'Cara', active: true, enrolled_from: '2026-09-22' },
   ],
   sessions: [
     { session_id: 's1', course: 'Class 1', date: '2026-09-20', start_time: '09:00', end_time: '10:00', status: 'closed' },
@@ -38,7 +38,7 @@ const sessionSummary = sessionAttendanceSummary(data);
 assert.deepEqual(
   sessionSummary.map((s) => [s.session_id, s.attended, s.absent, s.pending, s.percentage, s.completed]),
   [
-    ['s1', 2, 1, 0, 66.7, true],
+    ['s1', 2, 0, 0, 100, true],
     ['s2', 3, 0, 0, 100, true],
     ['s3', 1, 0, 2, 33.3, false],
   ],
@@ -50,17 +50,17 @@ assert.deepEqual(
   [
     ['A', 2, 2, 0, 100],
     ['B', 2, 2, 0, 100],
-    ['C', 2, 1, 1, 50],
+    ['C', 1, 1, 0, 100],
   ],
 );
 
 const overall = overallAttendanceSummary(data);
 assert.deepEqual(overall, {
   sessions_held: 2,
-  eligible: 6,
+  eligible: 5,
   attended: 5,
-  absent: 1,
-  percentage: 83.3,
+  absent: 0,
+  percentage: 100,
 });
 
 assert.equal(percentage([
