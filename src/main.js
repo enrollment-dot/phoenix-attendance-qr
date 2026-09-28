@@ -310,7 +310,7 @@ function createForm() {
 }
 async function showQr(s) {
   frame(
-    `<div class="page-title"><div><p class="eyebrow">SESSION QR</p><h1>${esc(s.course)}</h1><p>${esc(sessionLabel(s, data.settings.offset))}</p></div><button id="back" class="secondary">Back to overview</button></div><section class="card qr-card"><span class="badge present">${esc(s.status)}</span><div class="qr-brand" aria-label="SIFer Lab"><strong>SIFer Lab</strong><span>LEARN • LEAD • GROW</span></div><canvas id="qr" aria-label="Class attendance QR code"></canvas><h2 class="qr-session-name">${esc(s.course)}</h2><h3 class="qr-attendance-title">Record your attendance</h3><p>Open your phone camera and point it at this QR.<br>Enter your student ID, then choose Scan In or Scan Out.</p><div class="actions"><button id="copy" class="secondary">Copy student link</button><button id="download" class="secondary">Download QR</button>${s.status === 'active' ? '<button id="close" class="danger">Close session</button>' : role === 'admin' ? '<button id="delete-session" class="danger">Delete session</button>' : ''}</div><p class="helper">Share this QR only with students in this SIFer Lab class. It gives access to this session.</p></section>${role === 'admin' && s.status === 'closed' ? '<dialog id="delete-dialog" class="confirm-dialog"><form method="dialog" id="delete-form"><span class="step">DESTRUCTIVE ACTION</span><h2>Delete this session?</h2><p>This permanently deletes the session and its attendance history. Enter the <strong>same admin username and password</strong> you used to sign in.</p><label>Username<input name="username" type="text" autocomplete="username" required></label><label>Password<input name="password" type="password" autocomplete="current-password" required minlength="16"></label><div class="actions"><button type="button" class="secondary" id="delete-cancel">Cancel</button><button type="submit" class="danger" id="delete-confirm">Delete permanently</button></div></form></dialog>' : ''}`,
+    `<div class="page-title"><div><p class="eyebrow">SESSION QR</p><h1>${esc(s.course)}</h1><p>${esc(sessionLabel(s, data.settings.offset))}</p></div><button id="back" class="secondary">Back to overview</button></div><section class="card qr-card"><span class="badge present">${esc(s.status)}</span><div class="qr-brand" aria-label="SIFer Lab"><strong>SIFer Lab</strong><span>LEARN • LEAD • GROW</span></div><canvas id="qr" aria-label="Class attendance QR code"></canvas><h2 class="qr-session-name">${esc(s.course)}</h2><h3 class="qr-attendance-title">Record your attendance</h3><p>Open your phone camera and point it at this QR.<br>Enter your student ID, then choose Scan In or Scan Out.</p><div class="actions"><button id="copy" class="secondary">Copy student link</button><button id="download" class="secondary">Download QR</button>${s.status === 'active' ? '<button id="close" class="danger">Close session</button>' : role === 'super_admin' ? '<button id="delete-session" class="danger">Delete session</button>' : ''}</div><p class="helper">Share this QR only with students in this SIFer Lab class. It gives access to this session.</p></section>${role === 'super_admin' && s.status === 'closed' ? '<dialog id="delete-dialog" class="confirm-dialog"><form method="dialog" id="delete-form"><span class="step">DESTRUCTIVE ACTION</span><h2>Delete this session?</h2><p>This permanently deletes the session and its attendance history. Enter the <strong>same admin username and password</strong> you used to sign in.</p><label>Username<input name="username" type="text" autocomplete="username" required></label><label>Password<input name="password" type="password" autocomplete="current-password" required minlength="16"></label><div class="actions"><button type="button" class="secondary" id="delete-cancel">Cancel</button><button type="submit" class="danger" id="delete-confirm">Delete permanently</button></div></form></dialog>' : ''}`,
   );
   const current = pageGuard();
   document.querySelector('#back').onclick = dashboard;
@@ -397,7 +397,7 @@ function students() {
   const students = Array.isArray(data?.students) ? [...data.students] : [];
   let filtered = students;
   frame(
-    `<div class="page-title"><div><p class="eyebrow">SIFER LAB ROSTER</p><h1>Students</h1><p>Manage the active SIFer Lab roster used for attendance validation.</p></div><div class="actions"><button class="secondary" id="import">Import CSV</button><button class="primary" id="add">＋ Add student</button></div></div><section class="card"><div class="section-title"><div><h2>Student roster</h2><p>Active students can Scan In and Scan Out. Deactivated students remain in attendance history.</p></div><label class="search-field">Search<input id="student-search" type="search" placeholder="ID or name"></label></div><div id="student-editor"></div><div class="table-wrap"><table><thead><tr><th>Student ID</th><th>Name</th><th>Enrolled from</th><th>Status</th><th>Action</th></tr></thead><tbody id="student-rows"></tbody></table></div><input id="csv-input" type="file" accept=".csv,text/csv" hidden></section>`,
+    `<div class="page-title"><div><p class="eyebrow">SIFER LAB ROSTER</p><h1>Students</h1><p>Manage the active SIFer Lab roster used for attendance validation.</p></div><div class="actions"><button class="secondary" id="import">Import CSV</button><button class="primary" id="add">＋ Add student</button></div></div><section class="card"><div class="section-title"><div><h2>Student roster</h2><p>Active students can Scan In and Scan Out. Deactivated students remain in attendance history.</p></div><label class="search-field">Search<input id="student-search" type="search" placeholder="ID or name"></label></div><div id="student-editor"></div><div class="table-wrap"><table><thead><tr><th>Student ID</th><th>Name</th><th>Enrolled from</th><th>Status</th><th>Action</th></tr></thead><tbody id="student-rows"></tbody></table></div><input id="csv-input" type="file" accept=".csv,text/csv" hidden></section>${role === 'super_admin' ? '<dialog id="delete-student-dialog" class="confirm-dialog"><form method="dialog" id="delete-student-form"><span class="step">DESTRUCTIVE ACTION</span><h2>Delete student?</h2><p>This permanently deletes <strong data-delete-student-name></strong> and the student attendance history. Enter the <strong>super admin username and password</strong> you used to sign in.</p><label>Username<input name="username" type="text" autocomplete="username" required></label><label>Password<input name="password" type="password" autocomplete="current-password" required minlength="16"></label><div class="actions"><button type="button" class="secondary" id="delete-student-cancel">Cancel</button><button type="submit" class="danger" id="delete-student-confirm">Delete permanently</button></div></form></dialog>' : ''}`,
   );
   const rows = document.querySelector('#student-rows');
   const editor = document.querySelector('#student-editor');
@@ -406,10 +406,20 @@ function students() {
     const q = search.value.trim().toLowerCase();
     filtered = students.filter((s) => !q || s.student_id.toLowerCase().includes(q) || s.name.toLowerCase().includes(q));
     rows.innerHTML = filtered.length
-      ? filtered.map((s) => `<tr><td><b>${esc(s.student_id)}</b></td><td>${esc(s.name)}</td><td>${esc(s.enrolled_from || '—')}</td><td><span class="badge ${s.active ? 'present' : 'absent'}">${s.active ? 'Active' : 'Inactive'}</span></td><td><button class="text" data-edit="${esc(s.student_id)}">Edit</button> <button class="text" data-toggle="${esc(s.student_id)}">${s.active ? 'Deactivate' : 'Activate'}</button></td></tr>`).join('')
+      ? filtered.map((s) => `<tr><td><b>${esc(s.student_id)}</b></td><td>${esc(s.name)}</td><td>${esc(s.enrolled_from || '—')}</td><td><span class="badge ${s.active ? 'present' : 'absent'}">${s.active ? 'Active' : 'Inactive'}</span></td><td><button class="text" data-edit="${esc(s.student_id)}">Edit</button> <button class="text" data-toggle="${esc(s.student_id)}">${s.active ? 'Deactivate' : 'Activate'}</button>${role === 'super_admin' ? ` <button class="text" data-delete="${esc(s.student_id)}">Delete</button>` : ''}</td></tr>`).join('')
       : '<tr><td colspan="5" class="empty">No students match this search.</td></tr>';
     rows.querySelectorAll('[data-edit]').forEach((b) => b.onclick = () => openEditor(students.find((s) => s.student_id === b.dataset.edit)));
     rows.querySelectorAll('[data-toggle]').forEach((b) => b.onclick = () => toggleStudent(students.find((s) => s.student_id === b.dataset.toggle)));
+    rows.querySelectorAll('[data-delete]').forEach((b) => b.onclick = () => openDeleteStudent(students.find((s) => s.student_id === b.dataset.delete)));
+  };
+  const openDeleteStudent = (student) => {
+    if (!student || role !== 'super_admin') return;
+    const dialog = document.querySelector('#delete-student-dialog');
+    if (!dialog) return;
+    dialog.dataset.studentId = student.student_id;
+    dialog.querySelector('[data-delete-student-name]').textContent = student.name;
+    dialog.showModal();
+    dialog.querySelector('input[name="username"]')?.focus();
   };
   const openEditor = (student = null) => {
     editor.innerHTML = `<div class="card inline-editor"><h3>${student ? 'Edit student' : 'Add student'}</h3><form id="student-form"><div class="form-grid"><label>Student ID<input name="student_id" maxlength="40" pattern="[A-Za-z0-9_-]+" required ${student ? 'readonly' : ''} value="${student ? esc(student.student_id) : ''}" placeholder="e.g. YLA001"></label><label>Student name<input name="name" maxlength="100" required value="${student ? esc(student.name) : ''}" placeholder="Full name"></label><label>Enrolled from<input name="enrolled_from" type="date" required value="${student && student.enrolled_from ? esc(student.enrolled_from) : new Date().toISOString().slice(0,10)}"></label></div><div class="actions"><button type="button" class="secondary" id="cancel-student">Cancel</button><button class="primary">${student ? 'Save changes' : 'Add student'}</button></div></form></div>`;
@@ -443,6 +453,23 @@ function students() {
     });
   };
   document.querySelector('#add').onclick = () => openEditor();
+  document.querySelector('#delete-student-cancel')?.addEventListener('click', () => document.querySelector('#delete-student-dialog')?.close());
+  document.querySelector('#delete-student-form')?.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const dialog = document.querySelector('#delete-student-dialog');
+    const username = new FormData(form).get('username');
+    const password = new FormData(form).get('password');
+    const studentId = dialog?.dataset.studentId;
+    busy(document.querySelector('#delete-student-confirm'), async () => {
+      await api('deleteStudent', { student_id: studentId, username, password }, token);
+      dialog?.close();
+      const index = students.findIndex((student) => student.student_id === studentId);
+      if (index >= 0) students.splice(index, 1);
+      renderRows();
+      notice('Student and attendance history deleted.', false);
+    });
+  });
   search.oninput = renderRows;
   document.querySelector('#import').onclick = () => document.querySelector('#csv-input').click();
   document.querySelector('#csv-input').onchange = (e) => {
