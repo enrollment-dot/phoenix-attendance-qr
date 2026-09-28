@@ -470,9 +470,10 @@ function students() {
       const seen = new Set(students.map((s) => s.student_id.trim().toLowerCase()));
       for (let rowIndex = start; rowIndex < lines.length; rowIndex++) {
         const line = lines[rowIndex];
-        const [rawStudentId, rawName] = parse(line);
+        const [rawStudentId, rawName, rawEnrolledFrom] = parse(line);
         const student_id = rawStudentId?.replace(/^\uFEFF/, '').trim();
         const name = rawName?.trim();
+        const enrolled_from = rawEnrolledFrom?.trim() || new Date().toISOString().slice(0, 10);
         if (!student_id || !name) {
           skipped++;
           failures.push(`row ${rowIndex + 1}: Student ID and name are required`);
@@ -485,7 +486,7 @@ function students() {
           continue;
         }
         try {
-          const result = await api('createStudent', { student_id, name }, token);
+          const result = await api('createStudent', { student_id, name, enrolled_from }, token);
           const saved = result?.data ?? result;
           if (!saved?.student_id) {
             skipped++;
