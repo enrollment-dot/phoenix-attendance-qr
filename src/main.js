@@ -310,7 +310,7 @@ function createForm() {
 }
 async function showQr(s) {
   frame(
-    `<div class="page-title"><div><p class="eyebrow">SESSION QR</p><h1>${esc(s.course)}</h1><p>${esc(sessionLabel(s, data.settings.offset))}</p></div><button id="back" class="secondary">Back to overview</button></div><section class="card qr-card"><span class="badge present">${esc(s.status)}</span><div class="qr-brand" aria-label="SIFer Lab"><strong>SIFer Lab</strong><span>LEARN • LEAD • GROW</span></div><canvas id="qr" aria-label="Class attendance QR code"></canvas><h2 class="qr-session-name">${esc(s.course)}</h2><h3 class="qr-attendance-title">Record your attendance</h3><p>Open your phone camera and point it at this QR.<br>Enter your student ID, then choose Scan In or Scan Out.</p><div class="actions"><button id="copy" class="secondary">Copy student link</button><button id="download" class="secondary">Download QR</button>${s.status === 'active' ? '<button id="close" class="danger">Close session</button>' : role === 'admin' ? '<button id="delete-session" class="danger">Delete session</button>' : ''}</div><p class="helper">Share this QR only with students in this SIFer Lab class. It gives access to this session.</p></section>`,
+    `<div class="page-title"><div><p class="eyebrow">SESSION QR</p><h1>${esc(s.course)}</h1><p>${esc(sessionLabel(s, data.settings.offset))}</p></div><button id="back" class="secondary">Back to overview</button></div><section class="card qr-card"><span class="badge present">${esc(s.status)}</span><div class="qr-brand" aria-label="SIFer Lab"><strong>SIFer Lab</strong><span>LEARN • LEAD • GROW</span></div><canvas id="qr" aria-label="Class attendance QR code"></canvas><h2 class="qr-session-name">${esc(s.course)}</h2><h3 class="qr-attendance-title">Record your attendance</h3><p>Open your phone camera and point it at this QR.<br>Enter your student ID, then choose Scan In or Scan Out.</p><div class="actions"><button id="copy" class="secondary">Copy student link</button><button id="download" class="secondary">Download QR</button>${s.status === 'active' ? '<button id="close" class="danger">Close session</button>' : role === 'admin' ? '<button id="delete-session" class="danger">Delete session</button>' : ''}</div><p class="helper">Share this QR only with students in this SIFer Lab class. It gives access to this session.</p></section>${role === 'admin' && s.status === 'closed' ? '<dialog id="delete-dialog" class="confirm-dialog"><form method="dialog" id="delete-form"><span class="step">DESTRUCTIVE ACTION</span><h2>Delete this session?</h2><p>This permanently deletes the session and its attendance history. Enter the <strong>same admin username and password</strong> you used to sign in.</p><label>Username<input name="username" type="text" autocomplete="username" required></label><label>Password<input name="password" type="password" autocomplete="current-password" required minlength="16"></label><div class="actions"><button type="button" class="secondary" id="delete-cancel">Cancel</button><button type="submit" class="danger" id="delete-confirm">Delete permanently</button></div></form></dialog>' : ''}`,
   );
   const current = pageGuard();
   document.querySelector('#back').onclick = dashboard;
@@ -372,10 +372,22 @@ async function showQr(s) {
         if (current()) showQr(s);
       });
   });
-  document.querySelector('#delete-session')?.addEventListener('click', (e) => {
-    if (!confirm('Delete this closed session? Sessions with attendance history cannot be deleted.')) return;
-    busy(e.target, async () => {
-      await api('deleteSession', { session_id: s.session_id }, token);
+  const deleteDialog = document.querySelector('#delete-dialog');
+  document.querySelector('#delete-session')?.addEventListener('click', () => {
+    deleteDialog?.showModal();
+    deleteDialog?.querySelector('input[name="username"]')?.focus();
+  });
+  document.querySelector('#delete-cancel')?.addEventListener('click', () => {
+    deleteDialog?.close();
+  });
+  document.querySelector('#delete-form')?.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const username = new FormData(form).get('username');
+    const password = new FormData(form).get('password');
+    busy(document.querySelector('#delete-confirm'), async () => {
+      await api('deleteSession', { session_id: s.session_id, username, password }, token);
+      deleteDialog?.close();
       data.sessions = data.sessions.filter((session) => session.session_id !== s.session_id);
       dashboard();
     });
