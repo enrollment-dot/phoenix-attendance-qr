@@ -97,3 +97,12 @@ test('attendance records explicitly show whether a student scanned out', () => {
   assert.match(frontend, /scan_in \? '<small class="scan-state">Not Scanned Out<\/small>'/);
   assert.match(frontend, /r\.scan_out \? 'Scanned Out' : 'Not Scanned Out'/);
 });
+
+
+test('attendance scan window uses 30 minutes before start and 15 minutes after end', () => {
+  const migration = fs.readFileSync(
+    path.join(repoRoot, 'supabase/migrations/20260928165142_set_attendance_scan_close_grace_15_minutes.sql'),
+    'utf8',
+  );
+  assert.match(migration, /set value = '15'/);
+});
