@@ -147,6 +147,7 @@ export function sessionAttendanceSummary(data, filters = {}) {
 
   return selectedSessions(data, filters).map((session) => {
     const group = bySession.get(session.session_id) || [];
+    const date = sessionTimes(session, data.settings.offset).date;
     const ended = sessionHasEnded(session, data);
     const eligible = data.settings.enrolled
       ? data.students.filter((student) => studentEligibleForDate(student, date)).length
