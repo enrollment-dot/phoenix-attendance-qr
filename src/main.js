@@ -26,6 +26,9 @@ import {
   filterReport,
   csv,
   percentage,
+  sessionAttendanceSummary,
+  studentAttendanceSummary,
+  overallAttendanceSummary,
   scanLink,
   parseScan,
 } from './reports.js';
@@ -164,11 +167,11 @@ async function refresh() {
   render();
 }
 function dashboard() {
-  const all = report(data),
-    pct = percentage(all),
+  const attendanceSummary = overallAttendanceSummary(data),
+    pct = attendanceSummary.percentage,
     active = data.sessions.filter((s) => s.status === 'active');
   frame(
-    `<div class="page-title"><div><p class="eyebrow">SIFER LAB CLASS SESSIONS</p><h1>Class overview</h1><p>Manage your SIFer Lab sessions and review attendance.</p></div><button class="primary" id="create">＋ Create session</button></div><div class="stats"><div class="card"><span>Class sessions</span><strong>${data.sessions.length}</strong><small>${active.length} enabled for scanning</small></div><div class="card"><span>Enrolled students</span><strong>${data.students.length}</strong><small>Active students on the SIFer Lab roster</small></div><div class="card"><span>Attendance rate</span><strong>${pct === null ? '—' : pct + '<em>%</em>'}</strong><small>${data.settings.enrolled ? 'Scanned in across non-pending records' : 'Recorded attendees only; roster validation is off'}</small></div></div><section class="card sessions"><div class="section-title"><div><h2>Class sessions</h2><p>Share a session QR with your class for Scan In and Scan Out.</p></div><button class="text" id="refresh">↻ Refresh</button></div>${
+    `<div class="page-title"><div><p class="eyebrow">SIFER LAB CLASS SESSIONS</p><h1>Class overview</h1><p>Manage your SIFer Lab sessions and review attendance.</p></div><button class="primary" id="create">＋ Create session</button></div><div class="stats"><div class="card"><span>Class sessions</span><strong>${data.sessions.length}</strong><small>${active.length} enabled for scanning</small></div><div class="card"><span>Enrolled students</span><strong>${data.students.length}</strong><small>Active students on the SIFer Lab roster</small></div><div class="card"><span>Attendance rate</span><strong>${pct === null ? '—' : pct + '<em>%</em>'}</strong><small>${attendanceSummary.sessions_held ? 'Completed sessions only' : 'No completed sessions yet'}</small></div></div><section class="card sessions"><div class="section-title"><div><h2>Class sessions</h2><p>Share a session QR with your class for Scan In and Scan Out.</p></div><button class="text" id="refresh">↻ Refresh</button></div>${
       data.sessions.length
         ? `<div class="session-list">${[...data.sessions]
             .reverse()
@@ -523,18 +526,40 @@ function accounts() {
 }
 function reports() {
   frame(
-    `<div class="page-title"><div><p class="eyebrow">ACADEMY ATTENDANCE RECORDS</p><h1>Attendance report</h1><p>Review student attendance by session, course, date, or student.</p></div><button class="primary" id="export">↓ Export CSV</button></div><section class="card"><form id="filters" class="filters"><label>Session<select name="session"><option value="">All sessions</option>${data.sessions.map((s) => `<option value="${esc(s.session_id)}">${esc(s.course)} · ${esc(sessionTimes(s, data.settings.offset).date)}</option>`).join('')}</select></label><label>Course<select name="course"><option value="">All courses</option>${[...new Set(data.sessions.map((s) => s.course))].map((c) => `<option>${esc(c)}</option>`).join('')}</select></label><label>Date<input name="date" type="date"></label><label>Student<input name="student" placeholder="Name or ID" type="search"></label></form><div id="report-summary" class="section-title"></div><div class="table-wrap"><table><thead><tr>${['Student', 'Course / date', 'Scan In', 'Scan Out', 'Minutes', 'Status'].map((v) => `<th>${v}</th>`).join('')}</tr></thead><tbody id="rows"></tbody></table></div><p class="helper">Timestamps shown in ${REPORT_TIME_ZONE_LABEL}. Dates beside course names are the scheduled session dates. Absent is calculated after class ends; upcoming students are Pending. Percentage counts students with Scan In, including late and early departures. ${data.settings.enrolled ? 'The current active roster is used for all courses.' : 'Enrollment validation is disabled: percentage covers recorded attendees only.'}</p></section>`,
+    `<div class="page-title"><div><p class="eyebrow">ACADEMY ATTENDANCE RECORDS</p><h1>Attendance report</h1><p>Review attendance by session and track each student's cumulative attendance.</p></div><button class="primary" id="export">↓ Export CSV</button></div><section class="card"><form id="filters" class="filters"><label>Session<select name="session"><option value="">All sessions</option>${data.sessions.map((s) => `<option value="${esc(s.session_id)}">${esc(s.course)} · ${esc(sessionTimes(s, data.settings.offset).date)}</option>`).join('')}</select></label><label>Course<select name="course"><option value="">All courses</option>${[...new Set(data.sessions.map((s) => s.course))].map((c) => `<option>${esc(c)}</option>`).join('')}</select></label><label>From<input name="from" type="date"></label><label>To<input name="to" type="date"></label><label>Student<input name="student" placeholder="Name or ID" type="search"></label></form><div id="report-summary"></div><div class="report-sections"><section class="report-block"><div class="section-title"><div><h2>Session attendance</h2><p>Each session is measured against the eligible student roster. Live sessions show current participation; completed sessions show final attendance.</p></div></div><div class="table-wrap"><table><thead><tr><th>Session</th><th>Date</th><th>Attended</th><th>Absent</th><th>Pending</th><th>Attendance</th></tr></thead><tbody id="session-summary-rows"></tbody></table></div></section><section class="report-block"><div class="section-title"><div><h2>Student attendance</h2><p>Cumulative attendance across completed sessions in the selected period.</p></div></div><div class="table-wrap"><table><thead><tr><th>Student</th><th>Sessions held</th><th>Attended</th><th>Absent</th><th>Attendance</th></tr></thead><tbody id="student-summary-rows"></tbody></table></div></section><section class="report-block"><div class="section-title"><div><h2>Attendance records</h2><p>Detailed scan history for the selected filters.</p></div></div><div class="table-wrap"><table><thead><tr>${['Student', 'Course / date', 'Scan In', 'Scan Out', 'Minutes', 'Status'].map((v) => `<th>${v}</th>`).join('')}</tr></thead><tbody id="rows"></tbody></table></div></section></div><p class="helper">Attendance formula: attended sessions ÷ actual sessions held × 100. Planned, cancelled, or future sessions are not included in a student's cumulative percentage. Pending students are not counted as completed attendance. ${data.settings.enrolled ? 'The active roster is used as the session denominator.' : 'Enrollment validation is disabled, so session percentages use recorded attendance data only.'}</p></section>`,
   );
   const allRows = report(data);
+  const filtersEl = document.querySelector('#filters');
   let current = [];
+
   const update = () => {
-    current = filterReport(
-      allRows,
-      Object.fromEntries(new FormData(document.querySelector('#filters'))),
-    );
-    const pct = percentage(current);
+    const filters = Object.fromEntries(new FormData(filtersEl));
+    current = filterReport(allRows, filters);
+    const overall = overallAttendanceSummary(data, filters);
+    const sessions = sessionAttendanceSummary(data, filters);
+    const students = studentAttendanceSummary(data, filters);
+
     document.querySelector('#report-summary').innerHTML =
-      `<h2>${current.length} records</h2><span>${pct === null ? '—' : pct + '%'} attendance</span>`;
+      `<div class="stats report-stats"><div class="card"><span>Sessions held</span><strong>${overall.sessions_held}</strong><small>Completed sessions in selected period</small></div><div class="card"><span>Overall attendance</span><strong>${overall.percentage === null ? '—' : overall.percentage + '<em>%</em>'}</strong><small>${overall.attended} attended of ${overall.eligible} eligible session places</small></div><div class="card"><span>Students tracked</span><strong>${students.length}</strong><small>Active students in the selected view</small></div></div>`;
+
+    document.querySelector('#session-summary-rows').innerHTML = sessions.length
+      ? sessions
+          .map(
+            (s) =>
+              `<tr><td><b>${esc(s.course)}</b></td><td>${esc(s.date)}</td><td>${s.attended}</td><td>${s.absent}</td><td>${s.pending}</td><td><span class="badge ${s.completed ? (s.percentage >= 75 ? 'present' : '') : ''}">${s.percentage === null ? '—' : s.percentage + '%'}${s.completed ? '' : ' · Live'}</span></td></tr>`,
+          )
+          .join('')
+      : '<tr><td colspan="6" class="empty">No sessions match these filters.</td></tr>';
+
+    document.querySelector('#student-summary-rows').innerHTML = students.length
+      ? students
+          .map(
+            (s) =>
+              `<tr><td><b>${esc(s.student_name)}</b><small>${esc(s.student_id)}</small></td><td>${s.sessions_held}</td><td>${s.attended}</td><td>${s.absent}</td><td><span class="badge ${s.percentage !== null && s.percentage >= 75 ? 'present' : ''}">${s.percentage === null ? '—' : s.percentage + '%'}</span></td></tr>`,
+          )
+          .join('')
+      : '<tr><td colspan="5" class="empty">No students match these filters.</td></tr>';
+
     document.querySelector('#rows').innerHTML = current.length
       ? current
           .map(
@@ -544,8 +569,9 @@ function reports() {
           .join('')
       : '<tr><td colspan="6" class="empty">No records match these filters.</td></tr>';
   };
-  document.querySelector('#filters').oninput = update;
-  document.querySelector('#filters').onsubmit = (e) => e.preventDefault();
+
+  filtersEl.oninput = update;
+  filtersEl.onsubmit = (e) => e.preventDefault();
   document.querySelector('#export').onclick = () => {
     const u = URL.createObjectURL(
         new Blob([csv(current)], { type: 'text/csv;charset=utf-8;' }),
