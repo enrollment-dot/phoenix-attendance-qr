@@ -18,7 +18,7 @@ test('frontend preserves super_admin role after login', () => {
 test('frontend exposes destructive student/session/account UI only to super_admin', () => {
   assert.match(frontend, /role === 'super_admin' \? .*data-delete/s);
   assert.match(frontend, /role === 'super_admin' \? '<button id="delete-session"/);
-  assert.match(frontend, /role === 'super_admin' \? '<button data-nav="accounts"/);
+  assert.match(frontend, /role === 'super_admin' \? `<button data-nav="accounts"/);
 });
 
 test('backend requires super_admin for destructive student and session deletion', () => {
