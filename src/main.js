@@ -605,7 +605,7 @@ function reports() {
       ? current
           .map(
             (r) =>
-              `<tr><td><b>${esc(r.student_name)}</b><small>${esc(r.student_id)}</small></td><td>${esc(r.course)}<small>${esc(r.date)}</small></td><td>${thailandTimestamp(r.scan_in)}</td><td>${thailandTimestamp(r.scan_out)}</td><td>${esc(r.duration_minutes ?? '—')}</td><td><span class="badge ${r.status === 'Present' ? 'present' : r.status === 'Absent' ? 'absent' : ''}">${esc(r.status)}</span></td></tr>`,
+              `<tr><td><b>${esc(r.student_name)}</b><small>${esc(r.student_id)}</small></td><td>${esc(r.course)}<small>${esc(r.date)}</small></td><td>${thailandTimestamp(r.scan_in)}</td><td>${thailandTimestamp(r.scan_out)}${r.scan_out ? '<small class="scan-state">Scanned Out</small>' : r.scan_in ? '<small class="scan-state">Not Scanned Out</small>' : '<small class="scan-state">Not Scanned In</small>'}</td><td>${esc(r.duration_minutes ?? '—')}</td><td><span class="badge ${r.status === 'Present' ? 'present' : r.status === 'Absent' ? 'absent' : ''}">${esc(r.status)}</span>${r.scan_in ? `<small class="scan-state">${r.scan_out ? 'Scanned Out' : 'Not Scanned Out'}</small>` : ''}</td></tr>`,
           )
           .join('')
       : '<tr><td colspan="6" class="empty">No records match these filters.</td></tr>';
