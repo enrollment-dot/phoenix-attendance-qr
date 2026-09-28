@@ -836,7 +836,7 @@ export class SupabaseRpcBackend implements BackendAdapter {
   async setStudentActive(studentId: string, active: boolean): Promise<unknown> {
     return this.rpc('ylp_student_set_active_v1', { p_student_id: studentId, p_active: active });
   }
-
+\n  async forceDeleteStudent(studentId: string, _token: string): Promise<unknown> {\n    return this.rpc('ylp_force_delete_student_v1', { p_student_id: studentId });\n  }\n
   async adminAccounts(): Promise<unknown> {
     const result = await this.rpc('ylp_admin_accounts_v1', {});
     return { ok: true, data: result };
