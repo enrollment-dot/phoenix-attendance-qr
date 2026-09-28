@@ -977,25 +977,25 @@ export async function handleRequest(request: Request, backend: BackendAdapter, c
         break;
       }
       case 'adminAccounts':
-        await requireAdminRole(token, config, backend, ['admin','super_admin']);
+        await requireAdminRole(token, config, backend, ['super_admin']);
         result = await backend.adminAccounts();
         break;
       case 'createAdminAccount':
-        await requireAdminRole(token, config, backend, ['admin','super_admin']);
+        await requireAdminRole(token, config, backend, ['super_admin']);
         if (typeof payload.email !== 'string' || typeof payload.password !== 'string' || typeof payload.username !== 'string' || typeof payload.role !== 'string' || !payload.email.trim() || !payload.password || !payload.username.trim() || !['super_admin', 'admin', 'operator'].includes(payload.role)) throw new ValidationError('Email, password, username, and role are required.');
         if (payload.password.length < 16) throw new ValidationError('Password must be at least 16 characters.');
         if (!/^[A-Za-z0-9._-]{3,40}$/.test(payload.username.trim())) throw new ValidationError('Username is invalid.');
         result = await backend.createAdminAccount(payload.email.trim(), payload.password, payload.username.trim(), payload.role);
         break;
       case 'updateAdminAccount':
-        await requireAdminRole(token, config, backend, ['admin','super_admin']);
+        await requireAdminRole(token, config, backend, ['super_admin']);
         if (typeof payload.admin_id !== 'string' || typeof payload.username !== 'string' || typeof payload.role !== 'string' || typeof payload.active !== 'boolean' || !['admin', 'operator'].includes(payload.role)) throw new ValidationError('Account ID, username, role, and active status are required.');
         if (!/^[A-Za-z0-9._-]{3,40}$/.test(payload.username.trim())) throw new ValidationError('Username is invalid.');
         if (payload.password !== undefined && (typeof payload.password !== 'string' || payload.password.length < 16)) throw new ValidationError('Password must be at least 16 characters.');
         result = await backend.updateAdminAccount(payload.admin_id, payload.username.trim(), payload.role, payload.active, typeof payload.password === 'string' && payload.password ? payload.password : undefined);
         break;
       case 'removeAdminAccount':
-        await requireAdminRole(token, config, backend, ['admin','super_admin']);
+        await requireAdminRole(token, config, backend, ['super_admin']);
         if (typeof payload.admin_id !== 'string' || !payload.admin_id) throw new ValidationError('Account ID is required.');
         result = await backend.removeAdminAccount(payload.admin_id);
         break;
