@@ -8,6 +8,13 @@ const backend = readFileSync(
   'utf8',
 );
 
+test('frontend allows super_admin to access the students view', () => {
+  assert.match(
+    frontend,
+    /if \(view === 'students'\) \{\n    if \(!\['admin', 'super_admin'\]\.includes\(role\)\)/,
+  );
+});
+
 test('frontend preserves super_admin role after login', () => {
   assert.match(
     frontend,
