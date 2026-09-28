@@ -954,7 +954,7 @@ export async function handleRequest(request: Request, backend: BackendAdapter, c
       case 'createStudent': {
         await requireAdminRole(token, config, backend, ['super_admin', 'admin']);
         if (typeof payload.student_id !== 'string' || typeof payload.name !== 'string' || typeof payload.enrolled_from !== 'string') throw new ValidationError('Student ID, name, and enrollment date are required.');
-        if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(payload.enrolled_from)) throw new ValidationError('Enrollment date must be YYYY-MM-DD.');
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(payload.enrolled_from)) throw new ValidationError('Enrollment date must be YYYY-MM-DD.');
         const email = typeof payload.email === 'string' ? payload.email.trim() : '';
         if (email && (email.length > 254 || !EMAIL.test(email))) throw new ValidationError('Invalid student email.');
         result = await backend.createStudent(payload.student_id, payload.name, payload.enrolled_from, email || null);
@@ -963,11 +963,12 @@ export async function handleRequest(request: Request, backend: BackendAdapter, c
       case 'updateStudent': {
         await requireAdminRole(token, config, backend, ['super_admin', 'admin']);
         if (typeof payload.student_id !== 'string' || typeof payload.name !== 'string' || typeof payload.enrolled_from !== 'string') throw new ValidationError('Student ID, name, and enrollment date are required.');
-        if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(payload.enrolled_from)) throw new ValidationError('Enrollment date must be YYYY-MM-DD.');
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(payload.enrolled_from)) throw new ValidationError('Enrollment date must be YYYY-MM-DD.');
         const email = typeof payload.email === 'string' ? payload.email.trim() : '';
         if (email && (email.length > 254 || !EMAIL.test(email))) throw new ValidationError('Invalid student email.');
         result = await backend.updateStudent(payload.student_id, payload.name, payload.enrolled_from, email || null);
         break;
+      }
       case 'setStudentActive':
         await requireAdminRole(token, config, backend, ['super_admin', 'admin']);
         if (typeof payload.student_id !== 'string' || typeof payload.active !== 'boolean') throw new ValidationError('Student ID and active status are required.');
