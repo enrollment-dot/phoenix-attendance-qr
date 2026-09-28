@@ -90,3 +90,10 @@ test('student email is optional and supported through the roster flow', () => {
   assert.match(backend, /const email = typeof payload\.email === 'string' \? payload\.email\.trim\(\) : ''/);
   assert.match(backend, /email: student\.email \?\? null/);
 });
+
+
+test('attendance records explicitly show whether a student scanned out', () => {
+  assert.match(frontend, /scan_out \? '<small class="scan-state">Scanned Out<\/small>'/);
+  assert.match(frontend, /scan_in \? '<small class="scan-state">Not Scanned Out<\/small>'/);
+  assert.match(frontend, /r\.scan_out \? 'Scanned Out' : 'Not Scanned Out'/);
+});
