@@ -795,6 +795,10 @@ export class SupabaseRpcBackend implements BackendAdapter {
     return this.rpc('ylp_delete_session_v1', { p_session_id: sessionId });
   }
 
+  forceDeleteSession(sessionId: string, _token: string): Promise<unknown> {
+    return this.rpc('ylp_force_delete_session_v1', { p_session_id: sessionId });
+  }
+
   session(sessionId: string, qrTokenHash: string): Promise<unknown> {
     return this.rpc('ylp_public_session_v1', { p_session_id: sessionId, p_qr_token_hash: qrTokenHash });
   }
@@ -985,11 +989,34 @@ export async function handleRequest(request: Request, backend: BackendAdapter, c
         if (typeof payload.session_id !== 'string' || !payload.session_id) throw new ValidationError('Session not found.');
         result = await backend.closeSession(payload.session_id, token);
         break;
-      case 'deleteSession':
-        await requireAdminRole(token, config, backend, ['admin']);
+      case 'deleteSession': {
+        const currentClaims = await requireAdminRole(token, config, backend, ['admin']);
         if (typeof payload.session_id !== 'string' || !payload.session_id) throw new ValidationError('Session not found.');
-        result = await backend.deleteSession(payload.session_id, token);
+        if (typeof payload.username !== 'string' || !payload.username.trim() || typeof payload.password !== 'string' || !payload.password) {
+          throw new AuthenticationError();
+        }
+
+        // Destructive deletion requires a fresh username/password authentication.
+        // Re-authentication must resolve to the same admin account as the active session.
+        await enforceRateLimit(backend, config, 'login-global', 'global');
+        const reauth = await backend.login(
+          { username: payload.username.trim(), password: payload.password },
+          token,
+        );
+        const reauthToken =
+          reauth && typeof reauth === 'object' && 'data' in reauth &&
+          reauth.data && typeof reauth.data === 'object' &&
+          'token' in reauth.data && typeof reauth.data.token === 'string'
+            ? reauth.data.token
+            : '';
+        if (!reauthToken) throw new AuthenticationError();
+
+        const reauthClaims = await requireAdminRole(reauthToken, config, backend, ['admin']);
+        if (reauthClaims.sub !== currentClaims.sub) throw new AuthenticationError();
+
+        result = await backend.forceDeleteSession(payload.session_id, reauthToken);
         break;
+      }
       case 'migrateSession': {
         await requireAdmin(token, config, backend);
         if (!config.migrationMode) throw new ValidationError('Migration mode is disabled.');
