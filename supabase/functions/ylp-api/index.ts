@@ -18,7 +18,7 @@ import { UnknownBehaviorError } from './types.ts';
 
 const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const STUDENT_ID = /^[a-zA-Z0-9_-]+$/;
-const EMAIL = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
 const CONTROL = /[\x00-\x1f\x7f]/;
@@ -951,22 +951,24 @@ export async function handleRequest(request: Request, backend: BackendAdapter, c
         await requireAdmin(token, config, backend);
         result = await backend.students();
         break;
-      case 'createStudent':
+      case 'createStudent': {
         await requireAdminRole(token, config, backend, ['super_admin', 'admin']);
         if (typeof payload.student_id !== 'string' || typeof payload.name !== 'string' || typeof payload.enrolled_from !== 'string') throw new ValidationError('Student ID, name, and enrollment date are required.');
-        if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(payload.enrolled_from)) throw new ValidationError('Enrollment date must be YYYY-MM-DD.');
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(payload.enrolled_from)) throw new ValidationError('Enrollment date must be YYYY-MM-DD.');
         const email = typeof payload.email === 'string' ? payload.email.trim() : '';
         if (email && (email.length > 254 || !EMAIL.test(email))) throw new ValidationError('Invalid student email.');
         result = await backend.createStudent(payload.student_id, payload.name, payload.enrolled_from, email || null);
         break;
-      case 'updateStudent':
+      }
+      case 'updateStudent': {
         await requireAdminRole(token, config, backend, ['super_admin', 'admin']);
         if (typeof payload.student_id !== 'string' || typeof payload.name !== 'string' || typeof payload.enrolled_from !== 'string') throw new ValidationError('Student ID, name, and enrollment date are required.');
-        if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(payload.enrolled_from)) throw new ValidationError('Enrollment date must be YYYY-MM-DD.');
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(payload.enrolled_from)) throw new ValidationError('Enrollment date must be YYYY-MM-DD.');
         const email = typeof payload.email === 'string' ? payload.email.trim() : '';
         if (email && (email.length > 254 || !EMAIL.test(email))) throw new ValidationError('Invalid student email.');
         result = await backend.updateStudent(payload.student_id, payload.name, payload.enrolled_from, email || null);
         break;
+      }
       case 'setStudentActive':
         await requireAdminRole(token, config, backend, ['super_admin', 'admin']);
         if (typeof payload.student_id !== 'string' || typeof payload.active !== 'boolean') throw new ValidationError('Student ID and active status are required.');
