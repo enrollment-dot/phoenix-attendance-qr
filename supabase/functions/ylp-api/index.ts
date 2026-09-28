@@ -18,6 +18,7 @@ import { UnknownBehaviorError } from './types.ts';
 
 const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const STUDENT_ID = /^[a-zA-Z0-9_-]+$/;
+const EMAIL = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
 const CONTROL = /[\x00-\x1f\x7f]/;
@@ -487,7 +488,7 @@ export async function mapDashboardResponse(value: unknown, keyring: QrKeyring, o
   }
   const students = source.students.map((item) => {
     const student = item as Record<string, unknown>;
-    return { student_id: student.student_id, name: student.name, active: student.active };
+    return { student_id: student.student_id, name: student.name, email: student.email ?? null, active: student.active, enrolled_from: student.enrolled_from, created_at: student.created_at, updated_at: student.updated_at };
   });
   const attendance = source.attendance.map((item) => {
     const record = item as Record<string, unknown>;
@@ -824,12 +825,12 @@ export class SupabaseRpcBackend implements BackendAdapter {
     return this.rpc('ylp_students_v1', {});
   }
 
-  async createStudent(studentId: string, name: string, enrolledFrom: string): Promise<unknown> {
-    return this.rpc('ylp_student_create_v1', { p_student_id: studentId, p_name: name, p_enrolled_from: enrolledFrom });
+  async createStudent(studentId: string, name: string, enrolledFrom: string, email: string | null): Promise<unknown> {
+    return this.rpc('ylp_student_create_v1', { p_student_id: studentId, p_name: name, p_enrolled_from: enrolledFrom, p_email: email });
   }
 
-  async updateStudent(studentId: string, name: string, enrolledFrom: string): Promise<unknown> {
-    return this.rpc('ylp_student_update_v1', { p_student_id: studentId, p_name: name, p_enrolled_from: enrolledFrom });
+  async updateStudent(studentId: string, name: string, enrolledFrom: string, email: string | null): Promise<unknown> {
+    return this.rpc('ylp_student_update_v1', { p_student_id: studentId, p_name: name, p_enrolled_from: enrolledFrom, p_email: email });
   }
 
   async setStudentActive(studentId: string, active: boolean): Promise<unknown> {
@@ -954,13 +955,17 @@ export async function handleRequest(request: Request, backend: BackendAdapter, c
         await requireAdminRole(token, config, backend, ['super_admin', 'admin']);
         if (typeof payload.student_id !== 'string' || typeof payload.name !== 'string' || typeof payload.enrolled_from !== 'string') throw new ValidationError('Student ID, name, and enrollment date are required.');
         if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(payload.enrolled_from)) throw new ValidationError('Enrollment date must be YYYY-MM-DD.');
-        result = await backend.createStudent(payload.student_id, payload.name, payload.enrolled_from);
+        const email = typeof payload.email === 'string' ? payload.email.trim() : '';
+        if (email && (email.length > 254 || !EMAIL.test(email))) throw new ValidationError('Invalid student email.');
+        result = await backend.createStudent(payload.student_id, payload.name, payload.enrolled_from, email || null);
         break;
       case 'updateStudent':
         await requireAdminRole(token, config, backend, ['super_admin', 'admin']);
         if (typeof payload.student_id !== 'string' || typeof payload.name !== 'string' || typeof payload.enrolled_from !== 'string') throw new ValidationError('Student ID, name, and enrollment date are required.');
         if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(payload.enrolled_from)) throw new ValidationError('Enrollment date must be YYYY-MM-DD.');
-        result = await backend.updateStudent(payload.student_id, payload.name, payload.enrolled_from);
+        const email = typeof payload.email === 'string' ? payload.email.trim() : '';
+        if (email && (email.length > 254 || !EMAIL.test(email))) throw new ValidationError('Invalid student email.');
+        result = await backend.updateStudent(payload.student_id, payload.name, payload.enrolled_from, email || null);
         break;
       case 'setStudentActive':
         await requireAdminRole(token, config, backend, ['super_admin', 'admin']);
