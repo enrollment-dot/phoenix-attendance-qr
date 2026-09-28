@@ -80,3 +80,13 @@ test('backend account updates allow the super_admin role', () => {
   const block = backend.slice(start, end === -1 ? backend.length : end);
   assert.match(block, /\['super_admin', 'admin', 'operator'\]\.includes\(payload\.role\)/);
 });
+
+
+test('student email is optional and supported through the roster flow', () => {
+  assert.match(frontend, /name="email" type="email"/);
+  assert.match(frontend, /rawEmail/);
+  assert.match(frontend, /createStudent', \{ student_id, name, enrolled_from, email \}/);
+  assert.match(backend, /const EMAIL =/);
+  assert.match(backend, /const email = typeof payload\.email === 'string' \? payload\.email\.trim\(\) : ''/);
+  assert.match(backend, /email: student\.email \?\? null/);
+});
