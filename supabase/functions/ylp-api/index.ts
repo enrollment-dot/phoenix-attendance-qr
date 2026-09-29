@@ -873,19 +873,19 @@ export class SupabaseRpcBackend implements BackendAdapter {
     }
   }
 
-  async updateAdminAccount(adminId: string, username: string | null, role: string, active: boolean, password?: string): Promise<unknown> {
-    if (password) {
-      const response = await fetch(this.config.supabaseUrl + '/auth/v1/admin/users/' + encodeURIComponent(adminId), {
-        method: 'PUT',
-        headers: {
-          apikey: this.config.supabaseServiceRoleKey,
-          authorization: 'Bearer ' + this.config.supabaseServiceRoleKey,
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify({ password }),
-      });
-      if (!response.ok) throw new Error('auth user update failed');
-    }
+  async updateAdminAccount(adminId: string, email: string, username: string | null, role: string, active: boolean, password?: string): Promise<unknown> {
+    const authUpdates: Record<string, unknown> = { email, email_confirm: true };
+    if (password) authUpdates.password = password;
+    const response = await fetch(this.config.supabaseUrl + '/auth/v1/admin/users/' + encodeURIComponent(adminId), {
+      method: 'PUT',
+      headers: {
+        apikey: this.config.supabaseServiceRoleKey,
+        authorization: 'Bearer ' + this.config.supabaseServiceRoleKey,
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify(authUpdates),
+    });
+    if (!response.ok) throw new Error('auth user update failed');
     const profile = await this.rpc('ylp_admin_account_update_v1', { p_admin_id: adminId, p_username: username, p_role: role, p_active: active });
     return { ok: true, data: profile };
   }
@@ -1004,10 +1004,12 @@ export async function handleRequest(request: Request, backend: BackendAdapter, c
         break;
       case 'updateAdminAccount':
         await requireAdminRole(token, config, backend, ['super_admin']);
-        if (typeof payload.admin_id !== 'string' || typeof payload.username !== 'string' || typeof payload.role !== 'string' || typeof payload.active !== 'boolean' || !['super_admin', 'admin', 'operator'].includes(payload.role)) throw new ValidationError('Account ID, username, role, and active status are required.');
+        if (typeof payload.admin_id !== 'string' || typeof payload.email !== 'string' || typeof payload.username !== 'string' || typeof payload.role !== 'string' || typeof payload.active !== 'boolean' || !['super_admin', 'admin', 'operator'].includes(payload.role)) throw new ValidationError('Account ID, email, username, role, and active status are required.');
+        const email = payload.email.trim();
+        if (!email || email.length > 254 || !EMAIL.test(email)) throw new ValidationError('Invalid account email.');
         if (!/^[A-Za-z0-9._-]{3,40}$/.test(payload.username.trim())) throw new ValidationError('Username is invalid.');
         if (payload.password !== undefined && (typeof payload.password !== 'string' || payload.password.length < 16)) throw new ValidationError('Password must be at least 16 characters.');
-        result = await backend.updateAdminAccount(payload.admin_id, payload.username.trim(), payload.role, payload.active, typeof payload.password === 'string' && payload.password ? payload.password : undefined);
+        result = await backend.updateAdminAccount(payload.admin_id, email, payload.username.trim(), payload.role, payload.active, typeof payload.password === 'string' && payload.password ? payload.password : undefined);
         break;
       case 'removeAdminAccount':
         await requireAdminRole(token, config, backend, ['super_admin']);
