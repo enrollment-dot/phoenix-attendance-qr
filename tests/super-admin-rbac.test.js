@@ -106,3 +106,38 @@ test('attendance scan window uses 30 minutes before start and 15 minutes after e
   );
   assert.match(migration, /set value = '15'/);
 });
+
+test('super_admin account editor allows changing email and sends it to the backend', () => {
+  assert.match(frontend, /name="email" type="email" autocomplete="email"/);
+  assert.doesNotMatch(frontend, /<label>Email<input value="\$\{esc\(account\.email\)\}" disabled>/);
+  assert.match(frontend, /updateAdminAccount', payload, token/);
+  assert.match(frontend, /const payload = \{ admin_id: account\.admin_id, email: v\.email,/);
+});
+
+test('backend account email updates stay server-side and preserve email confirmation', () => {
+  const start = backend.indexOf("async updateAdminAccount(");
+  const end = backend.indexOf("\n  async removeAdminAccount", start);
+  const method = backend.slice(start, end);
+  assert.match(method, /auth\/v1\/admin\/users/);
+  assert.match(method, /body: JSON\.stringify\(authUpdates\)/);
+  assert.match(method, /email_confirm: true/);
+  assert.match(method, /this\.config\.supabaseServiceRoleKey/);
+
+  const actionStart = backend.indexOf("case 'updateAdminAccount'");
+  const actionEnd = backend.indexOf("\n      case ", actionStart + 1);
+  const action = backend.slice(actionStart, actionEnd === -1 ? backend.length : actionEnd);
+  assert.match(action, /requireAdminRole\(token, config, backend, \['super_admin'\]\)/);
+  assert.match(action, /payload\.email/);
+  assert.match(action, /Invalid account email/);
+});
+
+test('admin removal keeps the safety guard but allows a remaining super_admin', () => {
+  const migration = readFileSync(
+    new URL('../supabase/migrations/20260929210000_allow_admin_removal_with_super_admin.sql', import.meta.url),
+    'utf8',
+  );
+  assert.match(migration, /role = 'admin'/);
+  assert.match(migration, /role = 'super_admin'/);
+  assert.match(migration, /active_admin_count = 0 and active_super_admin_count = 0/);
+  assert.match(migration, /Cannot remove the last active admin/);
+});
