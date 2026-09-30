@@ -419,21 +419,34 @@ input::placeholder {
   max-width: 850px;
 }
 .qr-brand {
-  margin: 18px 0 20px;
+  margin: 18px auto 20px;
+  padding: 18px 20px 16px;
   display: grid;
   gap: 4px;
   justify-items: center;
+  width: min(100%, 560px);
+  border-radius: 14px;
+  background: #000;
+  color: #fff;
+}
+.qr-brand-mark {
+  width: 58px;
+  height: 50px;
+  object-fit: contain;
+  margin-bottom: 4px;
 }
 .qr-brand strong {
-  font: 800 clamp(24px, 3vw, 34px) Manrope, system-ui;
+  font: 800 clamp(22px, 3vw, 32px) Manrope, system-ui;
   letter-spacing: -0.8px;
-  color: #183e32;
+  color: #fff;
+  text-align: center;
 }
 .qr-brand span {
-  color: #56705f;
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 2px;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 1.2px;
+  text-align: center;
 }
 .qr-session-name {
   margin: 18px 0 2px;
