@@ -90,7 +90,7 @@ aside {
   place-items: center;
   width: 43px;
   height: auto;
-  aspect-ratio: 707 / 710;
+  aspect-ratio: 1168 / 1105;
   max-height: 46px;
   border-radius: 12px;
   flex: 0 0 auto;
@@ -624,7 +624,7 @@ td small {
   .mark {
     width: 36px;
     height: auto;
-    aspect-ratio: 707 / 710;
+    aspect-ratio: 1168 / 1105;
     max-height: 39px;
     font-size: 25px;
   }
