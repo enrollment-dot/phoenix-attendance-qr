@@ -86,7 +86,7 @@ aside {
   place-items: center;
   width: 43px;
   height: auto;
-  aspect-ratio: 913 / 790;
+  aspect-ratio: 707 / 710;
   max-height: 46px;
   border-radius: 12px;
   flex: 0 0 auto;
@@ -431,7 +431,7 @@ input::placeholder {
 }
 .qr-brand-mark {
   width: 58px;
-  height: 50px;
+  height: 58px;
   object-fit: contain;
   margin-bottom: 4px;
 }
@@ -618,7 +618,7 @@ td small {
   .mark {
     width: 36px;
     height: auto;
-    aspect-ratio: 913 / 790;
+    aspect-ratio: 707 / 710;
     max-height: 39px;
     font-size: 25px;
   }
