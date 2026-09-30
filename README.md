@@ -1,6 +1,6 @@
-# Young Leadership Academy — Frontend
+# Young Leadership Program — Frontend
 
-Static frontend for Young Leadership Academy and the existing Google Apps Script attendance API. Backend code, Google Sheets records, and credentials are not included.
+Static frontend for Young Leadership Program and the existing Google Apps Script attendance API. Backend code, Google Sheets records, and credentials are not included.
 
 ## Local development
 
