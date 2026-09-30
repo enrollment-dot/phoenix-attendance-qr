@@ -10,9 +10,9 @@
   "theme_color": "#152c2a",
   "icons": [
     {
-      "src": "/ylp-logo-icon.png?v=ylp-v5",
-      "sizes": "120x120",
-      "type": "image/png",
+      "src": "/ylp-logo-mark.svg?v=ylp-v6",
+      "sizes": "any",
+      "type": "image/svg+xml",
       "purpose": "any"
     }
   ]
