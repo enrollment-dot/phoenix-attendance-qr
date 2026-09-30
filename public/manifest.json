@@ -11,8 +11,8 @@
   "icons": [
     {
       "src": "/ylp-logo-mark.svg?v=ylp-v6",
-      "sizes": "120x120",
-      "type": "image/png",
+      "sizes": "any",
+      "type": "image/svg+xml",
       "purpose": "any"
     }
   ]
