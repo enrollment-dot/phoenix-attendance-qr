@@ -10,7 +10,7 @@
   "theme_color": "#152c2a",
   "icons": [
     {
-      "src": "/ylp-logo-mark.svg?v=ylp-v6",
+      "src": "/ylp-logo-exact.svg?v=ylp-v7",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"
