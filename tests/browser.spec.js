@@ -196,7 +196,7 @@ test('session QR uses the YLP branded layout and embeds the app logo', async ({ 
   expect(logoSvg).toContain('viewBox="0 0 1168 1105"');
   expect(logoSvg).toContain('M 496,449 508,449 516,451');
   expect(logoSvg).toContain('fill-rule="evenodd" clip-rule="evenodd"');
-  await expect(page.locator('.qr-brand span')).toHaveText('Learn. Lead. Build . Inspire');
+  await expect(page.locator('.qr-brand span')).toHaveText('Learn. Lead. Build. Inspire');
   await expect(page.locator('.qr-session-name')).toHaveText('English · Intermediate');
   await expect(page.locator('.qr-attendance-title')).toHaveText('Record your attendance');
   await expect(page.locator('#qr')).toBeVisible();
