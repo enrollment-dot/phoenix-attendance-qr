@@ -191,6 +191,7 @@ test('session QR uses the YLP branded layout and embeds the app logo', async ({ 
   await page.getByText('Class overview').waitFor();
   await page.getByRole('button', { name: 'Display QR ↗' }).click();
   await expect(page.locator('.qr-brand strong')).toHaveText('Young Leadership Program');
+  await expect(page.locator('.qr-brand-mark')).toHaveAttribute('src', '/ylp-logo-exact.svg');
   await expect(page.locator('.qr-brand span')).toHaveText('Learn. Lead. Build . Inspire');
   await expect(page.locator('.qr-session-name')).toHaveText('English · Intermediate');
   await expect(page.locator('.qr-attendance-title')).toHaveText('Record your attendance');
@@ -198,6 +199,23 @@ test('session QR uses the YLP branded layout and embeds the app logo', async ({ 
   await expect(page.getByRole('button', { name: 'Download QR' })).toBeVisible();
 });
 
+
+test('mobile layout keeps the YLP branding within the viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await mock(page);
+  await page.goto('/');
+  await page.getByText('Sign in to Young Leadership Program').waitFor();
+  await expect(page.locator('.mark')).toHaveAttribute('src', '/ylp-logo-exact.svg');
+  await page.getByLabel('Username').fill('admin');
+  await page.getByLabel('Password').fill('test-admin-password-123');
+  await page.locator('#login button.primary').click();
+  await page.getByText('Class overview').waitFor();
+  const width = await page.evaluate(() => ({
+    viewport: window.innerWidth,
+    scrollWidth: document.documentElement.scrollWidth,
+  }));
+  expect(width.scrollWidth).toBeLessThanOrEqual(width.viewport + 1);
+});
 
 test('password recovery waits for the Supabase recovery session and updates the password', async ({ page }) => {
   const payload = btoa(
