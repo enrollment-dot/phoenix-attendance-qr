@@ -33,7 +33,7 @@ import {
   parseScan,
 } from './reports.js';
 // RBAC staging frontend deployment marker: 2026-09-24
-const YLA_LOGO_SRC = '/ylp-logo-mark.svg';
+const YLA_LOGO_SRC = '/ylp-logo-icon.png';
 const root = document.querySelector('#app');
 let token = '',
   role = '',
