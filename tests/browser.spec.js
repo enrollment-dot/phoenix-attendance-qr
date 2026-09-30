@@ -191,7 +191,7 @@ test('session QR uses the YLP branded layout and embeds the app logo', async ({ 
   await page.getByText('Class overview').waitFor();
   await page.getByRole('button', { name: 'Display QR ↗' }).click();
   await expect(page.locator('.qr-brand strong')).toHaveText('Young Leadership Program');
-  await expect(page.locator('.qr-brand span')).toHaveText('LEARN • LEAD • BUILD . INSPIRE');
+  await expect(page.locator('.qr-brand span')).toHaveText('Learn. Lead. Build . Inspire');
   await expect(page.locator('.qr-session-name')).toHaveText('English · Intermediate');
   await expect(page.locator('.qr-attendance-title')).toHaveText('Record your attendance');
   await expect(page.locator('#qr')).toBeVisible();
