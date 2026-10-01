@@ -76,14 +76,16 @@ aside {
 }
 .brand small {
   display: block;
-  font:
-    600 8px 'DM Sans',
-    sans-serif;
-  letter-spacing: 1px;
-  line-height: 1.2;
-  margin-top: 3px;
+  width: 100%;
   max-width: 150px;
-  white-space: normal;
+  margin-top: 3px;
+  font:
+    600 7px 'DM Sans',
+    sans-serif;
+  letter-spacing: 0.55px;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: visible;
 }
 .mark {
   display: grid;
