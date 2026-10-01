@@ -66,9 +66,9 @@ aside {
   gap: 12px;
   align-items: center;
   font:
-    800 17px Manrope,
+    800 19px Manrope,
     system-ui;
-  line-height: 1.15;
+  line-height: 1.1;
 }
 .brand > span {
   min-width: 0;
