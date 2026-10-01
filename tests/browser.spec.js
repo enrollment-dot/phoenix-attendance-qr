@@ -190,15 +190,24 @@ test('session QR uses the YLP branded layout and embeds the app logo', async ({ 
   await page.locator('#login button.primary').click();
   await page.getByText('Class overview').waitFor();
   await page.getByRole('button', { name: 'Display QR ↗' }).click();
-  await expect(page.locator('.qr-brand strong')).toHaveText('Young Leadership Program');
-  await expect(page.locator('.qr-brand-mark')).toHaveAttribute('src', '/ylp-logo-exact.svg');
+  await expect(page.locator('.qr-brand')).toHaveCount(0);
   const logoAsset = await page.request.get('/ylp-logo-exact.svg?v=ylp-v10');
   expect(logoAsset.ok()).toBeTruthy();
   expect(logoAsset.headers()['content-type']).toContain('image/svg+xml');
-  await expect(page.locator('.qr-brand span')).toHaveText('Learn. Lead. Build. Inspire');
   await expect(page.locator('.qr-session-name')).toHaveText('English · Intermediate');
   await expect(page.locator('.qr-attendance-title')).toHaveText('Record your attendance');
-  await expect(page.locator('#qr')).toBeVisible();
+  await expect(page.locator('.qr-instructions p')).toContainText(
+    'Enter your student name and ID, then choose Scan In or Scan Out.',
+  );
+  const qr = page.locator('#qr');
+  await expect(qr).toBeVisible();
+  const qrBackground = await qr.evaluate((canvas) => {
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('QR canvas context is unavailable.');
+    const pixel = ctx.getImageData(125, 160, 1, 1).data;
+    return Array.from(pixel);
+  });
+  expect(qrBackground).toEqual([242, 247, 237, 255]);
   await expect(page.getByRole('button', { name: 'Download QR' })).toBeVisible();
 });
 
