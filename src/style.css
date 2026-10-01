@@ -51,7 +51,7 @@ a {
 }
 .shell {
   display: grid;
-  grid-template-columns: 248px minmax(0, 1fr);
+  grid-template-columns: 285px minmax(0, 1fr);
   min-height: 100vh;
 }
 aside {
