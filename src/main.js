@@ -174,6 +174,7 @@ function login() {
       }
       token = result.token;
       role = ['super_admin', 'admin', 'operator'].includes(result.role) ? result.role : '';
+      await loadBranding();
       await refresh();
     });
   };
