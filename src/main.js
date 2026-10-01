@@ -73,6 +73,17 @@ function applyBranding() {
   document.title = branding.organization_name;
 }
 
+async function loadBranding() {
+  if (!token) return;
+  try {
+    const response = await api('branding', {}, token);
+    if (response && typeof response === 'object') branding = { ...DEFAULT_BRANDING, ...response };
+  } catch {
+    // Keep the built-in branding if the optional customization read fails.
+  }
+  applyBranding();
+}
+
 function frame(content, attendee = false) {
   pageVersion++;
   applyBranding();
