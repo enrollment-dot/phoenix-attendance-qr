@@ -45,7 +45,7 @@ async function mock(page, supportsRetries = true) {
       error = '';
     switch (r.action) {
       case 'login':
-        data = { token: 'test-admin', role: 'admin' };
+        data = { token: 'test-admin', role: r.payload.username === 'super-admin' ? 'super_admin' : 'admin' };
         break;
       case 'dashboard':
         data = {
