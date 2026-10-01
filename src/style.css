@@ -80,10 +80,10 @@ aside {
   max-width: 150px;
   margin-top: 3px;
   font:
-    600 8px 'DM Sans',
+    600 9px 'DM Sans',
     sans-serif;
-  letter-spacing: 0.55px;
-  line-height: 1.2;
+  letter-spacing: 0.45px;
+  line-height: 1.45;
   white-space: nowrap;
   overflow: visible;
 }
