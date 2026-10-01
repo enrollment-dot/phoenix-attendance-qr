@@ -76,15 +76,15 @@ aside {
 }
 .brand small {
   display: block;
-  width: 100%;
-  max-width: 150px;
+  width: max-content;
+  max-width: none;
   margin-top: 3px;
   font:
-    700 12px 'DM Sans',
+    700 11px 'DM Sans',
     sans-serif;
-  letter-spacing: 0.25px;
+  letter-spacing: 0;
   line-height: 1.25;
-  white-space: normal;
+  white-space: nowrap;
   overflow: visible;
 }
 .mark {
