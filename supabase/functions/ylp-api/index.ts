@@ -13,6 +13,7 @@ import type {
   RateLimitScope,
   ScanPayload,
   ScanRpcInput,
+  BrandingUpdateInput,
 } from './types.ts';
 import { UnknownBehaviorError } from './types.ts';
 
@@ -900,6 +901,29 @@ export class SupabaseRpcBackend implements BackendAdapter {
     return { ok: true, data: removed };
   }
 
+  async branding(): Promise<unknown> {
+    const result = await this.rpc('ylp_branding_get_v1', {});
+    return { ok: true, data: Array.isArray(result) ? result[0] ?? null : result };
+  }
+
+  async updateBranding(input: BrandingUpdateInput): Promise<unknown> {
+    return this.rpc('ylp_branding_update_v1', {
+      p_organization_name: input.organization_name,
+      p_tagline: input.tagline,
+      p_logo_url: input.logo_url,
+      p_favicon_url: input.favicon_url ?? null,
+      p_primary_color: input.primary_color,
+      p_accent_color: input.accent_color,
+      p_sidebar_color: input.sidebar_color,
+      p_page_background: input.page_background,
+      p_card_background: input.card_background,
+      p_text_color: input.text_color,
+      p_muted_text_color: input.muted_text_color,
+      p_footer_text: input.footer_text,
+      p_updated_by: input.updated_by,
+    });
+  }
+
   async consumeRateLimit(scope: RateLimitScope, subjectHash: string, limit: number, windowSeconds: number): Promise<RateLimitDecision> {
     const result = await this.rpc('ylp_consume_rate_limit_v1', { p_scope: scope, p_subject_hash: subjectHash, p_limit: limit, p_window_seconds: windowSeconds });
     if (!result || typeof result !== 'object' || typeof (result as Record<string, unknown>).allowed !== 'boolean') throw new Error('invalid rate-limit response');
@@ -989,6 +1013,23 @@ export async function handleRequest(request: Request, backend: BackendAdapter, c
         const reauthClaims = await requireAdminRole(reauthToken, config, backend, ['super_admin']);
         if (reauthClaims.sub !== currentClaims.sub) throw new AuthenticationError();
         result = await backend.forceDeleteStudent(payload.student_id, reauthToken);
+        break;
+      }
+      case 'branding':
+        await requireAdminRole(token, config, backend, ['super_admin']);
+        result = await backend.branding();
+        break;
+      case 'updateBranding': {
+        const claims = await requireAdminRole(token, config, backend, ['super_admin']);
+        const input = payload as unknown as BrandingUpdateInput & { updated_by?: unknown };
+        const color = /^#[0-9A-Fa-f]{6}$/;
+        if (typeof input.organization_name !== 'string' || input.organization_name.trim().length < 1 || input.organization_name.trim().length > 120) throw new ValidationError('Invalid organization name.');
+        if (typeof input.tagline !== 'string' || input.tagline.trim().length < 1 || input.tagline.trim().length > 160) throw new ValidationError('Invalid tagline.');
+        if (typeof input.logo_url !== 'string' || input.logo_url.trim().length < 1 || input.logo_url.trim().length > 500) throw new ValidationError('Invalid logo URL.');
+        if (input.favicon_url !== undefined && input.favicon_url !== null && (typeof input.favicon_url !== 'string' || input.favicon_url.trim().length > 500)) throw new ValidationError('Invalid favicon URL.');
+        for (const value of [input.primary_color, input.accent_color, input.sidebar_color, input.page_background, input.card_background, input.text_color, input.muted_text_color]) if (typeof value !== 'string' || !color.test(value)) throw new ValidationError('Invalid branding color.');
+        if (typeof input.footer_text !== 'string' || input.footer_text.trim().length > 240) throw new ValidationError('Invalid footer text.');
+        result = await backend.updateBranding({ ...input, updated_by: claims.sub });
         break;
       }
       case 'adminAccounts':
