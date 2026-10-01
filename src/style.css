@@ -429,55 +429,126 @@ input::placeholder {
   margin-top: 28px;
 }
 .qr-card {
+  position: relative;
   text-align: center;
-  max-width: 850px;
+  max-width: 760px;
+  padding: 28px 34px 22px;
+  border-color: #dfe8e2;
+}
+.qr-status {
+  display: flex;
+  justify-content: flex-end;
+  min-height: 28px;
+}
+.qr-status .badge {
+  padding: 7px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: capitalize;
+  background: #edf6e5;
+  color: #4f7a36;
 }
 .qr-brand {
-  margin: 18px auto 20px;
-  padding: 18px 20px 16px;
+  margin: 2px auto 22px;
   display: grid;
-  gap: 4px;
+  gap: 5px;
   justify-items: center;
-  width: min(100%, 560px);
-  border-radius: 14px;
-  background: #000;
-  color: #fff;
 }
 .qr-brand-mark {
   width: 58px;
   height: 58px;
   object-fit: contain;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 .qr-brand strong {
   max-width: 100%;
   overflow-wrap: anywhere;
-  font: 800 clamp(22px, 3vw, 32px) Manrope, system-ui;
-  letter-spacing: -0.8px;
-  color: #fff;
+  font: 800 clamp(24px, 3vw, 32px) Manrope, system-ui;
+  letter-spacing: -0.9px;
+  color: #203833;
   text-align: center;
 }
 .qr-brand span {
-  color: #fff;
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 1.2px;
+  color: #6f827b;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
   text-align: center;
 }
+.qr-code-wrap {
+  width: fit-content;
+  margin: 0 auto;
+  padding: 12px;
+  border-radius: 24px;
+  background: #f4f8f1;
+  box-shadow: inset 0 0 0 1px #e4ece0;
+}
+.qr-card canvas {
+  display: block;
+  max-width: 100%;
+  height: auto !important;
+  border-radius: 10px;
+}
+.qr-session-panel {
+  width: min(100%, 410px);
+  margin: 18px auto 0;
+  padding: 13px 20px 15px;
+  border-radius: 14px;
+  background: #f5f8f5;
+}
 .qr-session-name {
-  margin: 18px 0 2px;
+  margin: 0 0 2px;
+  font-size: 24px;
 }
 .qr-attendance-title {
   color: #203833;
-  margin: 0 0 8px;
-  font-size: 20px;
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
 }
-.qr-card canvas {
-  max-width: 100%;
-  height: auto !important;
+.qr-instructions {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 10px;
+  max-width: 560px;
+  margin: 20px auto 0;
+  color: #71817a;
+}
+.qr-instructions p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.65;
+  text-align: left;
+}
+.qr-instructions-icon {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 2px solid #526861;
+  border-radius: 6px;
+  color: #526861;
+  font-size: 18px;
+  line-height: 1;
 }
 .qr-card .actions {
   justify-content: center;
+  padding-top: 20px;
+  margin-top: 20px;
+  border-top: 1px solid #e7ece8;
+}
+.qr-card .actions .primary,
+.qr-card .actions .secondary,
+.qr-card .actions .danger {
+  min-height: 46px;
+}
+.qr-card .helper {
+  max-width: 620px;
+  margin: 16px auto 0;
+  color: #81908a;
 }
 .student-card {
   max-width: 540px;
