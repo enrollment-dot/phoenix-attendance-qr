@@ -90,10 +90,10 @@ aside {
 .mark {
   display: grid;
   place-items: center;
-  width: 48px;
+  width: 60px;
   height: auto;
   aspect-ratio: 1168 / 1105;
-  max-height: 52px;
+  max-height: 64px;
   border-radius: 12px;
   flex: 0 0 auto;
   object-fit: contain;
