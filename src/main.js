@@ -71,6 +71,13 @@ function applyBranding() {
   style.setProperty('--brand-text', branding.text_color);
   style.setProperty('--brand-muted', branding.muted_text_color);
   document.title = branding.organization_name;
+  let favicon = document.querySelector('link[rel="icon"]');
+  if (!favicon) {
+    favicon = document.createElement('link');
+    favicon.rel = 'icon';
+    document.head.appendChild(favicon);
+  }
+  favicon.href = branding.favicon_url || branding.logo_url;
 }
 
 async function loadBranding() {
