@@ -310,7 +310,7 @@ function createForm() {
 }
 async function showQr(s) {
   frame(
-    `<div class="page-title"><div><p class="eyebrow">SESSION QR</p><h1>${esc(s.course)}</h1><p>${esc(sessionLabel(s, data.settings.offset))}</p></div><button id="back" class="secondary">← Back to overview</button></div><section class="card qr-card"><div class="qr-status"><span class="badge present">${esc(s.status)}</span></div><div class="qr-code-wrap"><canvas id="qr" aria-label="Class attendance QR code"></canvas></div><div class="qr-session-panel"><h2 class="qr-session-name">${esc(s.course)}</h2><h3 class="qr-attendance-title">Record your attendance</h3></div><div class="qr-instructions"><span class="qr-instructions-icon" aria-hidden="true">▯</span><p>Open your phone camera and point it at this QR.<br>Enter your student name and ID, then choose Scan In or Scan Out.</p></div><div class="actions"><button id="copy" class="primary">↗ &nbsp; Copy student link</button><button id="download" class="secondary">↓ &nbsp; Download QR</button>${s.status === 'active' ? '<button id="close" class="danger">Close session</button>' : role === 'super_admin' ? '<button id="delete-session" class="danger">Delete session</button>' : ''}</div><p class="helper">Share this QR only with students in this Young Leadership Program class. It gives access to this session.</p></section>`,
+    `<div class="page-title"><div><p class="eyebrow">SESSION QR</p><h1>${esc(s.course)}</h1><p>${esc(sessionLabel(s, data.settings.offset))}</p></div><button id="back" class="secondary">← Back to overview</button></div><section class="card qr-card"><div class="qr-status"><span class="badge present">${esc(s.status)}</span></div><div class="qr-brand"><img class="qr-brand-mark" src="${YLA_LOGO_SRC}" alt="" /><strong>Young Leadership Program</strong><span>Learn. Lead. Build. Inspire</span></div><div class="qr-code-wrap"><canvas id="qr" aria-label="Class attendance QR code"></canvas></div><div class="qr-session-panel"><h2 class="qr-session-name">${esc(s.course)}</h2><h3 class="qr-attendance-title">Record your attendance</h3></div><div class="qr-instructions"><span class="qr-instructions-icon" aria-hidden="true">▯</span><p>Open your phone camera and point it at this QR.<br>Enter your student name and ID, then choose Scan In or Scan Out.</p></div><div class="actions"><button id="copy" class="primary">↗ &nbsp; Copy student link</button><button id="download" class="secondary">↓ &nbsp; Download QR</button>${s.status === 'active' ? '<button id="close" class="danger">Close session</button>' : role === 'super_admin' ? '<button id="delete-session" class="danger">Delete session</button>' : ''}</div><p class="helper">Share this QR only with students in this Young Leadership Program class. It gives access to this session.</p></section>`,
   );  const current = pageGuard();
   document.querySelector('#back').onclick = dashboard;
   const canvas = document.querySelector('#qr');
@@ -321,36 +321,6 @@ async function showQr(s) {
     color: { dark: '#152c2a', light: '#ffffff' },
   });
   if (!current()) return;
-
-  // Brand the QR itself with the same YLA logo already used by the web app.
-  const logo = new Image();
-  await new Promise((resolve) => {
-    logo.onload = resolve;
-    logo.onerror = resolve;
-    logo.src = YLA_LOGO_SRC;
-  });
-  if (current() && logo.complete && logo.naturalWidth) {
-    const ctx = canvas.getContext('2d');
-    const size = 82;
-    const logoSize = 48;
-    const x = (canvas.width - size) / 2;
-    const y = (canvas.height - size) / 2;
-    ctx.fillStyle = '#f2f7ed';
-    if (typeof ctx.roundRect === 'function') {
-      ctx.beginPath();
-      ctx.roundRect(x, y, size, size, 16);
-      ctx.fill();
-    } else {
-      ctx.fillRect(x, y, size, size);
-    }
-    ctx.drawImage(
-      logo,
-      (canvas.width - logoSize) / 2,
-      (canvas.height - logoSize) / 2,
-      logoSize,
-      logoSize,
-    );
-  }
 
   document.querySelector('#copy').onclick = (e) =>
     busy(e.target, async () => {
