@@ -211,7 +211,7 @@ p {
 .primary {
   background: var(--brand-primary);
   color: white;
-  box-shadow: 0 3px 5px var(--brand-primary)10;
+  box-shadow: 0 3px 5px rgba(24,62,50,0.06);
   white-space: nowrap;
 }
 .primary:hover {
@@ -227,7 +227,7 @@ p {
 }
 .danger {
   color: #a43636;
-  background: var(--brand-card)2ef;
+  background: #fff2ef;
 }
 .text {
   padding: 10px;
@@ -469,7 +469,7 @@ input::placeholder {
   background:
     radial-gradient(circle at 18% 58%, rgba(198, 235, 171, 0.30) 0 3%, transparent 3.2%),
     radial-gradient(circle at 83% 42%, rgba(198, 235, 171, 0.24) 0 2.5%, transparent 2.8%),
-    linear-gradient(180deg, var(--brand-card)fff 0%, #fbfdf9 100%);
+    linear-gradient(180deg, var(--brand-card) 0%, #fbfdf9 100%);
 }
 .qr-visual::before,
 .qr-visual::after {
