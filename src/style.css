@@ -51,24 +51,24 @@ a {
 }
 .shell {
   display: grid;
-  grid-template-columns: 248px minmax(0, 1fr);
+  grid-template-columns: 260px minmax(0, 1fr);
   min-height: 100vh;
 }
 aside {
   background: #152c2a;
   color: #e5eeeb;
-  padding: 38px 24px;
+  padding: 38px 18px;
   display: flex;
   flex-direction: column;
 }
 .brand {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   align-items: center;
   font:
-    800 17px Manrope,
+    800 18px Manrope,
     system-ui;
-  line-height: 1.15;
+  line-height: 1.1;
 }
 .brand > span {
   min-width: 0;
@@ -76,22 +76,24 @@ aside {
 }
 .brand small {
   display: block;
-  font:
-    600 8px 'DM Sans',
-    sans-serif;
-  letter-spacing: 1px;
-  line-height: 1.2;
+  width: max-content;
+  max-width: none;
   margin-top: 3px;
-  max-width: 150px;
-  white-space: normal;
+  font:
+    700 13px 'DM Sans',
+    sans-serif;
+  letter-spacing: 0;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: visible;
 }
 .mark {
   display: grid;
   place-items: center;
-  width: 43px;
+  width: 60px;
   height: auto;
   aspect-ratio: 1168 / 1105;
-  max-height: 46px;
+  max-height: 64px;
   border-radius: 12px;
   flex: 0 0 auto;
   object-fit: contain;

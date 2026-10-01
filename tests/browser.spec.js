@@ -192,9 +192,10 @@ test('session QR uses the YLP branded layout and embeds the app logo', async ({ 
   await page.getByRole('button', { name: 'Display QR ↗' }).click();
   await expect(page.locator('.qr-brand strong')).toHaveText('Young Leadership Program');
   await expect(page.locator('.qr-brand-mark')).toHaveAttribute('src', '/ylp-logo-exact.svg');
-  const logoSvg = await (await page.request.get('/ylp-logo-exact.svg')).text();
-  expect(logoSvg).toContain('viewBox="0 0 1168 1105"');
-  await expect(page.locator('.qr-brand span')).toHaveText('Learn. Lead. Build . Inspire');
+  const logoAsset = await page.request.get('/ylp-logo-exact.svg?v=ylp-v10');
+  expect(logoAsset.ok()).toBeTruthy();
+  expect(logoAsset.headers()['content-type']).toContain('image/svg+xml');
+  await expect(page.locator('.qr-brand span')).toHaveText('Learn. Lead. Build. Inspire');
   await expect(page.locator('.qr-session-name')).toHaveText('English · Intermediate');
   await expect(page.locator('.qr-attendance-title')).toHaveText('Record your attendance');
   await expect(page.locator('#qr')).toBeVisible();

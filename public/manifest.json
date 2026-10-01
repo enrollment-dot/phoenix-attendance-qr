@@ -2,7 +2,7 @@
   "id": "/?ylp-app-v4=1",
   "name": "Young Leadership Program",
   "short_name": "YLP",
-  "description": "Young Leadership Program — Learn. Lead. Build . Inspire.",
+  "description": "Young Leadership Program — Learn. Lead. Build. Inspire.",
   "start_url": "/?ylp-app-v4=1",
   "scope": "/",
   "display": "standalone",
@@ -10,7 +10,7 @@
   "theme_color": "#152c2a",
   "icons": [
     {
-      "src": "/ylp-logo-exact.svg?v=ylp-v8",
+      "src": "/ylp-logo-exact.svg?v=ylp-v10",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"
