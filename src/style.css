@@ -152,6 +152,10 @@ header {
   font-size: 14px;
   color: #6b7c76;
 }
+header .tiny {
+  font-size: 13px;
+  letter-spacing: 0.8px;
+}
 .page-title {
   display: flex;
   justify-content: space-between;
