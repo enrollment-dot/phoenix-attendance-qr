@@ -25,6 +25,7 @@ export interface BrandingUpdateInput {
   text_color: string;
   muted_text_color: string;
   footer_text: string;
+  updated_by?: string;
 }
 export interface RateLimitDecision { allowed: boolean; limit: number; remaining: number; retry_after_seconds: number; window_started_at: string; }
 export interface JwtClaims { sub: string; session_id: string; iss?: string; aud?: string | string[]; exp: number; nbf?: number; [claim: string]: unknown; }
