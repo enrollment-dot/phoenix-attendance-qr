@@ -35,6 +35,11 @@ import {
 // RBAC staging frontend deployment marker: 2026-09-24
 const YLA_LOGO_SRC = '/ylp-logo-exact.svg';
 const root = document.querySelector('#app');
+const DEFAULT_BRANDING = {
+  organization_name: 'Young Leadership Program', tagline: 'Learn. Lead. Build. Inspire', logo_url: '/ylp-logo-exact.svg', favicon_url: null,
+  primary_color: '#183E32', accent_color: '#72A93E', sidebar_color: '#152C2A', page_background: '#F5F7F6', card_background: '#FFFFFF', text_color: '#203833', muted_text_color: '#75827C', footer_text: 'Young Leadership Program · For teachers and students',
+};
+let branding = { ...DEFAULT_BRANDING };
 let token = '',
   role = '',
   data = null,
@@ -56,9 +61,22 @@ const esc = (v) =>
   );
 const field = (label, name, type = 'text', extra = '') =>
   `<label>${label}<input name="${name}" type="${type}" ${extra} required></label>`;
+function applyBranding() {
+  const style = document.documentElement.style;
+  style.setProperty('--brand-primary', branding.primary_color);
+  style.setProperty('--brand-accent', branding.accent_color);
+  style.setProperty('--brand-sidebar', branding.sidebar_color);
+  style.setProperty('--brand-page', branding.page_background);
+  style.setProperty('--brand-card', branding.card_background);
+  style.setProperty('--brand-text', branding.text_color);
+  style.setProperty('--brand-muted', branding.muted_text_color);
+  document.title = branding.organization_name;
+}
+
 function frame(content, attendee = false) {
   pageVersion++;
-  root.innerHTML = `<div class="shell"><aside><a class="brand" href="#" aria-label="Young Leadership Program"><img class="mark" src="${YLA_LOGO_SRC}" alt="" /><span>Young<br>Leadership<br>Program<small>Learn. Lead. Build. Inspire</small></span></a><div class="workspace">${attendee ? 'STUDENTS' : 'TEACHING TEAM'}</div><nav>${attendee ? '<a href="#">← Back to home</a>' : `<button data-nav="dashboard" class="${view === 'dashboard' ? 'selected' : ''}">▦ &nbsp; Overview</button><button data-nav="reports" class="${view === 'reports' ? 'selected' : ''}">≡ &nbsp; Attendance</button>${(role === 'admin' || role === 'super_admin') ? `<button data-nav="students" class="${view === 'students' ? 'selected' : ''}">♙ &nbsp; Students</button>` : ''}${role === 'super_admin' ? `<button data-nav="accounts" class="${view === 'accounts' ? 'selected' : ''}">♙ &nbsp; Accounts</button>` : ''}<button data-nav="scanner">▣ &nbsp; Scan a QR</button>`}</nav><div class="aside-bottom">Your class.<br>Your attendance.<hr><span class="tiny">Learn. Lead. Build. Inspire</span></div></aside><main><header><span>${attendee ? 'Young Leadership Program / Student attendance' : 'Young Leadership Program / ' + (view === 'reports' ? 'Attendance' : 'Overview')}</span>${token ? '<button class="text" id="logout">Sign out</button>' : '<span class="tiny">Learn. Lead. Build. Inspire</span>'}</header><div id="notice" role="status" aria-live="polite"></div>${content}<footer>Young Leadership Program · For teachers and students</footer></main></div>`;
+  applyBranding();
+  root.innerHTML = `<div class="shell"><aside><a class="brand" href="#" aria-label="${esc(branding.organization_name)}"><img class="mark" src="${esc(branding.logo_url)}" alt="" /><span>${esc(branding.organization_name)}<small>${esc(branding.tagline)}</small></span></a><div class="workspace">${attendee ? 'STUDENTS' : 'TEACHING TEAM'}</div><nav>${attendee ? '<a href="#">← Back to home</a>' : `<button data-nav="dashboard" class="${view === 'dashboard' ? 'selected' : ''}">▦ &nbsp; Overview</button><button data-nav="reports" class="${view === 'reports' ? 'selected' : ''}">≡ &nbsp; Attendance</button>${(role === 'admin' || role === 'super_admin') ? `<button data-nav="students" class="${view === 'students' ? 'selected' : ''}">♙ &nbsp; Students</button>` : ''}${role === 'super_admin' ? `<button data-nav="accounts" class="${view === 'accounts' ? 'selected' : ''}">♙ &nbsp; Accounts</button>` : ''}<button data-nav="scanner">▣ &nbsp; Scan a QR</button>`}</nav><div class="aside-bottom">Your class.<br>Your attendance.<hr><span class="tiny">${esc(branding.tagline)}</span></div></aside><main><header><span>${attendee ? 'Young Leadership Program / Student attendance' : 'Young Leadership Program / ' + (view === 'reports' ? 'Attendance' : 'Overview')}</span>${token ? '<button class="text" id="logout">Sign out</button>' : '<span class="tiny">Learn. Lead. Build. Inspire</span>'}</header><div id="notice" role="status" aria-live="polite"></div>${content}<footer>${esc(branding.footer_text)}</footer></main></div>`;
   root.querySelectorAll('a[href="#"]').forEach(
     (a) =>
       (a.onclick = () => {
@@ -84,6 +102,34 @@ function frame(content, attendee = false) {
     } catch {}
   });
 }
+async function appearance() {
+  if (role !== 'super_admin') {
+    view = 'dashboard';
+    return dashboard();
+  }
+  frame('<div class="page-title"><div><p class="eyebrow">SUPER ADMIN</p><h1>Appearance & Branding</h1><p>Customize the application identity, colors, and safe interface text.</p></div><button class="secondary" id="reset-branding">Reset defaults</button></div><section class="card"><form id="branding-form" class="branding-grid"><div><label>Organization name<input name="organization_name" maxlength="120" required></label><label>Tagline<input name="tagline" maxlength="160" required></label><label>Logo URL<input name="logo_url" maxlength="500" required></label><label>Favicon URL<input name="favicon_url" maxlength="500"></label></div><div class="branding-colors"><label>Primary color<input name="primary_color" type="color" required></label><label>Accent color<input name="accent_color" type="color" required></label><label>Sidebar color<input name="sidebar_color" type="color" required></label><label>Page background<input name="page_background" type="color" required></label><label>Card background<input name="card_background" type="color" required></label><label>Text color<input name="text_color" type="color" required></label><label>Muted text color<input name="muted_text_color" type="color" required></label></div><label class="branding-wide">Footer text<textarea name="footer_text" maxlength="240" rows="3" required></textarea></label><div class="actions branding-wide"><button class="primary" type="submit">Save changes</button></div></form></section>');
+  const form = document.querySelector('#branding-form');
+  for (const [name, value] of Object.entries(branding)) {
+    const input = form.elements.namedItem(name);
+    if (input && value != null) input.value = value;
+  }
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    await busy(event.submitter, async () => {
+      const payload = Object.fromEntries(new FormData(form).entries());
+      const response = await api('updateBranding', payload, token);
+      if (!response.ok) throw new Error(response.error);
+      branding = { ...DEFAULT_BRANDING, ...response.data };
+      applyBranding();
+      render();
+    });
+  });
+  document.querySelector('#reset-branding').addEventListener('click', () => {
+    branding = { ...DEFAULT_BRANDING };
+    render();
+  });
+}
+
 function notice(message, bad = true) {
   const el = document.querySelector('#notice');
   el.className = bad ? 'notice error' : 'notice success';
@@ -782,6 +828,7 @@ function render() {
     return students();
   }
   if (view === 'accounts') return accounts();
+  if (view === 'appearance') return appearance();
   dashboard();
 }
 window.addEventListener('pagehide', stopCamera);
