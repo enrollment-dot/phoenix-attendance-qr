@@ -73,6 +73,12 @@ begin
     raise exception 'Invalid branding text or asset URL';
   end if;
 
+  if trim(p_logo_url) !~ '^(/[^/]|https://)'
+     or (nullif(trim(coalesce(p_favicon_url, '')), '') is not null
+         and trim(p_favicon_url) !~ '^(/[^/]|https://)') then
+    raise exception 'Branding assets must use a same-origin path or HTTPS URL';
+  end if;
+
   if p_primary_color !~ '^#[0-9A-Fa-f]{6}$'
      or p_accent_color !~ '^#[0-9A-Fa-f]{6}$'
      or p_sidebar_color !~ '^#[0-9A-Fa-f]{6}$'
