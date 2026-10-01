@@ -112,7 +112,7 @@ test('appearance branding save consumes the API data without showing a response-
   await page.getByText('Class overview').waitFor();
 
   await page.locator('[data-nav="appearance"]').click();
-  await page.getByText('Appearance & Branding').waitFor();
+  await page.getByRole('heading', { name: 'Appearance & Branding' }).waitFor();
   await expect(page.getByLabel('Organization name')).toHaveValue('Young Leadership Program');
   await expect(page.getByLabel('Tagline')).toHaveValue('Learn. Lead. Build. Inspire');
 
