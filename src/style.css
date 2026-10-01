@@ -1,8 +1,15 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap');
 :root {
+  --brand-primary: #183E32;
+  --brand-accent: #72A93E;
+  --brand-sidebar: #152C2A;
+  --brand-page: #F5F7F6;
+  --brand-card: #FFFFFF;
+  --brand-text: var(--brand-text);
+  --brand-muted: #75827C;
   font-family: 'DM Sans', system-ui, sans-serif;
-  color: #203833;
-  background: #f5f7f6;
+  color: var(--brand-text);
+  background: var(--brand-page);
   font-synthesis: none;
   font-size: 16px;
   line-height: 1.5;
@@ -55,7 +62,7 @@ a {
   min-height: 100vh;
 }
 aside {
-  background: #152c2a;
+  background: var(--brand-sidebar);
   color: #e5eeeb;
   padding: 38px 18px;
   display: flex;
@@ -197,14 +204,14 @@ h3 {
   font-size: 17px;
 }
 p {
-  color: #75827c;
+  color: var(--brand-muted);
   margin: 12px 0;
   line-height: 1.6;
 }
 .primary {
-  background: #183e32;
+  background: var(--brand-primary);
   color: white;
-  box-shadow: 0 3px 5px #183e3210;
+  box-shadow: 0 3px 5px var(--brand-primary)10;
   white-space: nowrap;
 }
 .primary:hover {
@@ -212,22 +219,22 @@ p {
 }
 .secondary {
   border: 1px solid #d4dfd8;
-  background: #fff;
+  background: var(--brand-card);
 }
 .light {
   background: #d8ef87;
-  color: #152c2a;
+  color: var(--brand-sidebar);
 }
 .danger {
   color: #a43636;
-  background: #fff2ef;
+  background: var(--brand-card)2ef;
 }
 .text {
   padding: 10px;
   color: #56705f;
 }
 .card {
-  background: #fff;
+  background: var(--brand-card);
   border: 1px solid #e0e7e2;
   border-radius: 15px;
   padding: 28px;
@@ -404,8 +411,8 @@ select {
   padding: 11px 13px;
   border: 1px solid #cfdbd3;
   border-radius: 8px;
-  background: #fff;
-  color: #203833;
+  background: var(--brand-card);
+  color: var(--brand-text);
 }
 input::placeholder {
   color: #8c9790;
@@ -462,7 +469,7 @@ input::placeholder {
   background:
     radial-gradient(circle at 18% 58%, rgba(198, 235, 171, 0.30) 0 3%, transparent 3.2%),
     radial-gradient(circle at 83% 42%, rgba(198, 235, 171, 0.24) 0 2.5%, transparent 2.8%),
-    linear-gradient(180deg, #ffffff 0%, #fbfdf9 100%);
+    linear-gradient(180deg, var(--brand-card)fff 0%, #fbfdf9 100%);
 }
 .qr-visual::before,
 .qr-visual::after {
@@ -512,7 +519,7 @@ input::placeholder {
   overflow-wrap: anywhere;
   font: 800 clamp(24px, 3vw, 32px) Manrope, system-ui;
   letter-spacing: -0.9px;
-  color: #203833;
+  color: var(--brand-text);
   text-align: center;
 }
 .qr-brand span {
@@ -538,7 +545,7 @@ input::placeholder {
   position: relative;
   padding: 5px;
   border-radius: 15px;
-  background: #ffffff;
+  background: var(--brand-card)fff;
   box-shadow: inset 0 0 0 1px #eef4eb;
 }
 .qr-card canvas {
@@ -586,7 +593,7 @@ input::placeholder {
   font-size: 24px;
 }
 .qr-attendance-title {
-  color: #203833;
+  color: var(--brand-text);
   margin: 0;
   font-size: 18px;
   font-weight: 600;
@@ -974,4 +981,43 @@ td small {
 .confirm-dialog .actions {
   justify-content: flex-end;
   margin-top: 6px;
+}
+
+.branding-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+  gap: 28px;
+}
+.branding-grid label {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 16px;
+  font-weight: 600;
+}
+.branding-grid input:not([type="color"]),
+.branding-grid textarea {
+  width: 100%;
+}
+.branding-colors {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  align-content: start;
+}
+.branding-colors label {
+  grid-template-columns: 1fr auto;
+  align-items: center;
+}
+.branding-colors input[type="color"] {
+  width: 52px;
+  height: 40px;
+  padding: 3px;
+}
+.branding-wide {
+  grid-column: 1 / -1;
+}
+@media (max-width: 760px) {
+  .branding-grid {
+    grid-template-columns: 1fr;
+  }
 }
