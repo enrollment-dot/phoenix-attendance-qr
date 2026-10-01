@@ -102,6 +102,7 @@ function frame(content, attendee = false) {
     } catch {}
   });
 }
+
 async function appearance() {
   if (role !== 'super_admin') {
     view = 'dashboard';
