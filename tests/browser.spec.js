@@ -135,6 +135,7 @@ test('cohort and facilitator terminology is shown in the main attendance UI', as
     await page.locator(`[data-nav="${tab.nav}"]`).click();
     await expect(page.getByText(tab.text, { exact: true })).toBeVisible();
     await expect(page.getByText(/Young Leadership Program/, { exact: false })).toHaveCount(0);
+    await expect(page.getByText(/ACADEMY/, { exact: false })).toHaveCount(0);
   }
 
   await page.locator('[data-nav="students"]').click();
