@@ -118,7 +118,7 @@ test('cohort and facilitator terminology is shown in the main attendance UI', as
   await page.locator('#login button.primary').click();
   await expect(page.getByText('Cohort overview')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Cohort Members' })).toBeVisible();
-  await expect(page.getByText('Cohort members')).toBeVisible();
+  await expect(page.getByText('Cohort members', { exact: true })).toBeVisible();
   await expect(page.getByText('Students')).toHaveCount(0);
   await expect(page.getByText('TEACHER & ADMIN ACCESS')).toHaveCount(0);
 });
