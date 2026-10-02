@@ -127,7 +127,6 @@ test('cohort and facilitator terminology is shown in the main attendance UI', as
     { nav: 'dashboard', text: 'Cohort overview' },
     { nav: 'reports', text: 'Attendance report' },
     { nav: 'students', text: 'YLP' },
-    { nav: 'scanner', text: 'YLP ATTENDANCE' },
   ];
   for (const tab of dashboardTabs) {
     await page.locator(`[data-nav="${tab.nav}"]`).click();
@@ -141,6 +140,14 @@ test('cohort and facilitator terminology is shown in the main attendance UI', as
   await expect(page.getByRole('button', { name: '＋ Add YLP member' })).toBeVisible();
   await expect(page.getByText('Cohort Members', { exact: true })).toHaveCount(0);
   await expect(page.getByText('Cohort member roster', { exact: true })).toHaveCount(0);
+
+  await page.goto('/');
+  await page.getByLabel('Username').fill('admin');
+  await page.getByLabel('Password').fill('test-admin-password-123');
+  await page.locator('#login button.primary').click();
+  await expect(page.getByText('Cohort overview')).toBeVisible();
+  await page.locator('[data-nav="scanner"]').click();
+  await expect(page.getByText('YLP ATTENDANCE', { exact: true })).toBeVisible();
 
   await expect(page.getByText('Students')).toHaveCount(0);
   await expect(page.getByText('TEACHER & ADMIN ACCESS')).toHaveCount(0);
