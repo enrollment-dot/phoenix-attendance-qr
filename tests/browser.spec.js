@@ -377,3 +377,16 @@ test('password recovery waits for the Supabase recovery session and updates the 
   await expect(page.getByText('Password updated. Please sign in with your new password.')).toBeVisible();
   expect(updateCalls).toBe(1);
 });
+
+
+test('dashboard uses Scan In and Scan Out wording for the shared QR', async ({ page }) => {
+  await mock(page);
+  await page.goto('/');
+  await page.getByText('Sign in to Young Leadership Program').waitFor();
+  await page.getByLabel('Username').fill('admin');
+  await page.getByLabel('Password').fill('test-admin-password-123');
+  await page.locator('#login button.primary').click();
+  await page.getByText('Cohort overview').waitFor();
+  await expect(page.getByText('Use the same QR for Scan In and Scan Out.')).toBeVisible();
+  await expect(page.getByText('Use the same QR for arrival and departure.')).toHaveCount(0);
+});
