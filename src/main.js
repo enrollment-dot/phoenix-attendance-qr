@@ -246,7 +246,7 @@ function dashboard() {
             )
             .join('')}</div>`
         : '<div class="empty"><span>▦</span><h3>No sessions yet</h3><p>Create a session to generate its attendance QR code.</p></div>'
-    }</section><div class="tip"><b>Use the same QR for arrival and departure.</b><span>Keep the session QR on screen for Scan In, then share it again for Scan Out.</span></div>`,
+    }</section><div class="tip"><b>Use the same QR for Scan In and Scan Out.</b><span>Keep the session QR on screen for Scan In, then share it again for Scan Out.</span></div>`,
   );
   document.querySelector('#create').onclick = createForm;
   document.querySelector('#refresh').onclick = (e) => busy(e.target, refresh);
