@@ -265,7 +265,7 @@ test('cohort QR uses the YLP branded layout without an embedded logo', async ({ 
   await expect(page.locator('.qr-session-name')).toHaveText('English · Intermediate');
   await expect(page.locator('.qr-attendance-title')).toHaveText('Record your attendance');
   await expect(page.locator('.qr-instructions p')).toContainText(
-    'Enter your cohort member name and participant ID, then choose Scan In or Scan Out.',
+    'Enter your cohort member name and cohort ID, then choose Scan In or Scan Out.',
   );
   const qr = page.locator('#qr');
   await expect(qr).toBeVisible();
