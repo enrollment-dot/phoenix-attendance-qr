@@ -4,7 +4,7 @@
 
 export type Direction = 'in' | 'out';
 export type RateLimitScope = 'login-global' | 'public-session-global' | 'scan-global' | 'scan-student-session';
-export interface ApiRequest { action: 'login' | 'dashboard' | 'createSession' | 'migrateSession' | 'closeSession' | 'deleteSession' | 'session' | 'scan' | 'logout' | 'adminAccounts' | 'createAdminAccount' | 'updateAdminAccount' | 'removeAdminAccount' | 'students' | 'createStudent' | 'updateStudent' | 'setStudentActive' | 'deleteStudent' | 'branding' | 'updateBranding'; payload?: Record<string, unknown>; token?: string; }
+export interface ApiRequest { action: 'login' | 'dashboard' | 'createSession' | 'migrateSession' | 'closeSession' | 'deleteSession' | 'session' | 'scan' | 'logout' | 'adminAccounts' | 'createAdminAccount' | 'updateAdminAccount' | 'removeAdminAccount' | 'students' | 'createStudent' | 'updateStudent' | 'setStudentActive' | 'deleteStudent' | 'branding' | 'publicBranding' | 'updateBranding'; payload?: Record<string, unknown>; token?: string; }
 export interface ApiSuccess<T> { ok: true; data: T; }
 export interface ApiFailure { ok: false; error: string; code?: string; }
 export type ApiResponse<T = unknown> = ApiSuccess<T> | ApiFailure;
