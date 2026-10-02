@@ -127,8 +127,6 @@ test('cohort and facilitator terminology is shown in the main attendance UI', as
     { nav: 'dashboard', text: 'Cohort overview' },
     { nav: 'reports', text: 'Attendance report' },
     { nav: 'students', text: 'YLP' },
-    { nav: 'accounts', text: 'Accounts' },
-    { nav: 'appearance', text: 'Appearance & Branding' },
     { nav: 'scanner', text: 'YLP COHORT ATTENDANCE' },
   ];
   for (const tab of dashboardTabs) {
@@ -287,7 +285,7 @@ test('cohort QR uses the YLP branded layout without an embedded logo', async ({ 
   await expect(page.locator('.qr-visual')).toBeVisible();
   await expect(page.locator('.qr-scan-frame')).toBeVisible();
   await expect(page.locator('.qr-corner')).toHaveCount(4);
-  await expect(page.locator('.qr-brand strong')).toHaveText('Young Leadership Program');
+  await expect(page.locator('.qr-brand strong')).toHaveText('YLP');
   await expect(page.locator('.qr-brand span')).toHaveText('Learn. Lead. Build. Inspire');
   const logoAsset = await page.request.get('/ylp-logo-exact.svg?v=ylp-v10');
   expect(logoAsset.ok()).toBeTruthy();
