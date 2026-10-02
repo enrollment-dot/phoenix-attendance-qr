@@ -123,6 +123,20 @@ test('cohort and facilitator terminology is shown in the main attendance UI', as
   await expect(page.getByRole('button', { name: 'Cohort' })).toBeVisible();
   await expect(page.getByText('Cohort', { exact: true })).toBeVisible();
   await expect(page.getByText('Cohort members', { exact: true })).toHaveCount(0);
+  const dashboardTabs = [
+    { nav: 'dashboard', text: 'Cohort overview' },
+    { nav: 'reports', text: 'Attendance report' },
+    { nav: 'students', text: 'YLP' },
+    { nav: 'accounts', text: 'Accounts' },
+    { nav: 'appearance', text: 'Appearance & Branding' },
+    { nav: 'scanner', text: 'YLP ATTENDANCE' },
+  ];
+  for (const tab of dashboardTabs) {
+    await page.locator(`[data-nav="${tab.nav}"]`).click();
+    await expect(page.getByText(tab.text, { exact: true })).toBeVisible();
+    await expect(page.getByText(/Young Leadership Program/, { exact: false })).toHaveCount(0);
+  }
+
   await page.locator('[data-nav="students"]').click();
   await expect(page.getByRole('heading', { name: 'YLP' })).toBeVisible();
   await expect(page.getByText('YLP roster', { exact: true })).toBeVisible();
