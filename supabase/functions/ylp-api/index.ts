@@ -1019,6 +1019,9 @@ export async function handleRequest(request: Request, backend: BackendAdapter, c
         result = await backend.forceDeleteStudent(payload.student_id, reauthToken);
         break;
       }
+      case 'publicBranding':
+        result = await backend.branding();
+        break;
       case 'branding':
         await requireAdminRole(token, config, backend, ['super_admin']);
         result = await backend.branding();
