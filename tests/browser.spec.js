@@ -71,6 +71,9 @@ async function mock(page, supportsRetries = true) {
       case 'session':
         data = session;
         break;
+      case 'publicBranding':
+        data = branding;
+        break;
       case 'branding':
         data = branding;
         break;
@@ -118,7 +121,8 @@ test('cohort and facilitator terminology is shown in the main attendance UI', as
   await page.locator('#login button.primary').click();
   await expect(page.getByText('Cohort overview')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Cohort Members' })).toBeVisible();
-  await expect(page.getByText('Cohort members', { exact: true })).toBeVisible();
+  await expect(page.getByText('Cohort', { exact: true })).toBeVisible();
+  await expect(page.getByText('Cohort members', { exact: true })).toHaveCount(0);
   await expect(page.getByText('Students')).toHaveCount(0);
   await expect(page.getByText('TEACHER & ADMIN ACCESS')).toHaveCount(0);
 });
@@ -142,6 +146,10 @@ test('appearance branding save consumes the API data without showing a response-
 
   await expect(page.getByLabel('Tagline')).toHaveValue('Learn. Lead. Build. Inspire · Test');
   await expect(page.locator('#notice')).not.toContainText('unexpected response');
+
+  await page.reload();
+  await expect(page.getByText('Sign in to Young Leadership Program')).toBeVisible();
+  await expect(page.locator('header .tiny')).toHaveText('Learn. Lead. Build. Inspire · Test');
 });
 test('login and dashboard replay the original POST once after redirected 404', async ({
   page,
