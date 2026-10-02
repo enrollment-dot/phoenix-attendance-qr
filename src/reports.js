@@ -175,9 +175,9 @@ export function sessionAttendanceSummary(data, filters = {}) {
  * Returns each student's cumulative attendance across completed sessions.
  * The denominator is actual sessions held, not planned sessions.
  *
- * Enrollment-date handling is intentionally not inferred here because the
- * current student model does not expose a join/enrollment date. Once that
- * field exists, eligible sessions can be narrowed to sessions on/after it.
+ * A cohort member is eligible for a session when the session date is on or
+ * after the member's enrolled_from date. The active flag represents current
+ * roster status and is intentionally not used to remove historical sessions.
  */
 export function studentAttendanceSummary(data, filters = {}) {
   const sessions = selectedSessions(data, filters).filter((s) =>
