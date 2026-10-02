@@ -80,10 +80,10 @@ function applyBranding() {
   favicon.href = branding.favicon_url || branding.logo_url;
 }
 
-async function loadBranding() {
-  if (!token) return;
+async function loadBranding(publicOnly = false) {
+  if (!publicOnly && !token) return;
   try {
-    const response = await api('branding', {}, token);
+    const response = await api(publicOnly ? 'publicBranding' : 'branding', {}, publicOnly ? '' : token);
     if (response && typeof response === 'object') branding = { ...DEFAULT_BRANDING, ...response };
   } catch {
     // Keep the built-in branding if the optional customization read fails.
@@ -236,7 +236,7 @@ function dashboard() {
     pct = attendanceSummary.percentage,
     active = data.sessions.filter((s) => s.status === 'active');
   frame(
-    `<div class="page-title"><div><p class="eyebrow">YOUNG LEADERSHIP PROGRAM COHORT SESSIONS</p><h1>Cohort overview</h1><p>Manage your Young Leadership Program sessions and review attendance.</p></div><button class="primary" id="create">＋ Create session</button></div><div class="stats"><div class="card"><span>Cohort sessions</span><strong>${data.sessions.length}</strong><small>${active.length} enabled for scanning</small></div><div class="card"><span>Cohort members</span><strong>${data.students.length}</strong><small>Active cohort members on the Young Leadership Program roster</small></div><div class="card"><span>Attendance rate</span><strong>${pct === null ? '—' : pct + '<em>%</em>'}</strong><small>${attendanceSummary.sessions_held ? 'Completed sessions only' : 'No completed sessions yet'}</small></div></div><section class="card sessions"><div class="section-title"><div><h2>Cohort sessions</h2><p>Share a session QR with your cohort for Scan In and Scan Out.</p></div><button class="text" id="refresh">↻ Refresh</button></div>${
+    `<div class="page-title"><div><p class="eyebrow">YOUNG LEADERSHIP PROGRAM COHORT SESSIONS</p><h1>Cohort overview</h1><p>Manage your Young Leadership Program sessions and review attendance.</p></div><button class="primary" id="create">＋ Create session</button></div><div class="stats"><div class="card"><span>Cohort sessions</span><strong>${data.sessions.length}</strong><small>${active.length} enabled for scanning</small></div><div class="card"><span>Cohort</span><strong>${data.students.length}</strong><small>Active cohort members on the Young Leadership Program roster</small></div><div class="card"><span>Attendance rate</span><strong>${pct === null ? '—' : pct + '<em>%</em>'}</strong><small>${attendanceSummary.sessions_held ? 'Completed sessions only' : 'No completed sessions yet'}</small></div></div><section class="card sessions"><div class="section-title"><div><h2>Cohort sessions</h2><p>Share a session QR with your cohort for Scan In and Scan Out.</p></div><button class="text" id="refresh">↻ Refresh</button></div>${
       data.sessions.length
         ? `<div class="session-list">${[...data.sessions]
             .reverse()
@@ -855,7 +855,10 @@ async function bootstrap() {
   const recovery = await initializeRecovery();
   if (recovery.active) resetPassword();
   else if (recovery.error) resetPassword(recovery.error);
-  else render();
+  else {
+    await loadBranding(true);
+    render();
+  }
 
   // Only start normal hash navigation after recovery initialization has
   // finished, so Supabase clearing the recovery hash cannot render login
