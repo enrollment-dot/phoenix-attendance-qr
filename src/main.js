@@ -137,8 +137,7 @@ async function appearance() {
     await busy(event.submitter, async () => {
       const payload = Object.fromEntries(new FormData(form).entries());
       const response = await api('updateBranding', payload, token);
-      if (!response.ok) throw new Error(response.error);
-      branding = { ...DEFAULT_BRANDING, ...response.data };
+      branding = { ...DEFAULT_BRANDING, ...response };
       applyBranding();
       render();
     });

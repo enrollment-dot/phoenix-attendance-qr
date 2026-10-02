@@ -24,6 +24,20 @@ const row = {
   updated_at: '2026-09-15T03:00:00Z',
 };
 async function mock(page, supportsRetries = true) {
+  let branding = {
+    organization_name: 'Young Leadership Program',
+    tagline: 'Learn. Lead. Build. Inspire',
+    logo_url: '/ylp-logo-exact.svg',
+    favicon_url: null,
+    primary_color: '#183E32',
+    accent_color: '#6A9A3C',
+    sidebar_color: '#183E32',
+    page_background: '#F4F7F5',
+    card_background: '#FFFFFF',
+    text_color: '#183E32',
+    muted_text_color: '#6B7D78',
+    footer_text: 'Young Leadership Program',
+  };
   let record = null;
   await page.route('**/__test_api', async (route) => {
     const r = JSON.parse(route.request().postData() || '{}');
@@ -31,7 +45,7 @@ async function mock(page, supportsRetries = true) {
       error = '';
     switch (r.action) {
       case 'login':
-        data = { token: 'test-admin', role: 'admin' };
+        data = { token: 'test-admin', role: r.payload.username === 'super-admin' ? 'super_admin' : 'admin' };
         break;
       case 'dashboard':
         data = {
@@ -57,6 +71,13 @@ async function mock(page, supportsRetries = true) {
       case 'session':
         data = session;
         break;
+      case 'branding':
+        data = branding;
+        break;
+      case 'updateBranding':
+        branding = { ...branding, ...r.payload };
+        data = branding;
+        break;
       case 'scan':
         if (r.payload.direction === 'in') {
           if (record) error = 'You have already scanned in.';
@@ -81,6 +102,26 @@ async function mock(page, supportsRetries = true) {
     });
   });
 }
+test('appearance branding save consumes the API data without showing a response-shape error', async ({ page }) => {
+  await mock(page);
+  await page.goto('/');
+  await page.getByText('Sign in to Young Leadership Program').waitFor();
+  await page.getByLabel('Username').fill('super-admin');
+  await page.getByLabel('Password').fill('test-admin-password-123');
+  await page.locator('#login button.primary').click();
+  await page.getByText('Class overview').waitFor();
+
+  await page.locator('[data-nav="appearance"]').click();
+  await page.getByRole('heading', { name: 'Appearance & Branding' }).waitFor();
+  await expect(page.getByLabel('Organization name')).toHaveValue('Young Leadership Program');
+  await expect(page.getByLabel('Tagline')).toHaveValue('Learn. Lead. Build. Inspire');
+
+  await page.getByLabel('Tagline').fill('Learn. Lead. Build. Inspire · Test');
+  await page.getByRole('button', { name: 'Save changes' }).click();
+
+  await expect(page.getByLabel('Tagline')).toHaveValue('Learn. Lead. Build. Inspire · Test');
+  await expect(page.locator('#notice')).not.toContainText('unexpected response');
+});
 test('login and dashboard replay the original POST once after redirected 404', async ({
   page,
 }) => {
