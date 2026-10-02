@@ -1019,6 +1019,32 @@ export async function handleRequest(request: Request, backend: BackendAdapter, c
         result = await backend.forceDeleteStudent(payload.student_id, reauthToken);
         break;
       }
+      case 'publicBranding': {
+        const brandingResult = normalizeBackendResponse(await backend.branding());
+        if (!brandingResult.ok) {
+          result = brandingResult;
+          break;
+        }
+        const source = brandingResult.data as Record<string, unknown>;
+        result = {
+          ok: true,
+          data: Object.fromEntries([
+            'organization_name',
+            'tagline',
+            'logo_url',
+            'favicon_url',
+            'primary_color',
+            'accent_color',
+            'sidebar_color',
+            'page_background',
+            'card_background',
+            'text_color',
+            'muted_text_color',
+            'footer_text',
+          ].map((key) => [key, source[key] ?? null])),
+        };
+        break;
+      }
       case 'branding':
         await requireAdminRole(token, config, backend, ['super_admin']);
         result = await backend.branding();
