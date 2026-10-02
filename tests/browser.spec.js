@@ -102,6 +102,12 @@ async function mock(page, supportsRetries = true) {
     });
   });
 }
+test('public header renders the branding tagline instead of the template literal', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('header .tiny')).toHaveText('Learn. Lead. Build. Inspire');
+  await expect(page.locator('header .tiny')).not.toContainText('esc(branding.tagline)');
+});
+
 test('appearance branding save consumes the API data without showing a response-shape error', async ({ page }) => {
   await mock(page);
   await page.goto('/');
