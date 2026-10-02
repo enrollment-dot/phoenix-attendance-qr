@@ -4,7 +4,7 @@ This document records the verified relationship between the production Supabase 
 
 ## Verified production history
 
-Production currently records 19 migrations:
+Production currently records 23 migrations:
 
 - 20260922120037 ylp_production_schema_v1
 - 20260922120126 ylp_production_rpc_v1
@@ -25,6 +25,9 @@ Production currently records 19 migrations:
 - 20260928151403 super_admin_destructive_rbac_v2
 - 20260928155309 add_optional_student_email
 - 20260928165142 set_attendance_scan_close_grace_15_minutes
+- 20260928184349 harden_admin_login_identity_execute
+- 20260929095541 allow_admin_removal_with_super_admin
+- 20261001192300 add_branding_settings
 
 ## Verified logical matches
 
@@ -47,10 +50,17 @@ The production bootstrap/RPC chain and promote_rbac_functions_to_production_v3 a
 
 ## Current security-capture migrations
 
+- PR #68: attendance/session RPC EXECUTE hardening was merged as a repository migration.
+- PR #69: explicitly revokes PUBLIC EXECUTE on `ylp_create_session_v1`, `ylp_close_session_v1`, `ylp_scan_v1`, and `ylp_consume_rate_limit_v1`, and grants `service_role` EXECUTE.
+- Production ACL verification after the controlled SQL application confirmed for all four functions: `anon=false`, `authenticated=false`, `service_role=true`, `postgres=true`.
+- The production ACL change was applied through the controlled SQL path because `supabase db push --dry-run` is blocked by historical migration drift. PR #69 records the exact ACL change for repository reproducibility.
+
+
+
 - PR #44: student RPC EXECUTE hardening capture. Production ACLs were already verified as backend-only.
 - PR #45: admin login identity RPC EXECUTE hardening. Deployed Edge Function and production log review showed application calls using the service-role backend.
 
-Neither PR has changed production.
+PR #44 and PR #45 remain repository-side capture/reconciliation work; they must not be treated as evidence that their ACL migrations were applied to production.
 
 ## Safety rules
 
@@ -65,8 +75,8 @@ Until reconciliation is formally completed:
 
 ## Next controlled phase
 
-1. Review PR #44 and PR #45.
-2. Merge only after CI/review is clean.
-3. Treat the new migrations as repository history until production application is explicitly approved.
-4. Apply login-identity ACL hardening to production only through an explicitly approved migration path, then verify login and super-admin re-authentication.
+1. Keep migration-history drift documented and do not replay historical migrations.
+2. Treat repository-only security-capture migrations as records until their production ACL state is independently verified.
+3. When a production ACL change is explicitly approved, apply it through a controlled path and record the exact effective privileges in Git.
+4. Maintain separate verification for Edge Function authorization, RPC ACLs, database schema, and production deployment.
 5. Establish a deliberate migration-history repair/recording plan; metadata reconciliation must not substitute for schema verification.
