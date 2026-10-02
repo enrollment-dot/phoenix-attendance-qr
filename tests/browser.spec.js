@@ -392,3 +392,19 @@ test('dashboard uses Scan In and Scan Out wording for the shared QR', async ({ p
   await expect(page.getByText('Keep the same session QR on screen for both Scan In and Scan Out.')).toBeVisible();
   await expect(page.getByText('Keep the session QR on screen for Scan In, then share it again for Scan Out.')).toHaveCount(0);
 });
+
+test('attendance report describes the roster as eligible rather than active', async ({ page }) => {
+  await mock(page);
+  await page.goto('/');
+  await page.getByText('Sign in to Young Leadership Program').waitFor();
+  await page.getByLabel('Username').fill('admin');
+  await page.getByLabel('Password').fill('test-admin-password-123');
+  await page.locator('#login button.primary').click();
+  await page.getByText('Cohort overview').waitFor();
+  await page.locator('[data-nav="reports"]').click();
+  await page.getByText('Attendance report').waitFor();
+  await expect(page.getByText('Cohort members in the selected view')).toBeVisible();
+  await expect(page.getByText('Active cohort members in the selected view')).toHaveCount(0);
+  await expect(page.getByText('The eligible cohort roster is used as the session denominator.')).toBeVisible();
+  await expect(page.getByText('The active roster is used as the session denominator.')).toHaveCount(0);
+});
