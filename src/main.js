@@ -37,7 +37,7 @@ const YLA_LOGO_SRC = '/ylp-logo-exact.svg';
 const root = document.querySelector('#app');
 const DEFAULT_BRANDING = {
   organization_name: 'Young Leadership Program', tagline: 'Learn. Lead. Build. Inspire', logo_url: '/ylp-logo-exact.svg', favicon_url: null,
-  primary_color: '#183E32', accent_color: '#72A93E', sidebar_color: '#152C2A', page_background: '#F5F7F6', card_background: '#FFFFFF', text_color: '#203833', muted_text_color: '#75827C', footer_text: 'Young Leadership Program · For teachers and students',
+  primary_color: '#183E32', accent_color: '#72A93E', sidebar_color: '#152C2A', page_background: '#F5F7F6', card_background: '#FFFFFF', text_color: '#203833', muted_text_color: '#75827C', footer_text: 'Young Leadership Program · For facilitators and cohort members',
 };
 let branding = { ...DEFAULT_BRANDING };
 let token = '',
@@ -94,7 +94,7 @@ async function loadBranding() {
 function frame(content, attendee = false) {
   pageVersion++;
   applyBranding();
-  root.innerHTML = `<div class="shell"><aside><a class="brand" href="#" aria-label="${esc(branding.organization_name)}"><img class="mark" src="${esc(branding.logo_url)}" alt="" /><span>${esc(branding.organization_name)}<small>${esc(branding.tagline)}</small></span></a><div class="workspace">${attendee ? 'STUDENTS' : 'TEACHING TEAM'}</div><nav>${attendee ? '<a href="#">← Back to home</a>' : `<button data-nav="dashboard" class="${view === 'dashboard' ? 'selected' : ''}">▦ &nbsp; Overview</button><button data-nav="reports" class="${view === 'reports' ? 'selected' : ''}">≡ &nbsp; Attendance</button>${(role === 'admin' || role === 'super_admin') ? `<button data-nav="students" class="${view === 'students' ? 'selected' : ''}">♙ &nbsp; Students</button>` : ''}${role === 'super_admin' ? `<button data-nav="accounts" class="${view === 'accounts' ? 'selected' : ''}">♙ &nbsp; Accounts</button><button data-nav="appearance" class="${view === 'appearance' ? 'selected' : ''}">◐ &nbsp; Appearance</button>` : ''}<button data-nav="scanner">▣ &nbsp; Scan a QR</button>`}</nav><div class="aside-bottom">Your class.<br>Your attendance.<hr><span class="tiny">${esc(branding.tagline)}</span></div></aside><main><header><span>${attendee ? esc(branding.organization_name) + ' / Student attendance' : esc(branding.organization_name) + ' / ' + (view === 'reports' ? 'Attendance' : view === 'appearance' ? 'Appearance & Branding' : 'Overview')}</span>${token ? '<button class="text" id="logout">Sign out</button>' : `<span class="tiny">${esc(branding.tagline)}</span>`}</header><div id="notice" role="status" aria-live="polite"></div>${content}<footer>${esc(branding.footer_text)}</footer></main></div>`;
+  root.innerHTML = `<div class="shell"><aside><a class="brand" href="#" aria-label="${esc(branding.organization_name)}"><img class="mark" src="${esc(branding.logo_url)}" alt="" /><span>${esc(branding.organization_name)}<small>${esc(branding.tagline)}</small></span></a><div class="workspace">${attendee ? 'COHORT MEMBERS' : 'FACILITATORS'}</div><nav>${attendee ? '<a href="#">← Back to home</a>' : `<button data-nav="dashboard" class="${view === 'dashboard' ? 'selected' : ''}">▦ &nbsp; Overview</button><button data-nav="reports" class="${view === 'reports' ? 'selected' : ''}">≡ &nbsp; Attendance</button>${(role === 'admin' || role === 'super_admin') ? `<button data-nav="students" class="${view === 'students' ? 'selected' : ''}">♙ &nbsp; Cohort Members</button>` : ''}${role === 'super_admin' ? `<button data-nav="accounts" class="${view === 'accounts' ? 'selected' : ''}">♙ &nbsp; Accounts</button><button data-nav="appearance" class="${view === 'appearance' ? 'selected' : ''}">◐ &nbsp; Appearance</button>` : ''}<button data-nav="scanner">▣ &nbsp; Scan a QR</button>`}</nav><div class="aside-bottom">Your cohort.<br>Your attendance.<hr><span class="tiny">${esc(branding.tagline)}</span></div></aside><main><header><span>${attendee ? esc(branding.organization_name) + ' / Cohort attendance' : esc(branding.organization_name) + ' / ' + (view === 'reports' ? 'Attendance' : view === 'appearance' ? 'Appearance & Branding' : 'Overview')}</span>${token ? '<button class="text" id="logout">Sign out</button>' : `<span class="tiny">${esc(branding.tagline)}</span>`}</header><div id="notice" role="status" aria-live="polite"></div>${content}<footer>${esc(branding.footer_text)}</footer></main></div>`;
   root.querySelectorAll('a[href="#"]').forEach(
     (a) =>
       (a.onclick = () => {
@@ -175,7 +175,7 @@ async function busy(button, fn) {
 }
 function login() {
   frame(
-    `<div class="page-title"><div><p class="eyebrow">YOUNG LEADERSHIP PROGRAM</p><h1>Attendance for every Young Leadership Program class.</h1><p>Create class sessions, share attendance QR codes, and review student records.</p></div></div><section class="login-grid"><div class="card"><span class="step">TEACHER &amp; ADMIN ACCESS</span><h2>Sign in to Young Leadership Program</h2><p>Use your Young Leadership Program username and password.</p>${!configured ? '<div class="notice">Young Leadership Program is not configured yet. Ask your administrator to complete setup.</div>' : ''}<form id="login">${field('Username', 'username', 'text', 'autocomplete="username"')}${field('Password', 'password', 'password', 'autocomplete="current-password" minlength="16"')}<button class="primary full">Sign in →</button></form></div><div class="welcome-panel"><span class="large-qr">▦</span><h2>Joining a Young Leadership Program class?</h2><p>Open the QR shared by your teacher. Choose Scan In when you arrive and Scan Out when you leave.</p><button id="student-scanner" class="light">Scan a class QR</button></div></section>`,
+    `<div class="page-title"><div><p class="eyebrow">YOUNG LEADERSHIP PROGRAM</p><h1>Attendance for every Young Leadership Program cohort.</h1><p>Create cohort sessions, share attendance QR codes, and review cohort member records.</p></div></div><section class="login-grid"><div class="card"><span class="step">FACILITATOR &amp; ADMIN ACCESS</span><h2>Sign in to Young Leadership Program</h2><p>Use your Young Leadership Program username and password.</p>${!configured ? '<div class="notice">Young Leadership Program is not configured yet. Ask your administrator to complete setup.</div>' : ''}<form id="login">${field('Username', 'username', 'text', 'autocomplete="username"')}${field('Password', 'password', 'password', 'autocomplete="current-password" minlength="16"')}<button class="primary full">Sign in →</button></form></div><div class="welcome-panel"><span class="large-qr">▦</span><h2>Joining a Young Leadership Program cohort?</h2><p>Open the QR shared by your facilitator. Choose Scan In when you arrive and Scan Out when you leave.</p><button id="student-scanner" class="light">Scan a cohort QR</button></div></section>`,
   );
   document.querySelector('#login').onsubmit = (e) => {
     e.preventDefault();
@@ -236,7 +236,7 @@ function dashboard() {
     pct = attendanceSummary.percentage,
     active = data.sessions.filter((s) => s.status === 'active');
   frame(
-    `<div class="page-title"><div><p class="eyebrow">YOUNG LEADERSHIP PROGRAM CLASS SESSIONS</p><h1>Class overview</h1><p>Manage your Young Leadership Program sessions and review attendance.</p></div><button class="primary" id="create">＋ Create session</button></div><div class="stats"><div class="card"><span>Class sessions</span><strong>${data.sessions.length}</strong><small>${active.length} enabled for scanning</small></div><div class="card"><span>Enrolled students</span><strong>${data.students.length}</strong><small>Active students on the Young Leadership Program roster</small></div><div class="card"><span>Attendance rate</span><strong>${pct === null ? '—' : pct + '<em>%</em>'}</strong><small>${attendanceSummary.sessions_held ? 'Completed sessions only' : 'No completed sessions yet'}</small></div></div><section class="card sessions"><div class="section-title"><div><h2>Class sessions</h2><p>Share a session QR with your class for Scan In and Scan Out.</p></div><button class="text" id="refresh">↻ Refresh</button></div>${
+    `<div class="page-title"><div><p class="eyebrow">YOUNG LEADERSHIP PROGRAM COHORT SESSIONS</p><h1>Cohort overview</h1><p>Manage your Young Leadership Program sessions and review attendance.</p></div><button class="primary" id="create">＋ Create session</button></div><div class="stats"><div class="card"><span>Cohort sessions</span><strong>${data.sessions.length}</strong><small>${active.length} enabled for scanning</small></div><div class="card"><span>Cohort members</span><strong>${data.students.length}</strong><small>Active cohort members on the Young Leadership Program roster</small></div><div class="card"><span>Attendance rate</span><strong>${pct === null ? '—' : pct + '<em>%</em>'}</strong><small>${attendanceSummary.sessions_held ? 'Completed sessions only' : 'No completed sessions yet'}</small></div></div><section class="card sessions"><div class="section-title"><div><h2>Cohort sessions</h2><p>Share a session QR with your cohort for Scan In and Scan Out.</p></div><button class="text" id="refresh">↻ Refresh</button></div>${
       data.sessions.length
         ? `<div class="session-list">${[...data.sessions]
             .reverse()
@@ -375,7 +375,7 @@ function createForm() {
 }
 async function showQr(s) {
   frame(
-    `<div class="page-title"><div><p class="eyebrow">SESSION QR</p><h1>${esc(s.course)}</h1><p>${esc(sessionLabel(s, data.settings.offset))}</p></div><button id="back" class="secondary">← Back to overview</button></div><section class="card qr-card"><div class="qr-status"><span class="badge present">${esc(s.status)}</span></div><div class="qr-visual"><div class="qr-brand"><img class="qr-brand-mark" src="${YLA_LOGO_SRC}" alt="" /><strong>Young Leadership Program</strong><span>Learn. Lead. Build. Inspire</span></div><div class="qr-code-wrap"><div class="qr-scan-frame"><span class="qr-corner top-left" aria-hidden="true"></span><span class="qr-corner top-right" aria-hidden="true"></span><span class="qr-corner bottom-left" aria-hidden="true"></span><span class="qr-corner bottom-right" aria-hidden="true"></span><canvas id="qr" aria-label="Class attendance QR code"></canvas></div></div></div><div class="qr-session-panel"><h2 class="qr-session-name">${esc(s.course)}</h2><h3 class="qr-attendance-title">Record your attendance</h3></div><div class="qr-instructions"><span class="qr-instructions-icon" aria-hidden="true">▯</span><p>Open your phone camera and point it at this QR.<br>Enter your student name and ID, then choose Scan In or Scan Out.</p></div><div class="actions"><button id="copy" class="primary">↗ &nbsp; Copy student link</button><button id="download" class="secondary">↓ &nbsp; Download QR</button>${s.status === 'active' ? '<button id="close" class="danger">Close session</button>' : role === 'super_admin' ? '<button id="delete-session" class="danger">Delete session</button>' : ''}</div><p class="helper">Share this QR only with students in this Young Leadership Program class. It gives access to this session.</p></section>`,
+    `<div class="page-title"><div><p class="eyebrow">SESSION QR</p><h1>${esc(s.course)}</h1><p>${esc(sessionLabel(s, data.settings.offset))}</p></div><button id="back" class="secondary">← Back to overview</button></div><section class="card qr-card"><div class="qr-status"><span class="badge present">${esc(s.status)}</span></div><div class="qr-visual"><div class="qr-brand"><img class="qr-brand-mark" src="${YLA_LOGO_SRC}" alt="" /><strong>Young Leadership Program</strong><span>Learn. Lead. Build. Inspire</span></div><div class="qr-code-wrap"><div class="qr-scan-frame"><span class="qr-corner top-left" aria-hidden="true"></span><span class="qr-corner top-right" aria-hidden="true"></span><span class="qr-corner bottom-left" aria-hidden="true"></span><span class="qr-corner bottom-right" aria-hidden="true"></span><canvas id="qr" aria-label="Cohort attendance QR code"></canvas></div></div></div><div class="qr-session-panel"><h2 class="qr-session-name">${esc(s.course)}</h2><h3 class="qr-attendance-title">Record your attendance</h3></div><div class="qr-instructions"><span class="qr-instructions-icon" aria-hidden="true">▯</span><p>Open your phone camera and point it at this QR.<br>Enter your cohort member name and cohort ID, then choose Scan In or Scan Out.</p></div><div class="actions"><button id="copy" class="primary">↗ &nbsp; Copy cohort link</button><button id="download" class="secondary">↓ &nbsp; Download QR</button>${s.status === 'active' ? '<button id="close" class="danger">Close session</button>' : role === 'super_admin' ? '<button id="delete-session" class="danger">Delete session</button>' : ''}</div><p class="helper">Share this QR only with cohort members in this Young Leadership Program cohort. It gives access to this session.</p></section>`,
   );  const current = pageGuard();
   document.querySelector('#back').onclick = dashboard;
   const canvas = document.querySelector('#qr');
@@ -390,7 +390,7 @@ async function showQr(s) {
   document.querySelector('#copy').onclick = (e) =>
     busy(e.target, async () => {
       await navigator.clipboard.writeText(scanLink(s));
-      if (current()) notice('Student link copied.', false);
+      if (current()) notice('Cohort link copied.', false);
     });
   document.querySelector('#download').onclick = () => {
     const a = document.createElement('a');
@@ -401,7 +401,7 @@ async function showQr(s) {
   document.querySelector('#close')?.addEventListener('click', (e) => {
     if (
       confirm(
-        'Close this session? Students will no longer be able to scan in or out.',
+        'Close this session? Cohort members will no longer be able to scan in or out.',
       )
     )
       busy(e.target, async () => {
@@ -437,7 +437,7 @@ function students() {
   const students = Array.isArray(data?.students) ? [...data.students] : [];
   let filtered = students;
   frame(
-    `<div class="page-title"><div><p class="eyebrow">YOUNG LEADERSHIP PROGRAM ROSTER</p><h1>Students</h1><p>Manage the active Young Leadership Program roster used for attendance validation.</p></div><div class="actions"><button class="secondary" id="import">Import CSV</button><button class="primary" id="add">＋ Add student</button></div></div><section class="card"><div class="section-title"><div><h2>Student roster</h2><p>Active students can Scan In and Scan Out. Deactivated students remain in attendance history.</p></div><label class="search-field">Search<input id="student-search" type="search" placeholder="ID or name"></label></div><div id="student-editor"></div><div class="table-wrap"><table><thead><tr><th>Student ID</th><th>Name</th><th>Email</th><th>Enrolled from</th><th>Status</th><th>Action</th></tr></thead><tbody id="student-rows"></tbody></table></div><input id="csv-input" type="file" accept=".csv,text/csv" hidden></section>${role === 'super_admin' ? '<dialog id="delete-student-dialog" class="confirm-dialog"><form method="dialog" id="delete-student-form"><span class="step">DESTRUCTIVE ACTION</span><h2>Delete student?</h2><p>This permanently deletes <strong data-delete-student-name></strong> and the student attendance history. Enter the <strong>super admin username and password</strong> you used to sign in.</p><label>Username<input name="username" type="text" autocomplete="username" required></label><label>Password<input name="password" type="password" autocomplete="current-password" required minlength="16"></label><div class="actions"><button type="button" class="secondary" id="delete-student-cancel">Cancel</button><button type="submit" class="danger" id="delete-student-confirm">Delete permanently</button></div></form></dialog>' : ''}`,
+    `<div class="page-title"><div><p class="eyebrow">YOUNG LEADERSHIP PROGRAM ROSTER</p><h1>Cohort Members</h1><p>Manage the active Young Leadership Program roster used for attendance validation.</p></div><div class="actions"><button class="secondary" id="import">Import CSV</button><button class="primary" id="add">＋ Add cohort member</button></div></div><section class="card"><div class="section-title"><div><h2>Cohort member roster</h2><p>Active cohort members can Scan In and Scan Out. Deactivated cohort members remain in attendance history.</p></div><label class="search-field">Search<input id="student-search" type="search" placeholder="ID or name"></label></div><div id="student-editor"></div><div class="table-wrap"><table><thead><tr><th>Cohort ID</th><th>Name</th><th>Email</th><th>Enrolled from</th><th>Status</th><th>Action</th></tr></thead><tbody id="student-rows"></tbody></table></div><input id="csv-input" type="file" accept=".csv,text/csv" hidden></section>${role === 'super_admin' ? '<dialog id="delete-student-dialog" class="confirm-dialog"><form method="dialog" id="delete-student-form"><span class="step">DESTRUCTIVE ACTION</span><h2>Delete cohort member?</h2><p>This permanently deletes <strong data-delete-student-name></strong> and the cohort member attendance history. Enter the <strong>super admin username and password</strong> you used to sign in.</p><label>Username<input name="username" type="text" autocomplete="username" required></label><label>Password<input name="password" type="password" autocomplete="current-password" required minlength="16"></label><div class="actions"><button type="button" class="secondary" id="delete-student-cancel">Cancel</button><button type="submit" class="danger" id="delete-student-confirm">Delete permanently</button></div></form></dialog>' : ''}`,
   );
   const rows = document.querySelector('#student-rows');
   const editor = document.querySelector('#student-editor');
@@ -447,7 +447,7 @@ function students() {
     filtered = students.filter((s) => !q || s.student_id.toLowerCase().includes(q) || s.name.toLowerCase().includes(q));
     rows.innerHTML = filtered.length
       ? filtered.map((s) => `<tr><td><b>${esc(s.student_id)}</b></td><td>${esc(s.name)}</td><td>${esc(s.email || '—')}</td><td>${esc(s.enrolled_from || '—')}</td><td><span class="badge ${s.active ? 'present' : 'absent'}">${s.active ? 'Active' : 'Inactive'}</span></td><td><button class="text" data-edit="${esc(s.student_id)}">Edit</button> <button class="text" data-toggle="${esc(s.student_id)}">${s.active ? 'Deactivate' : 'Activate'}</button>${role === 'super_admin' ? ` <button class="text" data-delete="${esc(s.student_id)}">Delete</button>` : ''}</td></tr>`).join('')
-      : '<tr><td colspan="6" class="empty">No students match this search.</td></tr>';
+      : '<tr><td colspan="6" class="empty">No cohort members match this search.</td></tr>';
     rows.querySelectorAll('[data-edit]').forEach((b) => b.onclick = () => openEditor(students.find((s) => s.student_id === b.dataset.edit)));
     rows.querySelectorAll('[data-toggle]').forEach((b) => b.onclick = () => toggleStudent(students.find((s) => s.student_id === b.dataset.toggle)));
     rows.querySelectorAll('[data-delete]').forEach((b) => b.onclick = () => openDeleteStudent(students.find((s) => s.student_id === b.dataset.delete)));
@@ -462,7 +462,7 @@ function students() {
     dialog.querySelector('input[name="username"]')?.focus();
   };
   const openEditor = (student = null) => {
-    editor.innerHTML = `<div class="card inline-editor"><h3>${student ? 'Edit student' : 'Add student'}</h3><form id="student-form"><div class="form-grid"><label>Student ID<input name="student_id" maxlength="40" pattern="[A-Za-z0-9_-]+" required ${student ? 'readonly' : ''} value="${student ? esc(student.student_id) : ''}" placeholder="e.g. YLP26101"></label><label>Student name<input name="name" maxlength="100" required value="${student ? esc(student.name) : ''}" placeholder="Full name"></label><label>Student email <span class="tiny">(optional)</span><input name="email" type="email" maxlength="254" value="${student ? esc(student.email || '') : ''}" placeholder="student@example.com"></label><label>Enrolled from<input name="enrolled_from" type="date" required value="${student && student.enrolled_from ? esc(student.enrolled_from) : new Date().toISOString().slice(0,10)}"></label></div><div class="actions"><button type="button" class="secondary" id="cancel-student">Cancel</button><button class="primary">${student ? 'Save changes' : 'Add student'}</button></div></form></div>`;
+    editor.innerHTML = `<div class="card inline-editor"><h3>${student ? 'Edit student' : 'Add cohort member'}</h3><form id="student-form"><div class="form-grid"><label>Cohort ID<input name="student_id" maxlength="40" pattern="[A-Za-z0-9_-]+" required ${student ? 'readonly' : ''} value="${student ? esc(student.student_id) : ''}" placeholder="e.g. YLP26101"></label><label>Cohort member name<input name="name" maxlength="100" required value="${student ? esc(student.name) : ''}" placeholder="Full name"></label><label>Cohort member email <span class="tiny">(optional)</span><input name="email" type="email" maxlength="254" value="${student ? esc(student.email || '') : ''}" placeholder="student@example.com"></label><label>Enrolled from<input name="enrolled_from" type="date" required value="${student && student.enrolled_from ? esc(student.enrolled_from) : new Date().toISOString().slice(0,10)}"></label></div><div class="actions"><button type="button" class="secondary" id="cancel-student">Cancel</button><button class="primary">${student ? 'Save changes' : 'Add cohort member'}</button></div></form></div>`;
     document.querySelector('#cancel-student').onclick = () => editor.innerHTML = '';
     document.querySelector('#student-form').onsubmit = (e) => {
       e.preventDefault();
@@ -475,7 +475,7 @@ function students() {
         if (i < 0) students.push(saved); else students[i] = saved;
         editor.innerHTML = '';
         renderRows();
-        notice(student ? 'Student updated.' : 'Student added.', false);
+        notice(student ? 'Cohort member updated.' : 'Cohort member added.', false);
       });
     };
     document.querySelector('#student-form input[name="name"]').focus();
@@ -489,7 +489,7 @@ function students() {
       student.active = saved.active;
       student.name = saved.name;
       renderRows();
-      notice(student.active ? 'Student activated.' : 'Student deactivated.', false);
+      notice(student.active ? 'Cohort member activated.' : 'Cohort member deactivated.', false);
     });
   };
   document.querySelector('#add').onclick = () => openEditor();
@@ -507,7 +507,7 @@ function students() {
       const index = students.findIndex((student) => student.student_id === studentId);
       if (index >= 0) students.splice(index, 1);
       renderRows();
-      notice('Student and attendance history deleted.', false);
+      notice('Cohort member and attendance history deleted.', false);
     });
   });
   search.oninput = renderRows;
@@ -544,7 +544,7 @@ function students() {
         const email = rawEmail?.trim() || '';
         if (!student_id || !name) {
           skipped++;
-          failures.push(`row ${rowIndex + 1}: Student ID and name are required`);
+          failures.push(`row ${rowIndex + 1}: Cohort ID and name are required`);
           continue;
         }
         const key = student_id.toLowerCase();
@@ -558,7 +558,7 @@ function students() {
           const saved = result?.data ?? result;
           if (!saved?.student_id) {
             skipped++;
-            failures.push(`row ${rowIndex + 1}: server did not confirm the student record`);
+            failures.push(`row ${rowIndex + 1}: server did not confirm the cohort member record`);
             continue;
           }
           students.push(saved);
@@ -566,7 +566,7 @@ function students() {
           added++;
         } catch (error) {
           skipped++;
-          failures.push(`row ${rowIndex + 1}: ${error?.message || 'server rejected the student'}`);
+          failures.push(`row ${rowIndex + 1}: ${error?.message || 'server rejected the cohort member'}`);
         }
       }
       renderRows();
@@ -585,7 +585,7 @@ function students() {
 function accounts() {
   if (role !== 'super_admin') { view = 'dashboard'; return dashboard(); }
   let rows = [];
-  frame('<div class="page-title"><div><p class="eyebrow">YOUNG LEADERSHIP PROGRAM ACCESS CONTROL</p><h1>Accounts</h1><p>Admin accounts can manage Young Leadership Program access. Operators can create sessions but cannot manage students, attendance, or accounts.</p></div><button class="primary" id="add-account">＋ Add account</button></div><section class="card"><div id="account-editor"></div><div class="table-wrap"><table><thead><tr><th>Email</th><th>Username</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead><tbody id="account-rows"><tr><td colspan="5" class="empty">Loading accounts…</td></tr></tbody></table></div></section>');
+  frame('<div class="page-title"><div><p class="eyebrow">YOUNG LEADERSHIP PROGRAM ACCESS CONTROL</p><h1>Accounts</h1><p>Admin accounts can manage Young Leadership Program access. Operators can create sessions but cannot manage cohort members, attendance, or accounts.</p></div><button class="primary" id="add-account">＋ Add account</button></div><section class="card"><div id="account-editor"></div><div class="table-wrap"><table><thead><tr><th>Email</th><th>Username</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead><tbody id="account-rows"><tr><td colspan="5" class="empty">Loading accounts…</td></tr></tbody></table></div></section>');
   const editor = document.querySelector('#account-editor');
   const table = document.querySelector('#account-rows');
   const load = async () => { const result = await api('adminAccounts', {}, token); rows = Array.isArray(result) ? result : []; renderRows(); };
@@ -607,7 +607,7 @@ function accounts() {
 }
 function reports() {
   frame(
-    `<div class="page-title"><div><p class="eyebrow">ACADEMY ATTENDANCE RECORDS</p><h1>Attendance report</h1><p>Review attendance by session and track each student's cumulative attendance.</p></div><button class="primary" id="export">↓ Export CSV</button></div><section class="card"><form id="filters" class="filters"><label>Session<select name="session"><option value="">All sessions</option>${data.sessions.map((s) => `<option value="${esc(s.session_id)}">${esc(s.course)} · ${esc(sessionTimes(s, data.settings.offset).date)}</option>`).join('')}</select></label><label>Course<select name="course"><option value="">All courses</option>${[...new Set(data.sessions.map((s) => s.course))].map((c) => `<option>${esc(c)}</option>`).join('')}</select></label><label>From<input name="from" type="date"></label><label>To<input name="to" type="date"></label><label>Student<input name="student" placeholder="Name or ID" type="search"></label></form><div id="report-summary"></div><div class="report-sections"><section class="report-block"><div class="section-title"><div><h2>Session attendance</h2><p>Each session is measured against the eligible student roster. Live sessions show current participation; completed sessions show final attendance.</p></div></div><div class="table-wrap"><table><thead><tr><th>Session</th><th>Date</th><th>Attended</th><th>Absent</th><th>Pending</th><th>Attendance</th></tr></thead><tbody id="session-summary-rows"></tbody></table></div></section><section class="report-block"><div class="section-title"><div><h2>Student attendance</h2><p>Cumulative attendance across completed sessions in the selected period.</p></div></div><div class="table-wrap"><table><thead><tr><th>Student</th><th>Sessions held</th><th>Attended</th><th>Absent</th><th>Attendance</th></tr></thead><tbody id="student-summary-rows"></tbody></table></div></section><section class="report-block"><div class="section-title"><div><h2>Attendance records</h2><p>Detailed scan history for the selected filters.</p></div></div><div class="table-wrap"><table><thead><tr>${['Student', 'Course / date', 'Scan In', 'Scan Out', 'Minutes', 'Status'].map((v) => `<th>${v}</th>`).join('')}</tr></thead><tbody id="rows"></tbody></table></div></section></div><p class="helper">Attendance formula: attended sessions ÷ actual sessions held × 100. Planned, cancelled, or future sessions are not included in a student's cumulative percentage. Pending students are not counted as completed attendance. ${data.settings.enrolled ? 'The active roster is used as the session denominator.' : 'Enrollment validation is disabled, so session percentages use recorded attendance data only.'}</p></section>`,
+    `<div class="page-title"><div><p class="eyebrow">ACADEMY ATTENDANCE RECORDS</p><h1>Attendance report</h1><p>Review attendance by session and track each cohort member's cumulative attendance.</p></div><button class="primary" id="export">↓ Export CSV</button></div><section class="card"><form id="filters" class="filters"><label>Session<select name="session"><option value="">All sessions</option>${data.sessions.map((s) => `<option value="${esc(s.session_id)}">${esc(s.course)} · ${esc(sessionTimes(s, data.settings.offset).date)}</option>`).join('')}</select></label><label>Course<select name="course"><option value="">All courses</option>${[...new Set(data.sessions.map((s) => s.course))].map((c) => `<option>${esc(c)}</option>`).join('')}</select></label><label>From<input name="from" type="date"></label><label>To<input name="to" type="date"></label><label>Cohort member<input name="student" placeholder="Name or ID" type="search"></label></form><div id="report-summary"></div><div class="report-sections"><section class="report-block"><div class="section-title"><div><h2>Session attendance</h2><p>Each session is measured against the eligible cohort roster. Live sessions show current participation; completed sessions show final attendance.</p></div></div><div class="table-wrap"><table><thead><tr><th>Session</th><th>Date</th><th>Attended</th><th>Absent</th><th>Pending</th><th>Attendance</th></tr></thead><tbody id="session-summary-rows"></tbody></table></div></section><section class="report-block"><div class="section-title"><div><h2>Cohort attendance</h2><p>Cumulative attendance across completed sessions in the selected period.</p></div></div><div class="table-wrap"><table><thead><tr><th>Cohort Member</th><th>Sessions held</th><th>Attended</th><th>Absent</th><th>Attendance</th></tr></thead><tbody id="student-summary-rows"></tbody></table></div></section><section class="report-block"><div class="section-title"><div><h2>Attendance records</h2><p>Detailed scan history for the selected filters.</p></div></div><div class="table-wrap"><table><thead><tr>${['Cohort Member', 'Course / date', 'Scan In', 'Scan Out', 'Minutes', 'Status'].map((v) => `<th>${v}</th>`).join('')}</tr></thead><tbody id="rows"></tbody></table></div></section></div><p class="helper">Attendance formula: attended sessions ÷ actual sessions held × 100. Planned, cancelled, or future sessions are not included in a cohort member's cumulative percentage. Pending cohort members are not counted as completed attendance. ${data.settings.enrolled ? 'The active roster is used as the session denominator.' : 'Enrollment validation is disabled, so session percentages use recorded attendance data only.'}</p></section>`,
   );
   const allRows = report(data);
   const filtersEl = document.querySelector('#filters');
@@ -621,7 +621,7 @@ function reports() {
     const students = studentAttendanceSummary(data, filters);
 
     document.querySelector('#report-summary').innerHTML =
-      `<div class="stats report-stats"><div class="card"><span>Sessions held</span><strong>${overall.sessions_held}</strong><small>Completed sessions in selected period</small></div><div class="card"><span>Overall attendance</span><strong>${overall.percentage === null ? '—' : overall.percentage + '<em>%</em>'}</strong><small>${overall.attended} attended of ${overall.eligible} eligible session places</small></div><div class="card"><span>Students tracked</span><strong>${students.length}</strong><small>Active students in the selected view</small></div></div>`;
+      `<div class="stats report-stats"><div class="card"><span>Sessions held</span><strong>${overall.sessions_held}</strong><small>Completed sessions in selected period</small></div><div class="card"><span>Overall attendance</span><strong>${overall.percentage === null ? '—' : overall.percentage + '<em>%</em>'}</strong><small>${overall.attended} attended of ${overall.eligible} eligible session places</small></div><div class="card"><span>Cohort members tracked</span><strong>${students.length}</strong><small>Active cohort members in the selected view</small></div></div>`;
 
     document.querySelector('#session-summary-rows').innerHTML = sessions.length
       ? sessions
@@ -639,7 +639,7 @@ function reports() {
               `<tr><td><b>${esc(s.student_name)}</b><small>${esc(s.student_id)}</small></td><td>${s.sessions_held}</td><td>${s.attended}</td><td>${s.absent}</td><td><span class="badge ${s.percentage !== null && s.percentage >= 75 ? 'present' : ''}">${s.percentage === null ? '—' : s.percentage + '%'}</span></td></tr>`,
           )
           .join('')
-      : '<tr><td colspan="5" class="empty">No students match these filters.</td></tr>';
+      : '<tr><td colspan="5" class="empty">No cohort members match these filters.</td></tr>';
 
     document.querySelector('#rows').innerHTML = current.length
       ? current
@@ -673,7 +673,7 @@ async function student() {
     ? { access_code: accessCode }
     : { session_id: params.get('session'), qr_token: params.get('token') };
   frame(
-    '<section class="card student-card"><h1>Loading your class…</h1></section>',
+    '<section class="card student-card"><h1>Loading your cohort…</h1></section>',
     true,
   );
   const loadingCurrent = pageGuard();
@@ -681,7 +681,7 @@ async function student() {
     const s = await api('session', credentials);
     if (!loadingCurrent()) return;
     frame(
-      `<section class="card student-card"><p class="eyebrow">YOUNG LEADERSHIP PROGRAM CLASS ATTENDANCE</p><h1>${esc(s.course)}</h1><p>${esc(sessionLabel(s, s.offset))}</p><hr><form id="scan-form">${field('Student ID', 'student_id', 'text', 'autocomplete="username" pattern="[a-zA-Z0-9_-]+" maxlength="40" placeholder="Your student ID"')}${field('Student name', 'student_name', 'text', 'autocomplete="name" maxlength="100" placeholder="Your full name"')}<div class="scan-actions"><button name="direction" value="in" class="primary">↳ Scan In</button><button name="direction" value="out" class="secondary">↗ Scan Out</button></div></form><p class="helper">Choose Scan In when you arrive and Scan Out when you leave. Use the same student ID both times. Enrolled students use the name on the Young Leadership Program roster.</p></section>`,
+      `<section class="card student-card"><p class="eyebrow">YOUNG LEADERSHIP PROGRAM COHORT ATTENDANCE</p><h1>${esc(s.course)}</h1><p>${esc(sessionLabel(s, s.offset))}</p><hr><form id="scan-form">${field('Cohort ID', 'student_id', 'text', 'autocomplete="username" pattern="[a-zA-Z0-9_-]+" maxlength="40" placeholder="Your cohort ID"')}${field('Cohort member name', 'student_name', 'text', 'autocomplete="name" maxlength="100" placeholder="Your full name"')}<div class="scan-actions"><button name="direction" value="in" class="primary">↳ Scan In</button><button name="direction" value="out" class="secondary">↗ Scan Out</button></div></form><p class="helper">Choose Scan In when you arrive and Scan Out when you leave. Use the same cohort ID both times. Cohort members use the name on the Young Leadership Program roster.</p></section>`,
       true,
     );
     const current = pageGuard();
@@ -785,7 +785,7 @@ async function student() {
   } catch (e) {
     if (!loadingCurrent()) return;
     frame(
-      '<section class="card student-card"><h1>Unable to open class</h1><p>Try loading the class again. If it still does not open, ask your Young Leadership Program teacher for help.</p><button class="secondary" id="retry">Try again</button></section>',
+      '<section class="card student-card"><h1>Unable to open cohort</h1><p>Try loading the cohort again. If it still does not open, ask your Young Leadership Program facilitator for help.</p><button class="secondary" id="retry">Try again</button></section>',
       true,
     );
     notice(e.message);
@@ -794,7 +794,7 @@ async function student() {
 }
 async function scannerPage() {
   frame(
-    `<div class="page-title"><div><p class="eyebrow">ACADEMY STUDENT ATTENDANCE</p><h1>Scan your class QR</h1><p>Allow camera access, then point your camera at the QR shared by your teacher.</p></div></div><section class="card student-card"><div id="reader"></div><button id="start-camera" class="primary full">Open camera</button><p class="helper">If the camera does not open, check your browser’s camera permission or use your phone’s camera app. You can also paste the class link below.</p><form id="paste"><label>Or paste a class link<input name="url" type="url" required placeholder="https://…"></label><button class="secondary full">Open class link</button></form></section>`,
+    `<div class="page-title"><div><p class="eyebrow">ACADEMY COHORT ATTENDANCE</p><h1>Scan your cohort QR</h1><p>Allow camera access, then point your camera at the QR shared by your facilitator.</p></div></div><section class="card student-card"><div id="reader"></div><button id="start-camera" class="primary full">Open camera</button><p class="helper">If the camera does not open, check your browser’s camera permission or use your phone’s camera app. You can also paste the cohort link below.</p><form id="paste"><label>Or paste a cohort link<input name="url" type="url" required placeholder="https://…"></label><button class="secondary full">Open cohort link</button></form></section>`,
     true,
   );
   const current = pageGuard();
