@@ -907,7 +907,7 @@ export class SupabaseRpcBackend implements BackendAdapter {
   }
 
   async updateBranding(input: BrandingUpdateInput): Promise<unknown> {
-    return this.rpc('ylp_branding_update_v1', {
+    const result = await this.rpc('ylp_branding_update_v1', {
       p_organization_name: input.organization_name,
       p_tagline: input.tagline,
       p_logo_url: input.logo_url,
@@ -922,6 +922,10 @@ export class SupabaseRpcBackend implements BackendAdapter {
       p_footer_text: input.footer_text,
       p_updated_by: input.updated_by,
     });
+    return {
+      ok: true,
+      data: Array.isArray(result) ? result[0] ?? null : result,
+    };
   }
 
   async consumeRateLimit(scope: RateLimitScope, subjectHash: string, limit: number, windowSeconds: number): Promise<RateLimitDecision> {
