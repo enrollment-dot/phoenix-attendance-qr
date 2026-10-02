@@ -127,7 +127,7 @@ test('cohort and facilitator terminology is shown in the main attendance UI', as
     { nav: 'dashboard', text: 'Cohort overview' },
     { nav: 'reports', text: 'Attendance report' },
     { nav: 'students', text: 'YLP' },
-    { nav: 'scanner', text: 'YLP COHORT ATTENDANCE' },
+    { nav: 'scanner', text: 'YLP ATTENDANCE' },
   ];
   for (const tab of dashboardTabs) {
     await page.locator(`[data-nav="${tab.nav}"]`).click();
