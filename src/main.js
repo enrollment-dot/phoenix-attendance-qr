@@ -236,7 +236,7 @@ function dashboard() {
     pct = attendanceSummary.percentage,
     active = data.sessions.filter((s) => s.status === 'active');
   frame(
-    `<div class="page-title"><div><p class="eyebrow">YOUNG LEADERSHIP PROGRAM COHORT SESSIONS</p><h1>Cohort overview</h1><p>Manage your Young Leadership Program sessions and review attendance.</p></div><button class="primary" id="create">＋ Create session</button></div><div class="stats"><div class="card"><span>Cohort sessions</span><strong>${data.sessions.length}</strong><small>${active.length} enabled for scanning</small></div><div class="card"><span>Cohort</span><strong>${data.students.length}</strong><small>Active cohort members on the Young Leadership Program roster</small></div><div class="card"><span>Attendance rate</span><strong>${pct === null ? '—' : pct + '<em>%</em>'}</strong><small>${attendanceSummary.sessions_held ? 'Completed sessions only' : 'No completed sessions yet'}</small></div></div><section class="card sessions"><div class="section-title"><div><h2>Cohort sessions</h2><p>Share a session QR with your cohort for Scan In and Scan Out.</p></div><button class="text" id="refresh">↻ Refresh</button></div>${
+    `<div class="page-title"><div><p class="eyebrow">YLP COHORT SESSIONS</p><h1>Cohort overview</h1><p>Manage your YLP sessions and review attendance.</p></div><button class="primary" id="create">＋ Create session</button></div><div class="stats"><div class="card"><span>Cohort sessions</span><strong>${data.sessions.length}</strong><small>${active.length} enabled for scanning</small></div><div class="card"><span>Cohort</span><strong>${data.students.length}</strong><small>Active YLP members on the YLP roster</small></div><div class="card"><span>Attendance rate</span><strong>${pct === null ? '—' : pct + '<em>%</em>'}</strong><small>${attendanceSummary.sessions_held ? 'Completed sessions only' : 'No completed sessions yet'}</small></div></div><section class="card sessions"><div class="section-title"><div><h2>Cohort sessions</h2><p>Share a session QR with your cohort for Scan In and Scan Out.</p></div><button class="text" id="refresh">↻ Refresh</button></div>${
       data.sessions.length
         ? `<div class="session-list">${[...data.sessions]
             .reverse()
@@ -375,7 +375,7 @@ function createForm() {
 }
 async function showQr(s) {
   frame(
-    `<div class="page-title"><div><p class="eyebrow">SESSION QR</p><h1>${esc(s.course)}</h1><p>${esc(sessionLabel(s, data.settings.offset))}</p></div><button id="back" class="secondary">← Back to overview</button></div><section class="card qr-card"><div class="qr-status"><span class="badge present">${esc(s.status)}</span></div><div class="qr-visual"><div class="qr-brand"><img class="qr-brand-mark" src="${YLA_LOGO_SRC}" alt="" /><strong>Young Leadership Program</strong><span>Learn. Lead. Build. Inspire</span></div><div class="qr-code-wrap"><div class="qr-scan-frame"><span class="qr-corner top-left" aria-hidden="true"></span><span class="qr-corner top-right" aria-hidden="true"></span><span class="qr-corner bottom-left" aria-hidden="true"></span><span class="qr-corner bottom-right" aria-hidden="true"></span><canvas id="qr" aria-label="Cohort attendance QR code"></canvas></div></div></div><div class="qr-session-panel"><h2 class="qr-session-name">${esc(s.course)}</h2><h3 class="qr-attendance-title">Record your attendance</h3></div><div class="qr-instructions"><span class="qr-instructions-icon" aria-hidden="true">▯</span><p>Open your phone camera and point it at this QR.<br>Enter your cohort member name and cohort ID, then choose Scan In or Scan Out.</p></div><div class="actions"><button id="copy" class="primary">↗ &nbsp; Copy cohort link</button><button id="download" class="secondary">↓ &nbsp; Download QR</button>${s.status === 'active' ? '<button id="close" class="danger">Close session</button>' : role === 'super_admin' ? '<button id="delete-session" class="danger">Delete session</button>' : ''}</div><p class="helper">Share this QR only with cohort members in this Young Leadership Program cohort. It gives access to this session.</p></section>`,
+    `<div class="page-title"><div><p class="eyebrow">SESSION QR</p><h1>${esc(s.course)}</h1><p>${esc(sessionLabel(s, data.settings.offset))}</p></div><button id="back" class="secondary">← Back to overview</button></div><section class="card qr-card"><div class="qr-status"><span class="badge present">${esc(s.status)}</span></div><div class="qr-visual"><div class="qr-brand"><img class="qr-brand-mark" src="${YLA_LOGO_SRC}" alt="" /><strong>YLP</strong><span>Learn. Lead. Build. Inspire</span></div><div class="qr-code-wrap"><div class="qr-scan-frame"><span class="qr-corner top-left" aria-hidden="true"></span><span class="qr-corner top-right" aria-hidden="true"></span><span class="qr-corner bottom-left" aria-hidden="true"></span><span class="qr-corner bottom-right" aria-hidden="true"></span><canvas id="qr" aria-label="Cohort attendance QR code"></canvas></div></div></div><div class="qr-session-panel"><h2 class="qr-session-name">${esc(s.course)}</h2><h3 class="qr-attendance-title">Record your attendance</h3></div><div class="qr-instructions"><span class="qr-instructions-icon" aria-hidden="true">▯</span><p>Open your phone camera and point it at this QR.<br>Enter your cohort member name and cohort ID, then choose Scan In or Scan Out.</p></div><div class="actions"><button id="copy" class="primary">↗ &nbsp; Copy cohort link</button><button id="download" class="secondary">↓ &nbsp; Download QR</button>${s.status === 'active' ? '<button id="close" class="danger">Close session</button>' : role === 'super_admin' ? '<button id="delete-session" class="danger">Delete session</button>' : ''}</div><p class="helper">Share this QR only with YLP members in this YLP cohort. It gives access to this session.</p></section>`,
   );  const current = pageGuard();
   document.querySelector('#back').onclick = dashboard;
   const canvas = document.querySelector('#qr');
@@ -585,7 +585,7 @@ function students() {
 function accounts() {
   if (role !== 'super_admin') { view = 'dashboard'; return dashboard(); }
   let rows = [];
-  frame('<div class="page-title"><div><p class="eyebrow">YOUNG LEADERSHIP PROGRAM ACCESS CONTROL</p><h1>Accounts</h1><p>Admin accounts can manage Young Leadership Program access. Operators can create sessions but cannot manage cohort members, attendance, or accounts.</p></div><button class="primary" id="add-account">＋ Add account</button></div><section class="card"><div id="account-editor"></div><div class="table-wrap"><table><thead><tr><th>Email</th><th>Username</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead><tbody id="account-rows"><tr><td colspan="5" class="empty">Loading accounts…</td></tr></tbody></table></div></section>');
+  frame('<div class="page-title"><div><p class="eyebrow">YLP ACCESS CONTROL</p><h1>Accounts</h1><p>Admin accounts can manage YLP access. Operators can create sessions but cannot manage YLP members, attendance, or accounts.</p></div><button class="primary" id="add-account">＋ Add account</button></div><section class="card"><div id="account-editor"></div><div class="table-wrap"><table><thead><tr><th>Email</th><th>Username</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead><tbody id="account-rows"><tr><td colspan="5" class="empty">Loading accounts…</td></tr></tbody></table></div></section>');
   const editor = document.querySelector('#account-editor');
   const table = document.querySelector('#account-rows');
   const load = async () => { const result = await api('adminAccounts', {}, token); rows = Array.isArray(result) ? result : []; renderRows(); };
@@ -681,7 +681,7 @@ async function student() {
     const s = await api('session', credentials);
     if (!loadingCurrent()) return;
     frame(
-      `<section class="card student-card"><p class="eyebrow">YOUNG LEADERSHIP PROGRAM COHORT ATTENDANCE</p><h1>${esc(s.course)}</h1><p>${esc(sessionLabel(s, s.offset))}</p><hr><form id="scan-form">${field('Cohort ID', 'student_id', 'text', 'autocomplete="username" pattern="[a-zA-Z0-9_-]+" maxlength="40" placeholder="Your cohort ID"')}${field('Cohort member name', 'student_name', 'text', 'autocomplete="name" maxlength="100" placeholder="Your full name"')}<div class="scan-actions"><button name="direction" value="in" class="primary">↳ Scan In</button><button name="direction" value="out" class="secondary">↗ Scan Out</button></div></form><p class="helper">Choose Scan In when you arrive and Scan Out when you leave. Use the same cohort ID both times. Cohort members use the name on the Young Leadership Program roster.</p></section>`,
+      `<section class="card student-card"><p class="eyebrow">YLP COHORT ATTENDANCE</p><h1>${esc(s.course)}</h1><p>${esc(sessionLabel(s, s.offset))}</p><hr><form id="scan-form">${field('Cohort ID', 'student_id', 'text', 'autocomplete="username" pattern="[a-zA-Z0-9_-]+" maxlength="40" placeholder="Your cohort ID"')}${field('Cohort member name', 'student_name', 'text', 'autocomplete="name" maxlength="100" placeholder="Your full name"')}<div class="scan-actions"><button name="direction" value="in" class="primary">↳ Scan In</button><button name="direction" value="out" class="secondary">↗ Scan Out</button></div></form><p class="helper">Choose Scan In when you arrive and Scan Out when you leave. Use the same cohort ID both times. YLP members use the name on the YLP roster.</p></section>`,
       true,
     );
     const current = pageGuard();
@@ -708,7 +708,7 @@ async function student() {
         });
         if (!s.scan_request_idempotency)
           notice(
-            'Scan submissions need a backend update for safe retries. Contact your Young Leadership Program administrator.',
+            'Scan submissions need a backend update for safe retries. Contact your YLP administrator.',
           );
         else if (pending && showNotice)
           notice(
@@ -785,7 +785,7 @@ async function student() {
   } catch (e) {
     if (!loadingCurrent()) return;
     frame(
-      '<section class="card student-card"><h1>Unable to open cohort</h1><p>Try loading the cohort again. If it still does not open, ask your Young Leadership Program facilitator for help.</p><button class="secondary" id="retry">Try again</button></section>',
+      '<section class="card student-card"><h1>Unable to open cohort</h1><p>Try loading the cohort again. If it still does not open, ask your YLP facilitator for help.</p><button class="secondary" id="retry">Try again</button></section>',
       true,
     );
     notice(e.message);
@@ -794,7 +794,7 @@ async function student() {
 }
 async function scannerPage() {
   frame(
-    `<div class="page-title"><div><p class="eyebrow">ACADEMY COHORT ATTENDANCE</p><h1>Scan your cohort QR</h1><p>Allow camera access, then point your camera at the QR shared by your facilitator.</p></div></div><section class="card student-card"><div id="reader"></div><button id="start-camera" class="primary full">Open camera</button><p class="helper">If the camera does not open, check your browser’s camera permission or use your phone’s camera app. You can also paste the cohort link below.</p><form id="paste"><label>Or paste a cohort link<input name="url" type="url" required placeholder="https://…"></label><button class="secondary full">Open cohort link</button></form></section>`,
+    `<div class="page-title"><div><p class="eyebrow">YLP ATTENDANCE</p><h1>Scan your cohort QR</h1><p>Allow camera access, then point your camera at the QR shared by your facilitator.</p></div></div><section class="card student-card"><div id="reader"></div><button id="start-camera" class="primary full">Open camera</button><p class="helper">If the camera does not open, check your browser’s camera permission or use your phone’s camera app. You can also paste the cohort link below.</p><form id="paste"><label>Or paste a cohort link<input name="url" type="url" required placeholder="https://…"></label><button class="secondary full">Open cohort link</button></form></section>`,
     true,
   );
   const current = pageGuard();
