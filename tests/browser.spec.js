@@ -36,7 +36,7 @@ async function mock(page, supportsRetries = true) {
     card_background: '#FFFFFF',
     text_color: '#183E32',
     muted_text_color: '#6B7D78',
-    footer_text: 'Young Leadership Program',
+    footer_text: 'Young Leadership Program · For facilitators and cohort members',
   };
   let record = null;
   await page.route('**/__test_api', async (route) => {
@@ -108,6 +108,21 @@ test('public header renders the branding tagline instead of the template literal
   await expect(page.locator('header .tiny')).not.toContainText('esc(branding.tagline)');
 });
 
+test('cohort and facilitator terminology is shown in the main attendance UI', async ({ page }) => {
+  await mock(page);
+  await page.goto('/');
+  await expect(page.getByText('FACILITATOR & ADMIN ACCESS')).toBeVisible();
+  await expect(page.getByText('Joining a Young Leadership Program cohort?')).toBeVisible();
+  await page.getByLabel('Username').fill('admin');
+  await page.getByLabel('Password').fill('test-admin-password-123');
+  await page.locator('#login button.primary').click();
+  await expect(page.getByText('Cohort overview')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Cohort Members' })).toBeVisible();
+  await expect(page.getByText('Cohort members')).toBeVisible();
+  await expect(page.getByText('Students')).toHaveCount(0);
+  await expect(page.getByText('TEACHER & ADMIN ACCESS')).toHaveCount(0);
+});
+
 test('appearance branding save consumes the API data without showing a response-shape error', async ({ page }) => {
   await mock(page);
   await page.goto('/');
@@ -115,7 +130,7 @@ test('appearance branding save consumes the API data without showing a response-
   await page.getByLabel('Username').fill('super-admin');
   await page.getByLabel('Password').fill('test-admin-password-123');
   await page.locator('#login button.primary').click();
-  await page.getByText('Class overview').waitFor();
+  await page.getByText('Cohort overview').waitFor();
 
   await page.locator('[data-nav="appearance"]').click();
   await page.getByRole('heading', { name: 'Appearance & Branding' }).waitFor();
@@ -228,14 +243,14 @@ test('safe read-only actions retry redirected 404; writes and other failures do 
     );
 });
 
-test('session QR uses the YLP branded layout without an embedded logo', async ({ page }) => {
+test('cohort QR uses the YLP branded layout without an embedded logo', async ({ page }) => {
   await mock(page);
   await page.goto('/');
   await page.getByText('Sign in to Young Leadership Program').waitFor();
   await page.getByLabel('Username').fill('admin');
   await page.getByLabel('Password').fill('test-admin-password-123');
   await page.locator('#login button.primary').click();
-  await page.getByText('Class overview').waitFor();
+  await page.getByText('Cohort overview').waitFor();
   await page.getByRole('button', { name: 'Display QR ↗' }).click();
   await expect(page.locator('.qr-brand')).toHaveCount(1);
   await expect(page.locator('.qr-brand-mark')).toHaveAttribute('src', '/ylp-logo-exact.svg');
@@ -250,7 +265,7 @@ test('session QR uses the YLP branded layout without an embedded logo', async ({
   await expect(page.locator('.qr-session-name')).toHaveText('English · Intermediate');
   await expect(page.locator('.qr-attendance-title')).toHaveText('Record your attendance');
   await expect(page.locator('.qr-instructions p')).toContainText(
-    'Enter your student name and ID, then choose Scan In or Scan Out.',
+    'Enter your cohort member name and participant ID, then choose Scan In or Scan Out.',
   );
   const qr = page.locator('#qr');
   await expect(qr).toBeVisible();
@@ -284,7 +299,7 @@ test('mobile layout keeps the YLP branding within the viewport', async ({ page }
   await page.getByLabel('Username').fill('admin');
   await page.getByLabel('Password').fill('test-admin-password-123');
   await page.locator('#login button.primary').click();
-  await page.getByText('Class overview').waitFor();
+  await page.getByText('Cohort overview').waitFor();
   const width = await page.evaluate(() => ({
     viewport: window.innerWidth,
     scrollWidth: document.documentElement.scrollWidth,
