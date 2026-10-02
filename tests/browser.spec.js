@@ -389,4 +389,6 @@ test('dashboard uses Scan In and Scan Out wording for the shared QR', async ({ p
   await page.getByText('Cohort overview').waitFor();
   await expect(page.getByText('Use the same QR for Scan In and Scan Out.')).toBeVisible();
   await expect(page.getByText('Use the same QR for arrival and departure.')).toHaveCount(0);
+  await expect(page.getByText('Keep the same session QR on screen for both Scan In and Scan Out.')).toBeVisible();
+  await expect(page.getByText('Keep the session QR on screen for Scan In, then share it again for Scan Out.')).toHaveCount(0);
 });
