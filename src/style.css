@@ -509,10 +509,19 @@ input::placeholder {
   justify-items: center;
 }
 .qr-brand-mark {
-  width: 64px;
-  height: 64px;
+  width: 76px;
+  height: 76px;
+  padding: 9px;
   object-fit: contain;
   margin-bottom: 1px;
+  border: 1px solid #d9e9d2;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 35%, #ffffff 0%, #f2f8ee 58%, #e7f1e1 100%);
+  box-shadow:
+    0 8px 18px rgba(32, 56, 51, 0.08),
+    inset 0 0 0 3px rgba(255, 255, 255, 0.75);
+  filter: drop-shadow(0 2px 2px rgba(32, 56, 51, 0.12));
 }
 .qr-brand strong {
   max-width: 100%;
