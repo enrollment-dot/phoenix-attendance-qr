@@ -175,7 +175,7 @@ test('branding migration keeps the privileged RPC service_role-only', () => {
   assert.match(migration, /login_welcome_title/);
   assert.match(migration, /login_welcome_description/);
   assert.match(migration, /login_welcome_button_text/);
-  assert.match(migration, /revoke execute on function public\.ylp_branding_update_v1/);
+  assert.ok(migration.includes('revoke execute on function public.ylp_branding_update_v1'));
   assert.match(migration, /from public, anon, authenticated/);
   assert.match(migration, /to service_role/);
 });
