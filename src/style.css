@@ -122,8 +122,8 @@ nav button {
   color: #b9cac6;
 }
 nav .selected {
-  background: #2b423c;
-  color: #e4f6aa;
+  background: var(--brand-primary);
+  color: white;
 }
 nav a {
   padding: 12px;
