@@ -350,7 +350,7 @@ p {
   color: #6b795e;
 }
 footer {
-  color: #89948c;
+  color: var(--brand-muted);
   font-size: 12px;
   margin: 38px 0 24px;
 }
@@ -391,7 +391,6 @@ footer {
 .welcome-panel p {
   max-width: 360px;
   color: var(--brand-text);
-  opacity: 0.78;
 }
 .large-qr {
   font-size: 65px;
@@ -474,9 +473,9 @@ input::placeholder {
   padding: 22px 18px 20px;
   border-radius: 28px;
   background:
-    radial-gradient(circle at 18% 58%, rgba(198, 235, 171, 0.30) 0 3%, transparent 3.2%),
-    radial-gradient(circle at 83% 42%, rgba(198, 235, 171, 0.24) 0 2.5%, transparent 2.8%),
-    linear-gradient(180deg, var(--brand-card) 0%, #fbfdf9 100%);
+    radial-gradient(circle at 18% 58%, color-mix(in srgb, var(--brand-primary) 14%, transparent) 0 3%, transparent 3.2%),
+    radial-gradient(circle at 83% 42%, color-mix(in srgb, var(--brand-primary) 11%, transparent) 0 2.5%, transparent 2.8%),
+    linear-gradient(180deg, var(--scan-background) 0%, color-mix(in srgb, var(--scan-background) 82%, var(--brand-card)) 100%);
 }
 .qr-visual::before,
 .qr-visual::after {
@@ -485,7 +484,7 @@ input::placeholder {
   z-index: -1;
   width: 74%;
   height: 48%;
-  border: 2px solid rgba(188, 226, 160, 0.34);
+  border: 2px solid color-mix(in srgb, var(--brand-primary) 18%, transparent);
   border-left-color: transparent;
   border-right-color: transparent;
   border-radius: 50%;
@@ -496,8 +495,8 @@ input::placeholder {
   top: 28%;
   transform: rotate(18deg);
   box-shadow:
-    0 34px 0 -8px rgba(204, 235, 180, 0.24),
-    0 68px 0 -16px rgba(204, 235, 180, 0.18);
+    0 34px 0 -8px color-mix(in srgb, var(--brand-primary) 12%, transparent),
+    0 68px 0 -16px color-mix(in srgb, var(--brand-primary) 8%, transparent);
 }
 .qr-visual::after {
   right: -29%;
@@ -573,7 +572,7 @@ input::placeholder {
 .qr-corner::after {
   content: "";
   position: absolute;
-  background: #72a93e;
+  background: var(--brand-primary);
   border-radius: 3px;
 }
 .qr-corner::before {

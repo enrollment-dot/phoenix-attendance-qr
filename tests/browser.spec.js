@@ -299,7 +299,7 @@ test('cohort QR uses the YLP branded layout without an embedded logo', async ({ 
   await page.getByText('Cohort overview').waitFor();
   await page.getByRole('button', { name: 'Display QR ↗' }).click();
   await expect(page.locator('.qr-brand')).toHaveCount(1);
-  await expect(page.locator('.qr-brand-mark')).toHaveAttribute('src', '/ylp-logo-exact.svg');
+  await expect(page.locator('.qr-brand-mark')).toHaveAttribute('src', '/ylp-logo-icon.png');
   await expect(page.locator('.qr-visual')).toBeVisible();
   await expect(page.locator('.qr-scan-frame')).toBeVisible();
   await expect(page.locator('.qr-corner')).toHaveCount(4);

@@ -157,9 +157,14 @@ test('appearance branding includes configurable login welcome content', () => {
   assert.match(frontend, /branding\.login_welcome_title/);
   assert.match(frontend, /branding\.login_welcome_description/);
   assert.match(frontend, /branding\.login_welcome_button_text/);
+  assert.match(frontend, /name="scan_background_color"/);
+  assert.match(frontend, /name="scan_logo_url"/);
+  assert.match(frontend, /branding\.scan_logo_url/);
   assert.match(backend, /p_login_welcome_title/);
   assert.match(backend, /p_login_welcome_description/);
   assert.match(backend, /p_login_welcome_button_text/);
+  assert.match(backend, /p_scan_background_color/);
+  assert.match(backend, /p_scan_logo_url/);
 });
 
 test('branding migration keeps the privileged RPC service_role-only', () => {
@@ -170,7 +175,28 @@ test('branding migration keeps the privileged RPC service_role-only', () => {
   assert.match(migration, /login_welcome_title/);
   assert.match(migration, /login_welcome_description/);
   assert.match(migration, /login_welcome_button_text/);
+  assert.ok(migration.includes('revoke execute on function public.ylp_branding_update_v1'));
+  assert.match(migration, /from public, anon, authenticated/);
+  assert.match(migration, /to service_role/);
+});
+
+test('Scan QR branding migration adds safe color and asset settings', () => {
+  const migration = readFileSync(
+    new URL('../supabase/migrations/20261005020000_add_scan_qr_branding.sql', import.meta.url),
+    'utf8',
+  );
+  assert.match(migration, /scan_background_color/);
+  assert.match(migration, /scan_logo_url/);
+  assert.match(migration, /same-origin path or HTTPS URL/);
   assert.match(migration, /revoke execute on function public\.ylp_branding_update_v1/);
   assert.match(migration, /from public, anon, authenticated/);
   assert.match(migration, /to service_role/);
+});
+
+
+test('scan QR branding uses configurable background, logo, and muted footer colors', () => {
+  assert.match(styles, /\.qr-visual \{[\s\S]*?var\(--scan-background\)/);
+  assert.match(styles, /footer \{[\s\S]*?color: var\(--brand-muted\)/);
+  assert.doesNotMatch(styles, /\.welcome-panel p \{[\s\S]*?opacity: 0\.78/);
+  assert.match(frontend, /src="\$\{esc\(branding\.scan_logo_url\)\}"/);
 });

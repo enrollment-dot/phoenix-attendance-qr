@@ -28,6 +28,8 @@ export interface BrandingUpdateInput {
   login_welcome_title: string;
   login_welcome_description: string;
   login_welcome_button_text: string;
+  scan_background_color: string;
+  scan_logo_url: string;
   updated_by?: string;
 }
 export interface RateLimitDecision { allowed: boolean; limit: number; remaining: number; retry_after_seconds: number; window_started_at: string; }
