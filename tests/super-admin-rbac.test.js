@@ -188,7 +188,7 @@ test('Scan QR branding migration adds safe color and asset settings', () => {
   assert.match(migration, /scan_background_color/);
   assert.match(migration, /scan_logo_url/);
   assert.match(migration, /same-origin path or HTTPS URL/);
-  assert.match(migration, /revoke execute on function public\\.ylp_branding_update_v1/);
+  assert.match(migration, /revoke execute on function public\.ylp_branding_update_v1/);
   assert.match(migration, /from public, anon, authenticated/);
   assert.match(migration, /to service_role/);
 });
