@@ -920,6 +920,9 @@ export class SupabaseRpcBackend implements BackendAdapter {
       p_text_color: input.text_color,
       p_muted_text_color: input.muted_text_color,
       p_footer_text: input.footer_text,
+      p_login_welcome_title: input.login_welcome_title,
+      p_login_welcome_description: input.login_welcome_description,
+      p_login_welcome_button_text: input.login_welcome_button_text,
       p_updated_by: input.updated_by,
     });
     return {
@@ -1041,6 +1044,9 @@ export async function handleRequest(request: Request, backend: BackendAdapter, c
             'text_color',
             'muted_text_color',
             'footer_text',
+            'login_welcome_title',
+            'login_welcome_description',
+            'login_welcome_button_text',
           ].map((key) => [key, source[key] ?? null])),
         };
         break;
@@ -1059,6 +1065,9 @@ export async function handleRequest(request: Request, backend: BackendAdapter, c
         if (input.favicon_url !== undefined && input.favicon_url !== null && (typeof input.favicon_url !== 'string' || input.favicon_url.trim().length > 500)) throw new ValidationError('Invalid favicon URL.');
         for (const value of [input.primary_color, input.accent_color, input.sidebar_color, input.page_background, input.card_background, input.text_color, input.muted_text_color]) if (typeof value !== 'string' || !color.test(value)) throw new ValidationError('Invalid branding color.');
         if (typeof input.footer_text !== 'string' || input.footer_text.trim().length > 240) throw new ValidationError('Invalid footer text.');
+        if (typeof input.login_welcome_title !== 'string' || input.login_welcome_title.trim().length < 1 || input.login_welcome_title.trim().length > 160) throw new ValidationError('Invalid login welcome title.');
+        if (typeof input.login_welcome_description !== 'string' || input.login_welcome_description.trim().length < 1 || input.login_welcome_description.trim().length > 400) throw new ValidationError('Invalid login welcome description.');
+        if (typeof input.login_welcome_button_text !== 'string' || input.login_welcome_button_text.trim().length < 1 || input.login_welcome_button_text.trim().length > 80) throw new ValidationError('Invalid login welcome button text.');
         result = await backend.updateBranding({ ...input, updated_by: claims.sub });
         break;
       }
