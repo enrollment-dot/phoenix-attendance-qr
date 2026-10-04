@@ -141,3 +141,29 @@ test('admin removal keeps the safety guard but allows a remaining super_admin', 
   assert.match(migration, /active_admin_count = 0 and active_super_admin_count = 0/);
   assert.match(migration, /Cannot remove the last active admin/);
 });
+
+
+test('appearance branding includes configurable login welcome content', () => {
+  assert.match(frontend, /name="login_welcome_title"/);
+  assert.match(frontend, /name="login_welcome_description"/);
+  assert.match(frontend, /name="login_welcome_button_text"/);
+  assert.match(frontend, /branding\.login_welcome_title/);
+  assert.match(frontend, /branding\.login_welcome_description/);
+  assert.match(frontend, /branding\.login_welcome_button_text/);
+  assert.match(backend, /p_login_welcome_title/);
+  assert.match(backend, /p_login_welcome_description/);
+  assert.match(backend, /p_login_welcome_button_text/);
+});
+
+test('branding migration keeps the privileged RPC service_role-only', () => {
+  const migration = readFileSync(
+    new URL('../supabase/migrations/20261005010000_add_login_welcome_branding.sql', import.meta.url),
+    'utf8',
+  );
+  assert.match(migration, /login_welcome_title/);
+  assert.match(migration, /login_welcome_description/);
+  assert.match(migration, /login_welcome_button_text/);
+  assert.match(migration, /revoke execute on function public\.ylp_branding_update_v1/);
+  assert.match(migration, /from public, anon, authenticated/);
+  assert.match(migration, /to service_role/);
+});
