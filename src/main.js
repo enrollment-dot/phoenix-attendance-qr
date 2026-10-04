@@ -36,7 +36,7 @@ import {
 const root = document.querySelector('#app');
 const DEFAULT_BRANDING = {
   organization_name: 'Young Leadership Program', tagline: 'Learn. Lead. Build. Inspire', logo_url: '/ylp-logo-exact.svg', favicon_url: null,
-  primary_color: '#183E32', accent_color: '#72A93E', sidebar_color: '#152C2A', page_background: '#F5F7F6', card_background: '#FFFFFF', text_color: '#203833', muted_text_color: '#75827C', footer_text: 'Young Leadership Program · For facilitators and cohort members', login_welcome_title: 'Joining a Young Leadership Program cohort?', login_welcome_description: 'Open the QR shared by your facilitator. Choose Scan In when you arrive and Scan Out when you leave.', login_welcome_button_text: 'Scan a cohort QR',
+  primary_color: '#183E32', accent_color: '#72A93E', sidebar_color: '#152C2A', page_background: '#F5F7F6', card_background: '#FFFFFF', text_color: '#203833', muted_text_color: '#75827C', footer_text: 'Young Leadership Program · For facilitators and cohort members', login_welcome_title: 'Joining a Young Leadership Program cohort?', login_welcome_description: 'Open the QR shared by your facilitator. Choose Scan In when you arrive and Scan Out when you leave.', login_welcome_button_text: 'Scan a cohort QR', scan_background_color: '#FBFDF9', scan_logo_url: '/ylp-logo-icon.png',
 };
 let branding = { ...DEFAULT_BRANDING };
 let token = '',
@@ -69,6 +69,7 @@ function applyBranding() {
   style.setProperty('--brand-card', branding.card_background);
   style.setProperty('--brand-text', branding.text_color);
   style.setProperty('--brand-muted', branding.muted_text_color);
+  style.setProperty('--scan-background', branding.scan_background_color);
   document.title = branding.organization_name;
   let favicon = document.querySelector('link[rel="icon"]');
   if (!favicon) {
