@@ -571,7 +571,7 @@ input::placeholder {
 .qr-corner::after {
   content: "";
   position: absolute;
-  background: #72a93e;
+  background: var(--brand-primary);
   border-radius: 3px;
 }
 .qr-corner::before {
