@@ -25,6 +25,9 @@ export interface BrandingUpdateInput {
   text_color: string;
   muted_text_color: string;
   footer_text: string;
+  login_welcome_title: string;
+  login_welcome_description: string;
+  login_welcome_button_text: string;
   updated_by?: string;
 }
 export interface RateLimitDecision { allowed: boolean; limit: number; remaining: number; retry_after_seconds: number; window_started_at: string; }
