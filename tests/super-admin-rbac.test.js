@@ -145,7 +145,7 @@ test('admin removal keeps the safety guard but allows a remaining super_admin', 
 
 test('login welcome styling uses configurable branding colors', () => {
   assert.match(frontend, /\.welcome-panel \{[\s\S]*?color-mix\(in srgb, var\(--brand-primary\)/);
-  assert.match(frontend, /\.light \{[\s\S]*?background: var\(--brand-accent\)/);
+  assert.match(frontend, /\.light \{[\s\S]*?background: var\(--brand-accent\)/);\n  assert.match(frontend, /\.welcome-panel \.light \{[\s\S]*?color: #fff/);
 });
 
 test('appearance branding includes configurable login welcome content', () => {
