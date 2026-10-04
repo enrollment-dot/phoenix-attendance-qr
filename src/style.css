@@ -225,6 +225,10 @@ p {
   background: var(--brand-accent);
   color: var(--brand-sidebar);
 }
+
+.welcome-panel .light {
+  color: #fff;
+}
 .danger {
   color: #a43636;
   background: #fff2ef;
