@@ -31,23 +31,25 @@ create or replace function public.ylp_branding_update_v1(
   p_login_welcome_button_text text,
   p_updated_by uuid
 )
-returns jsonb
+returns public.branding_settings
 language plpgsql
 security definer
 set search_path = public
 as $$
 declare
-  v_result jsonb;
+  v_result public.branding_settings;
 begin
   if p_updated_by is null then
     raise exception 'updated_by is required';
   end if;
 
-  if length(trim(p_organization_name)) not between 1 and 120
-     or length(trim(p_tagline)) not between 1 and 160
-     or length(trim(p_logo_url)) not between 1 and 500
-     or length(coalesce(trim(p_favicon_url), '')) > 500
-     or length(trim(p_footer_text)) > 240
+  if length(trim(p_organization_name)) < 1
+     or length(p_organization_name) > 160
+     or length(p_tagline) > 240
+     or length(p_logo_url) < 1
+     or length(p_logo_url) > 2048
+     or (p_favicon_url is not null and length(p_favicon_url) > 2048)
+     or length(p_footer_text) > 240
      or length(trim(p_login_welcome_title)) not between 1 and 160
      or length(trim(p_login_welcome_description)) not between 1 and 400
      or length(trim(p_login_welcome_button_text)) not between 1 and 80 then
@@ -89,8 +91,7 @@ begin
       updated_at = now(),
       updated_by = p_updated_by
   where id = true
-  returning to_jsonb(branding_settings.*)
-  into v_result;
+  returning * into v_result;
 
   return v_result;
 end;
