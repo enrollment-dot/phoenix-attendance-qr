@@ -391,6 +391,7 @@ footer {
 .welcome-panel p {
   max-width: 360px;
   color: var(--brand-text);
+}
 .large-qr {
   font-size: 65px;
 }
