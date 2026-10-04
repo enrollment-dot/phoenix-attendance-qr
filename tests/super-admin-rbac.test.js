@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 const frontend = readFileSync(new URL('../src/main.js', import.meta.url), 'utf8');
+const styles = readFileSync(new URL('../src/style.css', import.meta.url), 'utf8');
 const backend = readFileSync(
   new URL('../supabase/functions/ylp-api/index.ts', import.meta.url),
   'utf8',
@@ -144,8 +145,9 @@ test('admin removal keeps the safety guard but allows a remaining super_admin', 
 
 
 test('login welcome styling uses configurable branding colors', () => {
-  assert.match(frontend, /\.welcome-panel \{[\s\S]*?color-mix\(in srgb, var\(--brand-primary\)/);
-  assert.match(frontend, /\.light \{[\s\S]*?background: var\(--brand-accent\)/);\n  assert.match(frontend, /\.welcome-panel \.light \{[\s\S]*?color: #fff/);
+  assert.match(styles, /\.welcome-panel \{[\s\S]*?color-mix\(in srgb, var\(--brand-primary\)/);
+  assert.match(styles, /\.light \{[\s\S]*?background: var\(--brand-accent\)/);
+  assert.match(styles, /\.welcome-panel \.light \{[\s\S]*?color: #fff/);
 });
 
 test('appearance branding includes configurable login welcome content', () => {
