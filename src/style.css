@@ -222,7 +222,7 @@ p {
   background: var(--brand-card);
 }
 .light {
-  background: #d8ef87;
+  background: var(--brand-accent);
   color: var(--brand-sidebar);
 }
 .danger {
@@ -376,7 +376,8 @@ footer {
   margin-top: 16px;
 }
 .welcome-panel {
-  background: #e6efda;
+  background: color-mix(in srgb, var(--brand-primary) 10%, var(--brand-card));
+  border: 1px solid color-mix(in srgb, var(--brand-primary) 18%, var(--brand-card));
   border-radius: 15px;
   padding: 36px;
 }
@@ -385,6 +386,8 @@ footer {
 }
 .welcome-panel p {
   max-width: 360px;
+  color: var(--brand-text);
+  opacity: 0.78;
 }
 .large-qr {
   font-size: 65px;
