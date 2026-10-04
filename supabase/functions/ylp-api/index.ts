@@ -923,6 +923,8 @@ export class SupabaseRpcBackend implements BackendAdapter {
       p_login_welcome_title: input.login_welcome_title,
       p_login_welcome_description: input.login_welcome_description,
       p_login_welcome_button_text: input.login_welcome_button_text,
+      p_scan_background_color: input.scan_background_color,
+      p_scan_logo_url: input.scan_logo_url,
       p_updated_by: input.updated_by,
     });
     return {
@@ -1047,6 +1049,8 @@ export async function handleRequest(request: Request, backend: BackendAdapter, c
             'login_welcome_title',
             'login_welcome_description',
             'login_welcome_button_text',
+            'scan_background_color',
+            'scan_logo_url',
           ].map((key) => [key, source[key] ?? null])),
         };
         break;
@@ -1068,6 +1072,8 @@ export async function handleRequest(request: Request, backend: BackendAdapter, c
         if (typeof input.login_welcome_title !== 'string' || input.login_welcome_title.trim().length < 1 || input.login_welcome_title.trim().length > 160) throw new ValidationError('Invalid login welcome title.');
         if (typeof input.login_welcome_description !== 'string' || input.login_welcome_description.trim().length < 1 || input.login_welcome_description.trim().length > 400) throw new ValidationError('Invalid login welcome description.');
         if (typeof input.login_welcome_button_text !== 'string' || input.login_welcome_button_text.trim().length < 1 || input.login_welcome_button_text.trim().length > 80) throw new ValidationError('Invalid login welcome button text.');
+        if (typeof input.scan_background_color !== 'string' || !color.test(input.scan_background_color)) throw new ValidationError('Invalid Scan QR background color.');
+        if (typeof input.scan_logo_url !== 'string' || input.scan_logo_url.trim().length < 1 || input.scan_logo_url.trim().length > 500) throw new ValidationError('Invalid Scan QR logo URL.');
         result = await backend.updateBranding({ ...input, updated_by: claims.sub });
         break;
       }
