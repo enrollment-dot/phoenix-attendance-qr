@@ -583,10 +583,10 @@ input::placeholder {
   width: 3px;
   height: 22px;
 }
-.qr-corner.top-left { left: 5px; top: 5px; }
-.qr-corner.top-right { right: 5px; top: 5px; transform: rotate(90deg); }
-.qr-corner.bottom-right { right: 5px; bottom: 5px; transform: rotate(180deg); }
-.qr-corner.bottom-left { left: 5px; bottom: 5px; transform: rotate(270deg); }
+.qr-corner.top-left { left: 25px; top: 25px; }
+.qr-corner.top-right { right: 25px; top: 25px; transform: rotate(90deg); }
+.qr-corner.bottom-right { right: 25px; bottom: 25px; transform: rotate(180deg); }
+.qr-corner.bottom-left { left: 25px; bottom: 25px; transform: rotate(270deg); }
 .qr-session-panel {
   width: min(100%, 410px);
   margin: 18px auto 0;
