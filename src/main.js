@@ -33,7 +33,6 @@ import {
   parseScan,
 } from './reports.js';
 // RBAC staging frontend deployment marker: 2026-09-24
-const YLA_LOGO_SRC = '/ylp-logo-exact.svg';
 const root = document.querySelector('#app');
 const DEFAULT_BRANDING = {
   organization_name: 'Young Leadership Program', tagline: 'Learn. Lead. Build. Inspire', logo_url: '/ylp-logo-exact.svg', favicon_url: null,
