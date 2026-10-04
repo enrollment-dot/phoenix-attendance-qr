@@ -37,6 +37,9 @@ async function mock(page, supportsRetries = true) {
     text_color: '#183E32',
     muted_text_color: '#6B7D78',
     footer_text: 'Young Leadership Program · For facilitators and cohort members',
+    login_welcome_title: 'Joining a Young Leadership Program cohort?',
+    login_welcome_description: 'Open the QR shared by your facilitator. Choose Scan In when you arrive and Scan Out when you leave.',
+    login_welcome_button_text: 'Scan a cohort QR',
   };
   let record = null;
   await page.route('**/__test_api', async (route) => {
@@ -116,6 +119,8 @@ test('cohort and facilitator terminology is shown in the main attendance UI', as
   await page.goto('/');
   await expect(page.getByText('FACILITATOR & ADMIN ACCESS')).toBeVisible();
   await expect(page.getByText('Joining a Young Leadership Program cohort?')).toBeVisible();
+  await expect(page.getByText('Open the QR shared by your facilitator. Choose Scan In when you arrive and Scan Out when you leave.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Scan a cohort QR' })).toBeVisible();
   await page.getByLabel('Username').fill('admin');
   await page.getByLabel('Password').fill('test-admin-password-123');
   await page.locator('#login button.primary').click();
@@ -166,11 +171,18 @@ test('appearance branding save consumes the API data without showing a response-
   await page.getByRole('heading', { name: 'Appearance & Branding' }).waitFor();
   await expect(page.getByLabel('Organization name')).toHaveValue('Young Leadership Program');
   await expect(page.getByLabel('Tagline')).toHaveValue('Learn. Lead. Build. Inspire');
+  await expect(page.getByLabel('Login welcome title')).toHaveValue('Joining a Young Leadership Program cohort?');
+  await expect(page.getByLabel('Login welcome description')).toHaveValue('Open the QR shared by your facilitator. Choose Scan In when you arrive and Scan Out when you leave.');
+  await expect(page.getByLabel('Login welcome button text')).toHaveValue('Scan a cohort QR');
 
   await page.getByLabel('Tagline').fill('Learn. Lead. Build. Inspire · Test');
+  await page.getByLabel('Login welcome title').fill('Join your YLP cohort');
+  await page.getByLabel('Login welcome button text').fill('Open cohort scanner');
   await page.getByRole('button', { name: 'Save changes' }).click();
 
   await expect(page.getByLabel('Tagline')).toHaveValue('Learn. Lead. Build. Inspire · Test');
+  await expect(page.getByLabel('Login welcome title')).toHaveValue('Join your YLP cohort');
+  await expect(page.getByLabel('Login welcome button text')).toHaveValue('Open cohort scanner');
   await expect(page.locator('#notice')).not.toContainText('unexpected response');
 
   await page.reload();
