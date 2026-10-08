@@ -382,34 +382,17 @@ function createForm() {
 }
 async function showQr(s) {
   frame(
-    `<div class="page-title"><div><p class="eyebrow">SESSION QR</p><h1>${esc(s.course)}</h1><p>${esc(sessionLabel(s, data.settings.offset))}</p></div><button id="back" class="secondary">← Back to overview</button></div><section class="card qr-card"><div class="qr-status"><span class="badge present">${esc(s.status)}</span></div><div class="qr-visual"><div class="qr-brand"><img class="qr-brand-mark" src="${esc(branding.scan_logo_url)}" alt="" /><strong>YLP</strong><span>Learn. Lead. Build. Inspire</span></div><div class="qr-code-wrap"><div class="qr-scan-frame"><span class="qr-corner top-left" aria-hidden="true"></span><span class="qr-corner top-right" aria-hidden="true"></span><span class="qr-corner bottom-left" aria-hidden="true"></span><span class="qr-corner bottom-right" aria-hidden="true"></span><canvas id="qr" aria-label="Cohort attendance QR code"></canvas></div></div></div><div class="qr-session-panel"><h2 class="qr-session-name">${esc(s.course)}</h2><h3 class="qr-attendance-title">Record your attendance</h3></div><div class="qr-instructions"><span class="qr-instructions-icon" aria-hidden="true">▯</span><p>Open your phone camera and point it at this QR.<br>Enter your cohort member name and cohort ID, then choose Scan In or Scan Out.</p></div><div class="actions"><button id="copy" class="primary">↗ &nbsp; Copy cohort link</button><button id="download" class="secondary">↓ &nbsp; Download QR</button>${s.status === 'active' ? '<button id="close" class="danger">Close session</button>' : role === 'super_admin' ? '<button id="delete-session" class="danger">Delete session</button>' : ''}</div><p class="helper">Share this QR only with YLP members in this YLP cohort. It gives access to this session.</p></section>`,
+    `<div class="page-title"><div><p class="eyebrow">SESSION QR</p><h1>${esc(s.course)}</h1><p>${esc(sessionLabel(s, data.settings.offset))}</p></div><button id="back" class="secondary">← Back to overview</button></div><section class="card qr-card"><div class="qr-status"><span class="badge present">${esc(s.status)}</span></div><div class="qr-visual"><div class="qr-brand"><img class="qr-brand-mark" src="${esc(branding.scan_logo_url)}" alt="" /><strong>YLP</strong><span>Learn. Lead. Build. Inspire</span></div><div class="qr-code-wrap"><div class="qr-scan-frame"><canvas id="qr" aria-label="Cohort attendance QR code"></canvas></div></div></div><div class="qr-session-panel"><h2 class="qr-session-name">${esc(s.course)}</h2><h3 class="qr-attendance-title">Record your attendance</h3></div><div class="qr-instructions"><span class="qr-instructions-icon" aria-hidden="true">▯</span><p>Open your phone camera and point it at this QR.<br>Enter your cohort member name and cohort ID, then choose Scan In or Scan Out.</p></div><div class="actions"><button id="copy" class="primary">↗ &nbsp; Copy cohort link</button><button id="download" class="secondary">↓ &nbsp; Download QR</button>${s.status === 'active' ? '<button id="close" class="danger">Close session</button>' : role === 'super_admin' ? '<button id="delete-session" class="danger">Delete session</button>' : ''}</div><p class="helper">Share this QR only with YLP members in this YLP cohort. It gives access to this session.</p></section>`,
   );  const current = pageGuard();
   document.querySelector('#back').onclick = dashboard;
   const canvas = document.querySelector('#qr');
-  const qrFrame = document.querySelector('.qr-scan-frame');
-  const qrOptions = {
+  await QRCode.toCanvas(canvas, scanLink(s), {
     width: 320,
     margin: 4,
     errorCorrectionLevel: 'H',
     color: { dark: '#152c2a', light: '#ffffff' },
-  };
-  const qr = QRCode.create(scanLink(s), {
-    errorCorrectionLevel: qrOptions.errorCorrectionLevel,
   });
-  await QRCode.toCanvas(canvas, scanLink(s), qrOptions);
   if (!current()) return;
-
-  const updateQrCornerOffset = () => {
-    if (!canvas.isConnected || !qrFrame.isConnected) return;
-    const displayedWidth = canvas.getBoundingClientRect().width;
-    const moduleCount = qr.modules.size;
-    const quietZone = (qrOptions.margin * displayedWidth) / (moduleCount + qrOptions.margin * 2);
-    qrFrame.style.setProperty('--qr-quiet-zone', `${quietZone}px`);
-  };
-  updateQrCornerOffset();
-  const qrResizeObserver = new ResizeObserver(updateQrCornerOffset);
-  qrResizeObserver.observe(canvas);
-
   document.querySelector('#copy').onclick = (e) =>
     busy(e.target, async () => {
       await navigator.clipboard.writeText(scanLink(s));

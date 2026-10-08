@@ -302,7 +302,7 @@ test('cohort QR uses the YLP branded layout without an embedded logo', async ({ 
   await expect(page.locator('.qr-brand-mark')).toHaveAttribute('src', '/ylp-logo-icon.png');
   await expect(page.locator('.qr-visual')).toBeVisible();
   await expect(page.locator('.qr-scan-frame')).toBeVisible();
-  await expect(page.locator('.qr-corner')).toHaveCount(4);
+  await expect(page.locator('.qr-corner')).toHaveCount(0);
   await expect(page.locator('.qr-brand strong')).toHaveText('YLP');
   await expect(page.locator('.qr-brand span')).toHaveText('Learn. Lead. Build. Inspire');
   const logoAsset = await page.request.get('/ylp-logo-exact.svg?v=ylp-v10');
