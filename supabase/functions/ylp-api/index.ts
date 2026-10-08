@@ -908,7 +908,7 @@ export class SupabaseRpcBackend implements BackendAdapter {
 
   async updateBranding(input: BrandingUpdateInput): Promise<unknown> {
     const result = await this.rpc('ylp_branding_update_v1', {
-      p_organization_name: input.organization_name,
+      p_org_name: input.organization_name,
       p_tagline: input.tagline,
       p_logo_url: input.logo_url,
       p_favicon_url: input.favicon_url ?? null,
