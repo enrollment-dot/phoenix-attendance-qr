@@ -549,7 +549,7 @@ input::placeholder {
 }
 .qr-scan-frame {
   position: relative;
-  padding: 5px;
+  padding: 0;
   border-radius: 15px;
   background: var(--brand-card)fff;
   box-shadow: inset 0 0 0 1px #eef4eb;
@@ -583,10 +583,10 @@ input::placeholder {
   width: 3px;
   height: 22px;
 }
-.qr-corner.top-left { left: 25px; top: 25px; }
-.qr-corner.top-right { right: 25px; top: 25px; transform: rotate(90deg); }
-.qr-corner.bottom-right { right: 25px; bottom: 25px; transform: rotate(180deg); }
-.qr-corner.bottom-left { left: 25px; bottom: 25px; transform: rotate(270deg); }
+.qr-corner.top-left { left: 0; top: 0; }
+.qr-corner.top-right { right: 0; top: 0; transform: rotate(90deg); }
+.qr-corner.bottom-right { right: 0; bottom: 0; transform: rotate(180deg); }
+.qr-corner.bottom-left { left: 0; bottom: 0; transform: rotate(270deg); }
 .qr-session-panel {
   width: min(100%, 410px);
   margin: 18px auto 0;
