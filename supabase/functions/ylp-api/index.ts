@@ -918,7 +918,7 @@ export class SupabaseRpcBackend implements BackendAdapter {
       p_page_background: input.page_background,
       p_card_background: input.card_background,
       p_text_color: input.text_color,
-      p_muted_text_color: input.muted_text_color,
+      p_muted_color: input.muted_text_color,
       p_footer_text: input.footer_text,
       p_login_welcome_title: input.login_welcome_title,
       p_login_welcome_description: input.login_welcome_description,
