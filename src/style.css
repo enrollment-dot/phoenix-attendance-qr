@@ -583,10 +583,10 @@ input::placeholder {
   width: 3px;
   height: 22px;
 }
-.qr-corner.top-left { left: 0; top: 0; }
-.qr-corner.top-right { right: 0; top: 0; transform: rotate(90deg); }
-.qr-corner.bottom-right { right: 0; bottom: 0; transform: rotate(180deg); }
-.qr-corner.bottom-left { left: 0; bottom: 0; transform: rotate(270deg); }
+.qr-corner.top-left { left: var(--qr-quiet-zone, 24px); top: var(--qr-quiet-zone, 24px); }
+.qr-corner.top-right { right: var(--qr-quiet-zone, 24px); top: var(--qr-quiet-zone, 24px); transform: rotate(90deg); }
+.qr-corner.bottom-right { right: var(--qr-quiet-zone, 24px); bottom: var(--qr-quiet-zone, 24px); transform: rotate(180deg); }
+.qr-corner.bottom-left { left: var(--qr-quiet-zone, 24px); bottom: var(--qr-quiet-zone, 24px); transform: rotate(270deg); }
 .qr-session-panel {
   width: min(100%, 410px);
   margin: 18px auto 0;
