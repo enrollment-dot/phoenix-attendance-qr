@@ -119,9 +119,9 @@ end;
 $$;
 
 revoke execute on function public.ylp_branding_update_v1(
-  text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, uuid
+  text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, uuid
 ) from public, anon, authenticated;
 
 grant execute on function public.ylp_branding_update_v1(
-  text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, uuid
+  text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, uuid
 ) to service_role;
