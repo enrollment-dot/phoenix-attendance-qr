@@ -386,13 +386,29 @@ async function showQr(s) {
   );  const current = pageGuard();
   document.querySelector('#back').onclick = dashboard;
   const canvas = document.querySelector('#qr');
-  await QRCode.toCanvas(canvas, scanLink(s), {
+  const qrFrame = document.querySelector('.qr-scan-frame');
+  const qrOptions = {
     width: 320,
     margin: 4,
     errorCorrectionLevel: 'H',
     color: { dark: '#152c2a', light: '#ffffff' },
+  };
+  const qr = QRCode.create(scanLink(s), {
+    errorCorrectionLevel: qrOptions.errorCorrectionLevel,
   });
+  await QRCode.toCanvas(canvas, scanLink(s), qrOptions);
   if (!current()) return;
+
+  const updateQrCornerOffset = () => {
+    if (!canvas.isConnected || !qrFrame.isConnected) return;
+    const displayedWidth = canvas.getBoundingClientRect().width;
+    const moduleCount = qr.modules.size;
+    const quietZone = (qrOptions.margin * displayedWidth) / (moduleCount + qrOptions.margin * 2);
+    qrFrame.style.setProperty('--qr-quiet-zone', `${quietZone}px`);
+  };
+  updateQrCornerOffset();
+  const qrResizeObserver = new ResizeObserver(updateQrCornerOffset);
+  qrResizeObserver.observe(canvas);
 
   document.querySelector('#copy').onclick = (e) =>
     busy(e.target, async () => {
