@@ -118,16 +118,20 @@ function frame(content, attendee = false) {
           return;
         }
         const auth = token;
+        let refreshFailed = false;
         try {
           const freshStudents = await api('students', {}, auth);
           if (auth !== token || view !== 'students' || !data) return;
           if (!Array.isArray(freshStudents)) throw new Error('The roster response was invalid.');
           data = { ...data, students: freshStudents };
-        } catch (error) {
+        } catch {
           if (auth !== token || view !== 'students') return;
-          notice('Could not refresh the cohort roster. Showing the last loaded data.');
+          refreshFailed = true;
         }
-        if (auth === token && view === 'students') render();
+        if (auth === token && view === 'students') {
+          render();
+          if (refreshFailed) notice('Could not refresh the cohort roster. Showing the last loaded data.');
+        }
       }),
   );
   root.querySelector('#logout')?.addEventListener('click', async () => {
