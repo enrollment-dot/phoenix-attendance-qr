@@ -200,3 +200,14 @@ test('scan QR branding uses configurable background, logo, and muted footer colo
   assert.doesNotMatch(styles, /\.welcome-panel p \{[\s\S]*?opacity: 0\.78/);
   assert.match(frontend, /src="\$\{esc\(branding\.scan_logo_url\)\}"/);
 });
+
+
+test('backend normalizes a blank optional favicon URL to null before the branding RPC', () => {
+  const start = backend.indexOf("case 'updateBranding'");
+  const end = backend.indexOf("\\n      case ", start + 1);
+  const block = backend.slice(start, end === -1 ? backend.length : end);
+  assert.match(
+    block,
+    /favicon_url: typeof input\\.favicon_url === 'string' && !input\\.favicon_url\\.trim\\(\\) \\? null : input\\.favicon_url \\?\\? null/,
+  );
+});
