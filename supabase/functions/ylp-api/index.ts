@@ -1074,7 +1074,7 @@ export async function handleRequest(request: Request, backend: BackendAdapter, c
         if (typeof input.login_welcome_button_text !== 'string' || input.login_welcome_button_text.trim().length < 1 || input.login_welcome_button_text.trim().length > 80) throw new ValidationError('Invalid login welcome button text.');
         if (typeof input.scan_background_color !== 'string' || !color.test(input.scan_background_color)) throw new ValidationError('Invalid Scan QR background color.');
         if (typeof input.scan_logo_url !== 'string' || input.scan_logo_url.trim().length < 1 || input.scan_logo_url.trim().length > 500) throw new ValidationError('Invalid Scan QR logo URL.');
-        result = await backend.updateBranding({ ...input, updated_by: claims.sub });
+        result = await backend.updateBranding({ ...input, favicon_url: typeof input.favicon_url === 'string' && !input.favicon_url.trim() ? null : input.favicon_url ?? null, updated_by: claims.sub });
         break;
       }
       case 'adminAccounts':
