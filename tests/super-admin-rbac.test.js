@@ -210,3 +210,12 @@ test('backend normalizes a blank optional favicon URL to null before the brandin
   assert.ok(block.includes("!input.favicon_url.trim() ? null"));
   assert.ok(block.includes("input.favicon_url ?? null"));
 });
+
+
+test('branding RPC update targets the singleton settings row explicitly', () => {
+  const migration = readFileSync(
+    new URL('../supabase/migrations/20261009003000_reconcile_branding_update_rpc.sql', import.meta.url),
+    'utf8',
+  );
+  assert.match(migration, /update public\\.branding_settings[\\s\\S]*?where id = true[\\s\\S]*?returning \\* into v_result;/);
+});
