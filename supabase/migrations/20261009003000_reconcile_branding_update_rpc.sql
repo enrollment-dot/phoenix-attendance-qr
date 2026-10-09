@@ -112,6 +112,7 @@ begin
       scan_logo_url = p_scan_logo_url,
       updated_by = p_updated_by,
       updated_at = now()
+  where id = true
   returning * into v_result;
 
   return v_result;
