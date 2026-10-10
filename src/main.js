@@ -111,9 +111,27 @@ function frame(content, attendee = false) {
   );
   root.querySelectorAll('[data-nav]').forEach(
     (b) =>
-      (b.onclick = () => {
+      (b.onclick = async () => {
         view = b.dataset.nav;
-        render();
+        if (view !== 'students' || !token || !data) {
+          render();
+          return;
+        }
+        const auth = token;
+        let refreshFailed = false;
+        try {
+          const freshStudents = await api('students', {}, auth);
+          if (auth !== token || view !== 'students' || !data) return;
+          if (!Array.isArray(freshStudents)) throw new Error('The roster response was invalid.');
+          data = { ...data, students: freshStudents };
+        } catch {
+          if (auth !== token || view !== 'students') return;
+          refreshFailed = true;
+        }
+        if (auth === token && view === 'students') {
+          render();
+          if (refreshFailed) notice('Could not refresh the cohort roster. Showing the last loaded data.');
+        }
       }),
   );
   root.querySelector('#logout')?.addEventListener('click', async () => {
@@ -441,9 +459,11 @@ async function showQr(s) {
 }
 function students() {
   const students = Array.isArray(data?.students) ? [...data.students] : [];
+  const activeCount = students.filter((student) => student.active === true).length;
+  const inactiveCount = students.length - activeCount;
   let filtered = students;
   frame(
-    `<div class="page-title"><div><p class="eyebrow">YLP ROSTER</p><h1>YLP</h1><p>Manage the YLP roster used for attendance validation.</p></div><div class="actions"><button class="secondary" id="import">Import CSV</button><button class="primary" id="add">＋ Add YLP member</button></div></div><section class="card"><div class="section-title"><div><h2>YLP roster</h2><p>Active YLP members can Scan In and Scan Out. Deactivated YLP members remain in attendance history.</p></div><label class="search-field">Search<input id="student-search" type="search" placeholder="ID or name"></label></div><div id="student-editor"></div><div class="table-wrap"><table><thead><tr><th>Cohort ID</th><th>Name</th><th>Email</th><th>Enrolled from</th><th>Status</th><th>Action</th></tr></thead><tbody id="student-rows"></tbody></table></div><input id="csv-input" type="file" accept=".csv,text/csv" hidden></section>${role === 'super_admin' ? '<dialog id="delete-student-dialog" class="confirm-dialog"><form method="dialog" id="delete-student-form"><span class="step">DESTRUCTIVE ACTION</span><h2>Delete cohort member?</h2><p>This permanently deletes <strong data-delete-student-name></strong> and the cohort member attendance history. Enter the <strong>super admin username and password</strong> you used to sign in.</p><label>Username<input name="username" type="text" autocomplete="username" required></label><label>Password<input name="password" type="password" autocomplete="current-password" required minlength="16"></label><div class="actions"><button type="button" class="secondary" id="delete-student-cancel">Cancel</button><button type="submit" class="danger" id="delete-student-confirm">Delete permanently</button></div></form></dialog>' : ''}`,
+    `<div class="page-title"><div><p class="eyebrow">YLP ROSTER</p><h1>YLP</h1><p>Manage the YLP roster used for attendance validation.</p></div><div class="actions"><button class="secondary" id="import">Import CSV</button><button class="primary" id="add">＋ Add YLP member</button></div></div><div class="stats report-stats"><div class="card"><span>Total Cohort</span><strong>${students.length}</strong><small>All roster members</small></div><div class="card"><span>Active</span><strong>${activeCount}</strong><small>Eligible to Scan In and Scan Out</small></div><div class="card"><span>Inactive</span><strong>${inactiveCount}</strong><small>Remain in attendance history</small></div></div><section class="card"><div class="section-title"><div><h2>YLP roster</h2><p>Active YLP members can Scan In and Scan Out. Deactivated YLP members remain in attendance history.</p></div><label class="search-field">Search<input id="student-search" type="search" placeholder="ID or name"></label></div><div id="student-editor"></div><div class="table-wrap"><table><thead><tr><th>Cohort ID</th><th>Name</th><th>Email</th><th>Enrolled from</th><th>Status</th><th>Action</th></tr></thead><tbody id="student-rows"></tbody></table></div><input id="csv-input" type="file" accept=".csv,text/csv" hidden></section>${role === 'super_admin' ? '<dialog id="delete-student-dialog" class="confirm-dialog"><form method="dialog" id="delete-student-form"><span class="step">DESTRUCTIVE ACTION</span><h2>Delete cohort member?</h2><p>This permanently deletes <strong data-delete-student-name></strong> and the cohort member attendance history. Enter the <strong>super admin username and password</strong> you used to sign in.</p><label>Username<input name="username" type="text" autocomplete="username" required></label><label>Password<input name="password" type="password" autocomplete="current-password" required minlength="16"></label><div class="actions"><button type="button" class="secondary" id="delete-student-cancel">Cancel</button><button type="submit" class="danger" id="delete-student-confirm">Delete permanently</button></div></form></dialog>' : ''}`,
   );
   const rows = document.querySelector('#student-rows');
   const editor = document.querySelector('#student-editor');
