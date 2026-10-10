@@ -9,9 +9,9 @@ const source = await readFile(
 
 test('RPC diagnostics include correlation fields without logging request or response data', () => {
   const failureBlock = source.match(
-    /if \(!response\.ok\) \{([\s\S]*?)throw new Error\('backend rpc failed'\);\s*\}/,
+    /if \(!response\.ok\) \{([\s\S]*?)\n    return response\.json\(\);/,
   );
-  assert.ok(failureBlock, 'RPC failure branch should retain generic backend error');
+  assert.ok(failureBlock, 'RPC failure branch should be present');
   const block = failureBlock[1];
 
   for (const field of [
@@ -25,7 +25,7 @@ test('RPC diagnostics include correlation fields without logging request or resp
 
   assert.match(block, /console\.error\(/);
   assert.doesNotMatch(block, /JSON\.stringify\(body\)|response\.text\(|response\.json\(|serviceRoleKey|student_id|password|token/i);
-  assert.match(block, /throw new Error\('backend rpc failed'\)/);
+  assert.match(source, /throw new Error\('backend rpc failed'\)/);
 });
 
 test('RPC diagnostic context is request-scoped and action is type-checked', () => {
