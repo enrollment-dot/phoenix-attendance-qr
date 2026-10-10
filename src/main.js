@@ -118,19 +118,33 @@ function frame(content, attendee = false) {
           return;
         }
         const auth = token;
-        let refreshFailed = false;
+        let refreshFailureReason = '';
         try {
           const freshStudents = await api('students', {}, auth);
           if (auth !== token || view !== 'students' || !data) return;
-          if (!Array.isArray(freshStudents)) throw new Error('The roster response was invalid.');
+          if (!Array.isArray(freshStudents)) {
+            const error = new Error('The roster response was invalid.');
+            error.kind = 'response';
+            throw error;
+          }
           data = { ...data, students: freshStudents };
-        } catch {
+        } catch (error) {
           if (auth !== token || view !== 'students') return;
-          refreshFailed = true;
+          const safeReasons = {
+            configuration: 'API configuration is unavailable',
+            timeout: 'the request timed out',
+            transport: 'the connection failed',
+            http: 'the service returned an HTTP error',
+            response: 'the service returned an invalid response',
+            server: 'the service rejected the request',
+          };
+          refreshFailureReason = safeReasons[error?.kind] || 'the failure reason is unavailable';
         }
         if (auth === token && view === 'students') {
           render();
-          if (refreshFailed) notice('Could not refresh the cohort roster. Showing the last loaded data.');
+          if (refreshFailureReason) {
+            notice(`Could not refresh the cohort roster. Showing the last loaded data. Reason: ${refreshFailureReason}.`);
+          }
         }
       }),
   );
