@@ -16,6 +16,7 @@ import type {
   BrandingUpdateInput,
 } from './types.ts';
 import { UnknownBehaviorError } from './types.ts';
+import { isAllowedOrigin, resolveCorsOrigin } from './cors.js';
 
 const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const STUDENT_ID = /^[a-zA-Z0-9_-]+$/;
@@ -949,13 +950,17 @@ function resolveAllowedOrigin(request: Request, config: EdgeConfig): string {
   if (!allowedOrigins.length) throw new ValidationError('Origin is not allowed.');
   const requestOrigin = request.headers.get('origin');
   if (!requestOrigin) return allowedOrigins[0];
-  if (!allowedOrigins.includes(requestOrigin)) throw new ValidationError('Origin is not allowed.');
+  if (!isAllowedOrigin(requestOrigin, allowedOrigins, config.allowVercelPreviewOrigins === true)) {
+    throw new ValidationError('Origin is not allowed.');
+  }
   return requestOrigin;
 }
 
 export async function handleRequest(request: Request, backend: BackendAdapter, config: EdgeConfig): Promise<Response> {
   const responseOrigin = request.headers.get('origin');
-  const allowedOrigin = responseOrigin ? parseAllowedOrigins(config.allowedOrigin).find((origin) => origin === responseOrigin) ?? '' : parseAllowedOrigins(config.allowedOrigin)[0] ?? '';
+  const allowedOrigin = responseOrigin
+    ? resolveCorsOrigin(responseOrigin, parseAllowedOrigins(config.allowedOrigin), config.allowVercelPreviewOrigins === true)
+    : parseAllowedOrigins(config.allowedOrigin)[0] ?? '';
   if (request.method === 'OPTIONS') {
     if (!allowedOrigin) return new Response(null, { status: 403, headers: { vary: 'Origin' } });
     return new Response(null, { status: 204, headers: {
@@ -1247,6 +1252,7 @@ if (import.meta.main) {
   const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
   const allowedOrigin = Deno.env.get('YLP_ALLOWED_ORIGIN');
+  const allowVercelPreviewOrigins = Deno.env.get('YLP_ALLOW_VERCEL_PREVIEW_ORIGINS') === 'true';
   const authIssuer = Deno.env.get('SUPABASE_JWT_ISSUER') || `${supabaseUrl}/auth/v1`;
   const authAudience = Deno.env.get('SUPABASE_JWT_AUDIENCE') || 'authenticated';
   const authJwksUrl = Deno.env.get('SUPABASE_JWKS_URL') || `${supabaseUrl}/auth/v1/.well-known/jwks.json`;
@@ -1272,6 +1278,7 @@ if (import.meta.main) {
     sessionTimeOffset,
     qrKeyring: parseQrKeyring(qrKeysJson, qrKeyId),
     allowedOrigin,
+    allowVercelPreviewOrigins,
     rateLimitHmacSecret,
     migrationMode,
   };
