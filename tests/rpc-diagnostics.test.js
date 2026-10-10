@@ -30,6 +30,10 @@ test('RPC diagnostics include correlation fields without logging request or resp
 
 test('RPC diagnostic context is request-scoped and action is type-checked', () => {
   assert.match(source, /const diagnosticId = crypto\.randomUUID\(\)/);
+  const contextPosition = source.indexOf('backend.setDiagnosticContext(diagnosticId, typeof body.action === \'string\' ? body.action : \'unknown\')');
+  const dispatchPosition = source.indexOf('switch (body.action)', contextPosition);
+  assert.ok(contextPosition >= 0, 'request diagnostic context should be attached');
+  assert.ok(dispatchPosition > contextPosition, 'context must be attached before action dispatch and RPC calls');
   assert.match(
     source,
     /backend\.setDiagnosticContext\(diagnosticId, typeof body\.action === 'string' \? body\.action : 'unknown'\)/,
