@@ -1,0 +1,37 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+
+const source = await readFile(
+  new URL('../supabase/functions/ylp-api/index.ts', import.meta.url),
+  'utf8',
+);
+
+test('RPC diagnostics include correlation fields without logging request or response data', () => {
+  const failureBlock = source.match(
+    /if \(!response\.ok\) \{([\s\S]*?)throw new Error\('backend rpc failed'\);\s*\}/,
+  );
+  assert.ok(failureBlock, 'RPC failure branch should retain generic backend error');
+  const block = failureBlock[1];
+
+  for (const field of [
+    'diagnostic_id: this.diagnosticId',
+    'action: this.diagnosticAction',
+    'rpc: name',
+    'http_status: response.status',
+  ]) {
+    assert.ok(block.includes(field), `RPC diagnostic should include ${field}`);
+  }
+
+  assert.match(block, /console\.error\(/);
+  assert.doesNotMatch(block, /JSON\.stringify\(body\)|response\.text\(|response\.json\(|serviceRoleKey|student_id|password|token/i);
+  assert.match(block, /throw new Error\('backend rpc failed'\)/);
+});
+
+test('RPC diagnostic context is request-scoped and action is type-checked', () => {
+  assert.match(source, /const diagnosticId = crypto\.randomUUID\(\)/);
+  assert.match(
+    source,
+    /backend\.setDiagnosticContext\(diagnosticId, typeof body\.action === 'string' \? body\.action : 'unknown'\)/,
+  );
+});
