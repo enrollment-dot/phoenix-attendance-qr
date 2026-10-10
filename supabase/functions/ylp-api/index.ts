@@ -724,7 +724,15 @@ function requirePayload(request: ApiRequest): Record<string, unknown> {
 
 /** Supabase Auth/PostgREST adapter. */
 export class SupabaseRpcBackend implements BackendAdapter {
+  private diagnosticId = 'unassigned';
+  private diagnosticAction = 'unknown';
+
   constructor(private readonly config: EdgeConfig) {}
+
+  setDiagnosticContext(requestId: string, action: string): void {
+    this.diagnosticId = requestId;
+    this.diagnosticAction = action;
+  }
 
   private async rpc(name: string, body: Record<string, unknown>): Promise<unknown> {
     const response = await fetch(`${this.config.supabaseUrl}/rest/v1/rpc/${name}`, { method: 'POST', headers: {
@@ -732,7 +740,16 @@ export class SupabaseRpcBackend implements BackendAdapter {
       authorization: `Bearer ${this.config.supabaseServiceRoleKey}`,
       'content-type': 'application/json',
     }, body: JSON.stringify(body) });
-    if (!response.ok) throw new Error('backend rpc failed');
+    if (!response.ok) {
+      // Never log RPC bodies, response bodies, credentials, or student data.
+      console.error('[ylp-api] RPC request failed', {
+        diagnostic_id: this.diagnosticId,
+        action: this.diagnosticAction,
+        rpc: name,
+        http_status: response.status,
+      });
+      throw new Error('backend rpc failed');
+    }
     return response.json();
   }
 
@@ -957,6 +974,7 @@ function resolveAllowedOrigin(request: Request, config: EdgeConfig): string {
 }
 
 export async function handleRequest(request: Request, backend: BackendAdapter, config: EdgeConfig): Promise<Response> {
+  const diagnosticId = crypto.randomUUID();
   const responseOrigin = request.headers.get('origin');
   const allowedOrigin = responseOrigin
     ? resolveCorsOrigin(responseOrigin, parseAllowedOrigins(config.allowedOrigin), config.allowVercelPreviewOrigins === true)
@@ -973,6 +991,9 @@ export async function handleRequest(request: Request, backend: BackendAdapter, c
     const resolvedOrigin = resolveAllowedOrigin(request, config);
     if (request.method !== 'POST') throw new ValidationError('Request method is not allowed.');
     const body = await request.json() as ApiRequest;
+    if (backend instanceof SupabaseRpcBackend) {
+      backend.setDiagnosticContext(diagnosticId, typeof body.action === 'string' ? body.action : 'unknown');
+    }
     const payload = requirePayload(body);
     const token = typeof body.token === 'string' ? body.token : '';
     let result: ApiResponse | unknown;
