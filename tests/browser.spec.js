@@ -23,7 +23,7 @@ const row = {
   status: 'Present',
   updated_at: '2026-09-15T03:00:00Z',
 };
-async function mock(page, supportsRetries = true) {
+async function mock(page, supportsRetries = true, studentsRefreshFails = false) {
   let branding = {
     organization_name: 'Young Leadership Program',
     tagline: 'Learn. Lead. Build. Inspire',
@@ -67,6 +67,13 @@ async function mock(page, supportsRetries = true) {
           },
           now: '2026-09-16T00:00:00Z',
         };
+        break;
+      case 'students':
+        if (studentsRefreshFails) error = 'Roster refresh failed for test.';
+        else data = [
+          { student_id: 'S001', name: 'Alex Morgan', active: true },
+          { student_id: 'S002', name: 'Jamie', active: false },
+        ];
         break;
       case 'createSession':
         data = { ...session, ...r.payload, session_id: r.payload.request_id };
@@ -453,4 +460,24 @@ test('attendance report describes the roster as eligible rather than active', as
   await expect(page.getByText('Active cohort members in the selected view')).toHaveCount(0);
   await expect(page.getByText('The eligible cohort roster is used as the session denominator.')).toBeVisible();
   await expect(page.getByText('The active roster is used as the session denominator.')).toHaveCount(0);
+});
+
+test('cohort roster never labels missing status as inactive when refresh fails', async ({ page }) => {
+  await mock(page, true, true);
+  await page.goto('/');
+  await page.getByLabel('Username').fill('admin');
+  await page.getByLabel('Password').fill('test-admin-password-123');
+  await page.locator('#login button.primary').click();
+  await page.getByText('Cohort overview').waitFor();
+  await page.locator('[data-nav="students"]').click();
+
+  await expect(page.getByRole('status')).toContainText('Could not refresh the cohort roster.');
+  await expect(page.getByText('Status unknown', { exact: true })).toBeVisible();
+  await expect(page.getByText('35', { exact: true })).toHaveCount(0);
+  await expect(page.getByText('Unknown', { exact: true }).first()).toBeVisible();
+  await expect(page.locator('#student-rows .badge.absent')).toHaveCount(0);
+  await expect(page.getByText('Status unavailable').first()).toBeVisible();
+  await expect(page.locator('#student-rows [data-edit]')).toHaveCount(0);
+  await expect(page.locator('#student-rows [data-toggle]')).toHaveCount(0);
+  await expect(page.locator('#student-rows [data-delete]')).toHaveCount(0);
 });
