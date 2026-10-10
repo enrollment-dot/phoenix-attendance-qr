@@ -475,6 +475,6 @@ test('cohort roster never labels missing status as inactive when refresh fails',
   await expect(page.getByText('Status unknown', { exact: true })).toBeVisible();
   await expect(page.getByText('35', { exact: true })).toHaveCount(0);
   await expect(page.getByText('Unknown', { exact: true }).first()).toBeVisible();
-  await expect(page.getByText('Inactive', { exact: true })).toHaveCount(0);
+  await expect(page.locator('#student-rows .badge.absent')).toHaveCount(0);
   await expect(page.getByText('Status unavailable').first()).toBeVisible();
 });
