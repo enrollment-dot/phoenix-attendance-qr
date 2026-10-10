@@ -1,4 +1,4 @@
--- Align Staging account-management RPC behavior with the supported RBAC roles.
+-- Align account-management RPC behavior with supported RBAC roles.
 -- Preserve at least one active administrative authority (admin or super_admin).
 -- A transaction-scoped advisory lock serializes account authority mutations across
 -- create/update/remove RPCs so concurrent requests cannot remove the final authority.
@@ -25,7 +25,11 @@ AS $function$
 BEGIN
   PERFORM pg_catalog.pg_advisory_xact_lock(741852963);
 
-  IF p_role NOT IN ('super_admin', 'admin', 'operator') THEN
+  IF p_admin_id IS NULL THEN
+    RAISE EXCEPTION 'Admin ID is required';
+  END IF;
+
+  IF p_role IS NULL OR p_role NOT IN ('super_admin', 'admin', 'operator') THEN
     RAISE EXCEPTION 'Invalid role';
   END IF;
 
@@ -60,6 +64,22 @@ DECLARE
 BEGIN
   PERFORM pg_catalog.pg_advisory_xact_lock(741852963);
 
+  IF p_admin_id IS NULL THEN
+    RAISE EXCEPTION 'Admin ID is required';
+  END IF;
+
+  IF p_role IS NULL OR p_role NOT IN ('super_admin', 'admin', 'operator') THEN
+    RAISE EXCEPTION 'Invalid role';
+  END IF;
+
+  IF p_active IS NULL THEN
+    RAISE EXCEPTION 'Active status is required';
+  END IF;
+
+  IF p_username IS NOT NULL AND p_username !~ '^[A-Za-z0-9._-]{3,40}$' THEN
+    RAISE EXCEPTION 'Invalid username';
+  END IF;
+
   SELECT ap.role, ap.active
     INTO target_role, target_active
     FROM public.admin_profiles AS ap
@@ -68,14 +88,6 @@ BEGIN
 
   IF NOT FOUND THEN
     RAISE EXCEPTION 'Account not found';
-  END IF;
-
-  IF p_role NOT IN ('super_admin', 'admin', 'operator') THEN
-    RAISE EXCEPTION 'Invalid role';
-  END IF;
-
-  IF p_username IS NOT NULL AND p_username !~ '^[A-Za-z0-9._-]{3,40}$' THEN
-    RAISE EXCEPTION 'Invalid username';
   END IF;
 
   IF target_role IN ('admin', 'super_admin')
@@ -118,6 +130,10 @@ DECLARE
   other_active_authority_count integer;
 BEGIN
   PERFORM pg_catalog.pg_advisory_xact_lock(741852963);
+
+  IF p_admin_id IS NULL THEN
+    RAISE EXCEPTION 'Admin ID is required';
+  END IF;
 
   SELECT ap.role, ap.active
     INTO target_role, target_active
