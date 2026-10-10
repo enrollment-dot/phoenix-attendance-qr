@@ -472,6 +472,7 @@ test('cohort roster never labels missing status as inactive when refresh fails',
   await page.locator('[data-nav="students"]').click();
 
   await expect(page.getByRole('status')).toContainText('Could not refresh the cohort roster.');
+  await expect(page.getByRole('status')).toContainText('Reason: the service rejected the request.');
   await expect(page.getByText('Status unknown', { exact: true })).toBeVisible();
   await expect(page.getByText('35', { exact: true })).toHaveCount(0);
   await expect(page.getByText('Unknown', { exact: true }).first()).toBeVisible();
