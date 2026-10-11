@@ -1010,10 +1010,16 @@ export async function handleRequest(request: Request, backend: BackendAdapter, c
         await requireAdmin(token, config, backend);
         result = await mapDashboardResponse(await backend.dashboard(token), config.qrKeyring, config.sessionTimeOffset);
         break;
-      case 'students':
+      case 'students': {
         await requireAdmin(token, config, backend);
-        result = await backend.students();
+        const students = await backend.students();
+        // ylp_students_v1 returns a JSON array, unlike RPCs that return { ok, data }.
+        // Normalize this action's expected array into the public API envelope explicitly.
+        result = Array.isArray(students)
+          ? { ok: true, data: students }
+          : students;
         break;
+      }
       case 'createStudent': {
         await requireAdminRole(token, config, backend, ['super_admin', 'admin']);
         if (typeof payload.student_id !== 'string' || typeof payload.name !== 'string' || typeof payload.enrolled_from !== 'string') throw new ValidationError('Student ID, name, and enrollment date are required.');
