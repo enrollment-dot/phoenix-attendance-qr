@@ -16,8 +16,8 @@ begin
       and ((s.scheduled_date + s.end_time_local) at time zone 'Asia/Bangkok')
         + interval '15 minutes' <= clock_timestamp()
     order by s.scheduled_date, s.end_time_local, s.session_id
-    for update skip locked
     limit 100
+    for update skip locked
   )
   update public.sessions as s
      set status = 'closed',
