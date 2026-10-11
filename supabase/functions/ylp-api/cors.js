@@ -1,4 +1,4 @@
-const STAGING_PREVIEW_ORIGIN = /^https:\/\/phoenix-attendance-rbac-staging-[a-z0-9-]+\.vercel\.app$/i;
+const STAGING_PREVIEW_ORIGIN = /^https:\/\/phoenix-attendance-rbac-staging(?:-[a-z0-9-]+)?\.vercel\.app$/i;
 
 /**
  * Match an explicit origin, or an opt-in preview origin belonging to the
