@@ -39,6 +39,7 @@ const DEFAULT_BRANDING = {
   primary_color: '#183E32', accent_color: '#72A93E', sidebar_color: '#152C2A', page_background: '#F5F7F6', card_background: '#FFFFFF', text_color: '#203833', muted_text_color: '#75827C', footer_text: 'Young Leadership Program · For facilitators and cohort members', login_welcome_title: 'Joining a Young Leadership Program cohort?', login_welcome_description: 'Open the QR shared by your facilitator. Choose Scan In when you arrive and Scan Out when you leave.', login_welcome_button_text: 'Scan a cohort QR', scan_background_color: '#FBFDF9', scan_logo_url: '/ylp-logo-icon.png',
 };
 let branding = { ...DEFAULT_BRANDING };
+let rosterRefreshError = false;
 let token = '',
   role = '',
   data = null,
@@ -119,6 +120,7 @@ function frame(content, attendee = false) {
         }
         const auth = token;
         let refreshFailed = false;
+        rosterRefreshError = false;
         try {
           const freshStudents = await api('students', {}, auth);
           if (auth !== token || view !== 'students' || !data) return;
@@ -127,6 +129,7 @@ function frame(content, attendee = false) {
         } catch {
           if (auth !== token || view !== 'students') return;
           refreshFailed = true;
+          rosterRefreshError = Array.isArray(data?.students) && data.students.some((student) => typeof student?.active !== 'boolean');
         }
         if (auth === token && view === 'students') {
           render();
@@ -458,6 +461,32 @@ async function showQr(s) {
   });
 }
 function students() {
+  if (rosterRefreshError) {
+    frame(`<div class="page-title"><div><p class="eyebrow">YLP ROSTER</p><h1>Roster unavailable</h1><p>We could not verify the latest cohort member statuses. The last loaded roster is hidden until it can be refreshed.</p></div><button class="primary" id="retry-roster">Retry refresh</button></div><section class="card"><p role="alert">Roster status could not be confirmed. No student status changes can be made from this screen.</p></section>`);
+    document.querySelector('#retry-roster')?.addEventListener('click', async (event) => {
+      const button = event.currentTarget;
+      button.disabled = true;
+      button.textContent = 'Refreshing…';
+      try {
+        const auth = token;
+        const freshStudents = await api('students', {}, auth);
+        if (auth !== token || view !== 'students') return;
+        if (!Array.isArray(freshStudents) || freshStudents.some((student) => typeof student?.active !== 'boolean')) {
+          throw new Error('The roster response did not include confirmed statuses.');
+        }
+        data = { ...data, students: freshStudents };
+        rosterRefreshError = false;
+        render();
+      } catch {
+        if (token && view === 'students') {
+          button.disabled = false;
+          button.textContent = 'Retry refresh';
+          notice('Could not verify the cohort roster. Please retry.');
+        }
+      }
+    });
+    return;
+  }
   const students = Array.isArray(data?.students) ? [...data.students] : [];
   const activeCount = students.filter((student) => student.active === true).length;
   const inactiveCount = students.filter((student) => student.active === false).length;
