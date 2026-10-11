@@ -753,6 +753,10 @@ export class SupabaseRpcBackend implements BackendAdapter {
     return response.json();
   }
 
+  autoCloseSessions(): Promise<unknown> {
+    return this.rpc('ylp_auto_close_sessions_v1', {});
+  }
+
   async login(payload: Record<string, unknown>, _token: string): Promise<unknown> {
     if (typeof payload.username !== 'string' || !payload.username.trim()) throw new AuthenticationError();
     if (typeof payload.password !== 'string' || !payload.password) throw new AuthenticationError();
@@ -973,6 +977,15 @@ function resolveAllowedOrigin(request: Request, config: EdgeConfig): string {
   return requestOrigin;
 }
 
+function constantTimeSecretMatch(provided: string, expected: string): boolean {
+  const a = new TextEncoder().encode(provided);
+  const b = new TextEncoder().encode(expected);
+  let diff = a.length ^ b.length;
+  const length = Math.max(a.length, b.length);
+  for (let i = 0; i < length; i++) diff |= (a[i] ?? 0) ^ (b[i] ?? 0);
+  return diff === 0;
+}
+
 export async function handleRequest(request: Request, backend: BackendAdapter, config: EdgeConfig): Promise<Response> {
   const diagnosticId = crypto.randomUUID();
   const responseOrigin = request.headers.get('origin');
@@ -997,7 +1010,13 @@ export async function handleRequest(request: Request, backend: BackendAdapter, c
     const payload = requirePayload(body);
     const token = typeof body.token === 'string' ? body.token : '';
     let result: ApiResponse | unknown;
-    switch (body.action) {
+    if (body.action === 'schedulerAutoClose') {
+      const suppliedSecret = request.headers.get('x-ylp-scheduler-secret') ?? '';
+      if (!config.schedulerSecret || !constantTimeSecretMatch(suppliedSecret, config.schedulerSecret)) {
+        throw new AuthenticationError();
+      }
+      result = await backend.autoCloseSessions();
+    } else switch (body.action) {
       case 'login':
         await enforceRateLimit(backend, config, 'login-global', 'global');
         result = await backend.login(payload, token);
@@ -1289,6 +1308,7 @@ if (import.meta.main) {
   const qrKeyId = Deno.env.get('YLP_QR_ENCRYPTION_KEY_ID');
   const qrKeysJson = Deno.env.get('YLP_QR_ENCRYPTION_KEYS_JSON');
   const rateLimitHmacSecret = Deno.env.get('YLP_RATE_LIMIT_HMAC_SECRET_V1');
+  const schedulerSecret = Deno.env.get('YLP_SCHEDULER_SECRET');
   const migrationMode = Deno.env.get('YLP_MIGRATION_MODE') === 'true';
   if (!supabaseUrl || !supabaseAnonKey || !serviceRoleKey || !allowedOrigin || !adminLoginEmail || !allowedRoles || !sessionTimeOffset || !qrKeyId || !qrKeysJson || !rateLimitHmacSecret) {
     throw new Error('Draft runtime configuration is incomplete.');
@@ -1308,6 +1328,7 @@ if (import.meta.main) {
     allowVercelPreviewOrigins,
     rateLimitHmacSecret,
     migrationMode,
+    schedulerSecret,
   };
   Deno.serve((request) => handleRequest(request, new SupabaseRpcBackend(config), config));
 }
