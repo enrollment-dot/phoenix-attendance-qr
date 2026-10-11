@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 
 const source = readFileSync(new URL('../src/main.js', import.meta.url), 'utf8');
 const migration = readFileSync(
-  new URL('../supabase/migrations/20261011000000_super_admin_closed_session_delete.sql', import.meta.url),
+  new URL('../supabase/migrations/20261011174119_super_admin_closed_session_delete.sql', import.meta.url),
   'utf8',
 );
 
