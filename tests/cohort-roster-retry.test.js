@@ -29,5 +29,6 @@ test('failed cohort roster retry keeps the blocking state and re-enables retry',
   assert.match(retryHandler, /button\.disabled = false/);
   assert.match(retryHandler, /button\.textContent = 'Retry refresh'/);
   assert.match(retryHandler, /notice\('Could not verify the cohort roster\. Please retry\.'\)/);
-  assert.doesNotMatch(retryHandler, /rosterRefreshError = false;\s*render\(\);\s*\}\s*catch/);
+  const catchBlock = retryHandler.slice(retryHandler.indexOf('} catch {'));
+  assert.doesNotMatch(catchBlock, /rosterRefreshError = false/);
 });
