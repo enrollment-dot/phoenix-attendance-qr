@@ -124,3 +124,19 @@ export class RecoveryError extends Error {
     this.kind = kind;
   }
 }
+
+export async function requestRecoveryEmail(email) {
+  const normalizedEmail = String(email || '').trim();
+  if (!normalizedEmail || normalizedEmail.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+    throw new Error('Enter a valid account email address.');
+  }
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new RecoveryError('configuration');
+  }
+  const client = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: { autoRefreshToken: false, detectSessionInUrl: false, persistSession: false },
+  });
+  const redirectTo = new URL('/', location.origin).toString();
+  const { error } = await client.auth.resetPasswordForEmail(normalizedEmail, { redirectTo });
+  if (error) throw new Error('Could not request a recovery email. Check the account email and try again later.');
+}
