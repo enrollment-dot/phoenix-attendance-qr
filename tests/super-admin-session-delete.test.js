@@ -12,6 +12,8 @@ test('closed sessions render a super-admin-only delete action and confirmation d
   assert.match(source, /s\.status === 'closed' && role === 'super_admin'/);
   assert.match(source, /<dialog id="delete-dialog" class="confirm-dialog">/);
   assert.match(source, /<form id="delete-form">/);
+  assert.match(source, /document\.createElement\('dialog'\)/);
+  assert.match(source, /document\.querySelector\('\.qr-card'\)\?\.append\(dialog\)/);
   assert.match(source, /same super admin username and password/);
   assert.match(source, /await api\('deleteSession', \{ session_id: s\.session_id, username, password \}, token\)/);
 });
