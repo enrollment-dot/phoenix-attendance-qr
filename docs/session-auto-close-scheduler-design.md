@@ -14,6 +14,19 @@ Automatically close sessions after their existing attendance scan grace period, 
 - There is no scheduler configured in the repository's current GitHub Actions workflow or `vercel.json`.
 - Existing session close actions are admin-authorized; a scheduler must not impersonate a browser admin or weaken that authorization.
 
+## Database facts verified in both staging and production
+
+The `public.sessions` table has these scheduling fields: `session_id text`, `scheduled_date date`, `start_time_local time without time zone`, `end_time_local time without time zone`, and `status text`. The scan RPC converts local schedule values with `AT TIME ZONE 'Asia/Bangkok'` and reads the configured close window from `public.settings`.
+
+Therefore the eligibility boundary must use the same conversion as scanning:
+
+```sql
+(scheduled_date + end_time_local) AT TIME ZONE 'Asia/Bangkok'
+  + interval '15 minutes' <= clock_timestamp()
+```
+
+This is a design expression, not an executed statement or migration. Keep the existing settings and use the audited +07:00 / Asia-Bangkok behavior; do not use the Edge Function host's local timezone.
+
 ## Proposed design
 
 Use a scheduled GitHub Actions workflow as the trigger and a dedicated server-to-server action handled by `ylp-api`. Keep the trigger separate from ordinary user-facing session actions.
@@ -32,7 +45,7 @@ Use a scheduled GitHub Actions workflow as the trigger and a dedicated server-to
 
 The current close RPC accepts one session ID. The scheduler must not query sessions and close them through a public unauthenticated path. Before production enablement, choose and review one safe server-side implementation:
 
-- Prefer a narrowly scoped database function that atomically closes only eligible active sessions, callable only by `service_role`/ `postgres`; or
+- Prefer a narrowly scoped database function that atomically selects and closes only eligible active sessions, using `FOR UPDATE SKIP LOCKED` or equivalent concurrency protection, callable only by `service_role`/ `postgres`; or
 - Use a server-side query to select eligible sessions and call the existing RPC for each, provided the server-side adapter and function permissions support this without widening database grants.
 
 The first option reduces race conditions and centralizes eligibility rules, but requires a schema/security change and a migration. Such a change requires explicit production approval under project policy.
@@ -44,6 +57,14 @@ The first option reduces race conditions and centralizes eligibility rules, but 
 - Do not change scan-in/scan-out behavior or role permissions.
 - Do not expose the service-role key to clients.
 - Do not enable production scheduling until staging tests and production configuration review pass.
+
+## Implementation safeguards
+
+- The database operation must select candidates itself; the caller must not submit a `session_id` list.
+- Candidate selection and status transition should be atomic to avoid a race with scans or manual session closure.
+- Keep the existing `ylp_close_session_v1` RPC behavior unchanged for normal authorized user actions.
+- The new scheduler-only RPC must have explicit ACL verification in the migration and tests proving `anon` and `authenticated` cannot execute it.
+- Do not add an unrestricted REST table query or grant direct table access to make scheduling easier.
 
 ## Acceptance criteria
 
