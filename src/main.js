@@ -404,7 +404,17 @@ function createForm() {
 async function showQr(s) {
   frame(
     `<div class="page-title"><div><p class="eyebrow">SESSION QR</p><h1>${esc(s.course)}</h1><p>${esc(sessionLabel(s, data.settings.offset))}</p></div><button id="back" class="secondary">← Back to overview</button></div><section class="card qr-card"><div class="qr-status"><span class="badge present">${esc(s.status)}</span></div><div class="qr-visual"><div class="qr-brand"><img class="qr-brand-mark" src="${esc(branding.scan_logo_url)}" alt="" /><strong>YLP</strong><span>Learn. Lead. Build. Inspire</span></div><div class="qr-code-wrap"><div class="qr-scan-frame"><canvas id="qr" aria-label="Cohort attendance QR code"></canvas></div></div></div><div class="qr-session-panel"><h2 class="qr-session-name">${esc(s.course)}</h2><h3 class="qr-attendance-title">Record your attendance</h3></div><div class="qr-instructions"><span class="qr-instructions-icon" aria-hidden="true">▯</span><p>Open your phone camera and point it at this QR.<br>Enter your cohort member name and cohort ID, then choose Scan In or Scan Out.</p></div><div class="actions"><button id="copy" class="primary">↗ &nbsp; Copy cohort link</button><button id="download" class="secondary">↓ &nbsp; Download QR</button>${s.status === 'active' ? '<button id="close" class="danger">Close session</button>' : s.status === 'closed' && role === 'super_admin' ? '<button id="delete-session" class="danger">Delete session</button>' : ''}</div><p class="helper">Share this QR only with YLP members in this YLP cohort. It gives access to this session.</p>${s.status === 'closed' && role === 'super_admin' ? `<dialog id="delete-dialog" class="confirm-dialog"><form id="delete-form"><span class="step">DESTRUCTIVE ACTION</span><h2>Delete closed session?</h2><p>This permanently deletes <strong>${esc(s.course)}</strong> and its attendance history. Enter the <strong>same super admin username and password</strong> you used to sign in.</p><label>Username<input name="username" type="text" autocomplete="username" required></label><label>Password<input name="password" type="password" autocomplete="current-password" required minlength="16"></label><div class="actions"><button type="button" class="secondary" id="delete-cancel">Cancel</button><button type="submit" class="danger" id="delete-confirm">Delete permanently</button></div></form></dialog>` : ''}</section>`,
-  );  const current = pageGuard();
+  );
+  // Defensive DOM fallback: ensure the destructive confirmation dialog exists
+  // even if the browser's HTML parser omits the dialog from the rendered template.
+  if (s.status === 'closed' && role === 'super_admin' && !document.querySelector('#delete-dialog')) {
+    const dialog = document.createElement('dialog');
+    dialog.id = 'delete-dialog';
+    dialog.className = 'confirm-dialog';
+    dialog.innerHTML = `<form id="delete-form"><span class="step">DESTRUCTIVE ACTION</span><h2>Delete closed session?</h2><p>This permanently deletes <strong>${esc(s.course)}</strong> and its attendance history. Enter the <strong>same super admin username and password</strong> you used to sign in.</p><label>Username<input name="username" type="text" autocomplete="username" required></label><label>Password<input name="password" type="password" autocomplete="current-password" required minlength="16"></label><div class="actions"><button type="button" class="secondary" id="delete-cancel">Cancel</button><button type="submit" class="danger" id="delete-confirm">Delete permanently</button></div></form>`;
+    document.querySelector('.qr-card')?.append(dialog);
+  }
+  const current = pageGuard();
   document.querySelector('#back').onclick = dashboard;
   const canvas = document.querySelector('#qr');
   await QRCode.toCanvas(canvas, scanLink(s), {
