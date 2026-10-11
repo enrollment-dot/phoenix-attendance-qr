@@ -1,0 +1,40 @@
+name: YLP Session Auto-Close (Staging)
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/5 * * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ylp-session-auto-close-staging
+  cancel-in-progress: false
+
+jobs:
+  auto-close-staging:
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - name: Validate staging scheduler configuration
+        env:
+          API_URL: ${{ secrets.YLP_STAGING_API_URL }}
+          SCHEDULER_SECRET: ${{ secrets.YLP_STAGING_SCHEDULER_SECRET }}
+        run: |
+          test -n "$API_URL" || { echo "Missing environment secret YLP_STAGING_API_URL"; exit 1; }
+          test -n "$SCHEDULER_SECRET" || { echo "Missing environment secret YLP_STAGING_SCHEDULER_SECRET"; exit 1; }
+          case "$API_URL" in
+            https://*.supabase.co/functions/v1/ylp-api) ;;
+            *) echo "API_URL must be the staging ylp-api HTTPS endpoint"; exit 1 ;;
+          esac
+      - name: Close eligible staging sessions
+        env:
+          API_URL: ${{ secrets.YLP_STAGING_API_URL }}
+          SCHEDULER_SECRET: ${{ secrets.YLP_STAGING_SCHEDULER_SECRET }}
+        run: |
+          curl --fail --silent --show-error --max-time 30 \
+            --request POST "$API_URL" \
+            --header "content-type: application/json" \
+            --header "x-ylp-scheduler-secret: $SCHEDULER_SECRET" \
+            --data '{"action":"schedulerAutoClose","payload":{}}'
