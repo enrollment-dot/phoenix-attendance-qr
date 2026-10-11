@@ -232,3 +232,13 @@ test('backend restricts student roster reads to super_admin and admin', () => {
   );
   assert.doesNotMatch(block, /await requireAdmin\(token, config, backend\)/);
 });
+
+
+test('user-facing attendance wording uses Check In and Check Out', () => {
+  assert.match(frontend, /Choose Check In when you arrive and Check Out when you leave/);
+  assert.match(frontend, /Check In/);
+  assert.match(frontend, /Check Out/);
+  assert.doesNotMatch(frontend, /Scan In/);
+  assert.doesNotMatch(frontend, /Scan Out/);
+  assert.match(backend, /payload\.direction/);
+});
