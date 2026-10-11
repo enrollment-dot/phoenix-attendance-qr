@@ -471,13 +471,10 @@ test('cohort roster never labels missing status as inactive when refresh fails',
   await page.getByText('Cohort overview').waitFor();
   await page.locator('[data-nav="students"]').click();
 
-  await expect(page.getByRole('status')).toContainText('Could not refresh the cohort roster.');
-  await expect(page.getByText('Status unknown', { exact: true })).toBeVisible();
-  await expect(page.getByText('35', { exact: true })).toHaveCount(0);
-  await expect(page.getByText('Unknown', { exact: true }).first()).toBeVisible();
-  await expect(page.locator('#student-rows .badge.absent')).toHaveCount(0);
-  await expect(page.getByText('Status unavailable').first()).toBeVisible();
-  await expect(page.locator('#student-rows [data-edit]')).toHaveCount(0);
-  await expect(page.locator('#student-rows [data-toggle]')).toHaveCount(0);
-  await expect(page.locator('#student-rows [data-delete]')).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Roster unavailable' })).toBeVisible();
+  await expect(page.getByText('The last loaded roster is hidden until it can be refreshed.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Retry refresh' })).toBeVisible();
+  await expect(page.locator('#student-rows')).toHaveCount(0);
+  await expect(page.getByText('Status unknown', { exact: true })).toHaveCount(0);
+  await expect(page.getByText('Unknown', { exact: true })).toHaveCount(0);
 });
