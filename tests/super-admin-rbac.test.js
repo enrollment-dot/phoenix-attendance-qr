@@ -219,3 +219,16 @@ test('branding RPC update targets the singleton settings row explicitly', () => 
   );
   assert.match(migration, /update public\.branding_settings[\s\S]*?where id = true[\s\S]*?returning \* into v_result;/);
 });
+
+
+test('backend restricts student roster reads to super_admin and admin', () => {
+  const start = backend.indexOf("case 'students'");
+  const end = backend.indexOf('\n      case ', start + 1);
+  const block = backend.slice(start, end === -1 ? backend.length : end);
+
+  assert.match(
+    block,
+    /requireAdminRole\(token, config, backend, \['super_admin', 'admin'\]\)/,
+  );
+  assert.doesNotMatch(block, /await requireAdmin\(token, config, backend\)/);
+});

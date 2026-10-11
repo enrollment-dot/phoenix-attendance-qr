@@ -1011,7 +1011,7 @@ export async function handleRequest(request: Request, backend: BackendAdapter, c
         result = await mapDashboardResponse(await backend.dashboard(token), config.qrKeyring, config.sessionTimeOffset);
         break;
       case 'students': {
-        await requireAdmin(token, config, backend);
+        await requireAdminRole(token, config, backend, ['super_admin', 'admin']);
         const students = await backend.students();
         // ylp_students_v1 returns a JSON array, unlike RPCs that return { ok, data }.
         // Normalize this action's expected array into the public API envelope explicitly.
