@@ -38,7 +38,7 @@ async function mock(page, supportsRetries = true, studentsRefreshFails = false) 
     muted_text_color: '#6B7D78',
     footer_text: 'Young Leadership Program · For facilitators and cohort members',
     login_welcome_title: 'Joining a Young Leadership Program cohort?',
-    login_welcome_description: 'Open the QR shared by your facilitator. Choose Scan In when you arrive and Scan Out when you leave.',
+    login_welcome_description: 'Open the QR shared by your facilitator. Choose Check In when you arrive and Check Out when you leave.',
     login_welcome_button_text: 'Scan a cohort QR',
   };
   let record = null;
@@ -95,7 +95,7 @@ async function mock(page, supportsRetries = true, studentsRefreshFails = false) 
         if (r.payload.direction === 'in') {
           if (record) error = 'You have already scanned in.';
           else record = { ...row };
-        } else if (!record) error = 'Scan In is required before Scan Out.';
+        } else if (!record) error = 'Check In is required before Check Out.';
         else if (record.scan_out) error = 'You have already scanned out.';
         else
           record = {
@@ -126,7 +126,7 @@ test('cohort and facilitator terminology is shown in the main attendance UI', as
   await page.goto('/');
   await expect(page.getByText('FACILITATOR & ADMIN ACCESS')).toBeVisible();
   await expect(page.getByText('Joining a Young Leadership Program cohort?')).toBeVisible();
-  await expect(page.getByText('Open the QR shared by your facilitator. Choose Scan In when you arrive and Scan Out when you leave.')).toBeVisible();
+  await expect(page.getByText('Open the QR shared by your facilitator. Choose Check In when you arrive and Check Out when you leave.')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Scan a cohort QR' })).toBeVisible();
   await page.getByLabel('Username').fill('admin');
   await page.getByLabel('Password').fill('test-admin-password-123');
@@ -179,7 +179,7 @@ test('appearance branding save consumes the API data without showing a response-
   await expect(page.getByLabel('Organization name')).toHaveValue('Young Leadership Program');
   await expect(page.getByLabel('Tagline')).toHaveValue('Learn. Lead. Build. Inspire');
   await expect(page.getByLabel('Login welcome title')).toHaveValue('Joining a Young Leadership Program cohort?');
-  await expect(page.getByLabel('Login welcome description')).toHaveValue('Open the QR shared by your facilitator. Choose Scan In when you arrive and Scan Out when you leave.');
+  await expect(page.getByLabel('Login welcome description')).toHaveValue('Open the QR shared by your facilitator. Choose Check In when you arrive and Check Out when you leave.');
   await expect(page.getByLabel('Login welcome button text')).toHaveValue('Scan a cohort QR');
 
   await page.getByLabel('Tagline').fill('Learn. Lead. Build. Inspire · Test');
@@ -318,7 +318,7 @@ test('cohort QR uses the YLP branded layout without an embedded logo', async ({ 
   await expect(page.locator('.qr-session-name')).toHaveText('English · Intermediate');
   await expect(page.locator('.qr-attendance-title')).toHaveText('Record your attendance');
   await expect(page.locator('.qr-instructions p')).toContainText(
-    'Enter your cohort member name and cohort ID, then choose Scan In or Scan Out.',
+    'Enter your cohort member name and cohort ID, then choose Check In or Check Out.',
   );
   const qr = page.locator('#qr');
   await expect(qr).toBeVisible();
@@ -432,7 +432,7 @@ test('password recovery waits for the Supabase recovery session and updates the 
 });
 
 
-test('dashboard uses Scan In and Scan Out wording for the shared QR', async ({ page }) => {
+test('dashboard uses Check In and Check Out wording for the shared QR', async ({ page }) => {
   await mock(page);
   await page.goto('/');
   await page.getByText('Sign in to Young Leadership Program').waitFor();
@@ -440,10 +440,10 @@ test('dashboard uses Scan In and Scan Out wording for the shared QR', async ({ p
   await page.getByLabel('Password').fill('test-admin-password-123');
   await page.locator('#login button.primary').click();
   await page.getByText('Cohort overview').waitFor();
-  await expect(page.getByText('Use the same QR for Scan In and Scan Out.')).toBeVisible();
+  await expect(page.getByText('Use the same QR for Check In and Check Out.')).toBeVisible();
   await expect(page.getByText('Use the same QR for arrival and departure.')).toHaveCount(0);
-  await expect(page.getByText('Keep the same session QR on screen for both Scan In and Scan Out.')).toBeVisible();
-  await expect(page.getByText('Keep the session QR on screen for Scan In, then share it again for Scan Out.')).toHaveCount(0);
+  await expect(page.getByText('Keep the same session QR on screen for both Check In and Check Out.')).toBeVisible();
+  await expect(page.getByText('Keep the session QR on screen for Check In, then share it again for Check Out.')).toHaveCount(0);
 });
 
 test('attendance report describes the roster as eligible rather than active', async ({ page }) => {
