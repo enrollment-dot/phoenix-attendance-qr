@@ -2,6 +2,9 @@ name: YLP Session Auto-Close (Staging)
 
 on:
   workflow_dispatch:
+  schedule:
+    # Every 15 minutes (UTC); this workflow targets the staging environment only.
+    - cron: "*/15 * * * *"
 
 permissions:
   contents: read
