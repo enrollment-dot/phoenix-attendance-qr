@@ -242,3 +242,21 @@ test('user-facing attendance wording uses Check In and Check Out', () => {
   assert.doesNotMatch(frontend, /Scan Out/);
   assert.match(backend, /payload\.direction/);
 });
+
+
+test('scheduler auto-close is secret-gated and does not accept caller-selected session IDs', () => {
+  assert.match(backend, /body\.action === 'schedulerAutoClose'/);
+  assert.match(backend, /x-ylp-scheduler-secret/);
+  assert.match(backend, /!config\.schedulerSecret \|\| !constantTimeSecretMatch/);
+  assert.match(backend, /autoCloseSessions\(\): Promise<unknown>/);
+  assert.match(backend, /ylp_auto_close_sessions_v1/);
+  const migration = readFileSync(
+    new URL('../supabase/migrations/20261012120000_secure_session_auto_close_scheduler.sql', import.meta.url),
+    'utf8',
+  );
+  assert.match(migration, /status = 'active'/);
+  assert.match(migration, /interval '15 minutes'/);
+  assert.match(migration, /for update skip locked/i);
+  assert.match(migration, /revoke all on function public\.ylp_auto_close_sessions_v1\(\) from anon/i);
+  assert.match(migration, /revoke all on function public\.ylp_auto_close_sessions_v1\(\) from authenticated/i);
+});
