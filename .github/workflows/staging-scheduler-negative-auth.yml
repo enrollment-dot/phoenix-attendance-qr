@@ -1,0 +1,62 @@
+name: YLP Staging Scheduler Negative Auth Test
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ylp-staging-scheduler-negative-auth
+  cancel-in-progress: false
+
+jobs:
+  reject-unauthenticated-scheduler-calls:
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - name: Verify missing and invalid scheduler secrets are rejected
+        shell: bash
+        run: |
+          set -euo pipefail
+          API_URL="https://yvtgwzvjpztvztozcfir.supabase.co/functions/v1/ylp-api"
+
+          check_rejected() {
+            local label="$1"
+            local mode="$2"
+            local response_file
+            response_file="$(mktemp)"
+            local status
+            local -a request_headers
+            request_headers=(--header 'content-type: application/json')
+
+            if [[ "$mode" == "invalid" ]]; then
+              request_headers+=(--header 'x-ylp-scheduler-secret: invalid-test-secret-not-a-real-credential')
+            fi
+
+            if ! status="$(curl --silent --show-error --max-time 20 \
+              --output "$response_file" --write-out '%{http_code}' \
+              --request POST "$API_URL" \
+              "${request_headers[@]}" \
+              --data '{"action":"schedulerAutoClose","payload":{}}')"; then
+              echo "FAIL: $label request could not reach Staging endpoint"
+              rm -f "$response_file"
+              exit 1
+            fi
+
+            # ylp-api represents application errors in its JSON envelope; do
+            # not assume AuthenticationError maps to HTTP 401/403.
+            if ! jq -e '.ok == false and .error == "Authentication failed."' "$response_file" >/dev/null; then
+              echo "FAIL: $label was not rejected as an authentication failure (HTTP $status)"
+              jq -c . "$response_file" || cat "$response_file"
+              rm -f "$response_file"
+              exit 1
+            fi
+            echo "PASS: $label rejected as an authentication failure (HTTP $status)"
+            rm -f "$response_file"
+          }
+
+          # This endpoint is explicitly pinned to the Staging project.
+          # No valid secret is supplied, so scheduler auto-close must not run.
+          check_rejected "missing scheduler secret" "missing"
+          check_rejected "invalid scheduler secret" "invalid"
