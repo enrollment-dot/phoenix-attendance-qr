@@ -1,0 +1,57 @@
+name: YLP Session Auto-Close (Production)
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Every 15 minutes (UTC), matching the approved session auto-close cadence.
+    - cron: "*/15 * * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ylp-session-auto-close-production
+  cancel-in-progress: false
+
+jobs:
+  auto-close-production:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Test scheduler response envelope validation
+        run: bash tests/scripts/test-scheduler-response-envelope.sh
+      - name: Validate production scheduler configuration
+        env:
+          API_URL: ${{ secrets.YLP_PRODUCTION_API_URL }}
+          SCHEDULER_SECRET: ${{ secrets.YLP_PRODUCTION_SCHEDULER_SECRET }}
+        run: |
+          set -euo pipefail
+          test -n "$API_URL" || { echo "Missing environment secret YLP_PRODUCTION_API_URL"; exit 1; }
+          test -n "$SCHEDULER_SECRET" || { echo "Missing environment secret YLP_PRODUCTION_SCHEDULER_SECRET"; exit 1; }
+          test "$API_URL" = "https://fsxdsdixxnslismxghfz.supabase.co/functions/v1/ylp-api" \
+            || { echo "API_URL must match the exact production ylp-api endpoint"; exit 1; }
+      - name: Close eligible production sessions
+        env:
+          API_URL: ${{ secrets.YLP_PRODUCTION_API_URL }}
+          SCHEDULER_SECRET: ${{ secrets.YLP_PRODUCTION_SCHEDULER_SECRET }}
+        run: |
+          set -euo pipefail
+          response_file="$(mktemp)"
+          trap 'rm -f "$response_file"' EXIT
+          status="$(curl --silent --show-error --max-time 30 \
+            --output "$response_file" --write-out '%{http_code}' \
+            --request POST "$API_URL" \
+            --header "content-type: application/json" \
+            --header "x-ylp-scheduler-secret: $SCHEDULER_SECRET" \
+            --data '{"action":"schedulerAutoClose","payload":{}}')"
+
+          # The API can return application errors inside HTTP 200 responses.
+          if ! jq -e '.ok == true and (.data.closed_count | type == "number")' "$response_file" >/dev/null; then
+            echo "Scheduler API did not return a successful response envelope (HTTP $status)."
+            jq -c '{ok, error, data}' "$response_file" || true
+            exit 1
+          fi
+
+          jq -c '{ok, data: {closed_count: .data.closed_count}}' "$response_file"
