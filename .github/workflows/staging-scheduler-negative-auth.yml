@@ -1,0 +1,49 @@
+name: YLP Staging Scheduler Negative Auth Test
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ylp-staging-scheduler-negative-auth
+  cancel-in-progress: false
+
+jobs:
+  reject-unauthenticated-scheduler-calls:
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - name: Verify missing and invalid scheduler secrets are rejected
+        shell: bash
+        run: |
+          set -euo pipefail
+          API_URL="https://yvtgwzvjpztvztozcfir.supabase.co/functions/v1/ylp-api"
+
+          check_rejected() {
+            local label="$1"
+            local header_value="$2"
+            local response_file
+            response_file="$(mktemp)"
+            local status
+            status="$(curl --silent --show-error --max-time 20 \
+              --output "$response_file" --write-out '%{http_code}' \
+              --request POST "$API_URL" \
+              --header 'content-type: application/json' \
+              --header "x-ylp-scheduler-secret: $header_value" \
+              --data '{"action":"schedulerAutoClose","payload":{}}')"
+            if [[ "$status" != "401" && "$status" != "403" ]]; then
+              echo "FAIL: $label was expected to be rejected with HTTP 401/403; received $status"
+              rm -f "$response_file"
+              exit 1
+            fi
+            echo "PASS: $label rejected with HTTP $status"
+            rm -f "$response_file"
+          }
+
+          # This endpoint is explicitly pinned to the Staging project.
+          # Both requests use non-production dummy values and must be rejected
+          # before auto-close logic can run; no session rows should be changed.
+          check_rejected "missing scheduler secret" ""
+          check_rejected "invalid scheduler secret" "invalid-test-secret-not-a-real-credential"
