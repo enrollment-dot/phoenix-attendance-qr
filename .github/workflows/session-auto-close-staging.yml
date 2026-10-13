@@ -18,6 +18,10 @@ jobs:
     runs-on: ubuntu-latest
     environment: staging
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Test scheduler response envelope validation
+        run: bash tests/scripts/test-scheduler-response-envelope.sh
       - name: Validate staging scheduler configuration
         env:
           API_URL: ${{ secrets.YLP_STAGING_API_URL }}
