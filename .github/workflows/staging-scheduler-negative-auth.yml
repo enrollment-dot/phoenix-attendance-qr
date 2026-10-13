@@ -23,27 +23,40 @@ jobs:
 
           check_rejected() {
             local label="$1"
-            local header_value="$2"
+            local mode="$2"
             local response_file
             response_file="$(mktemp)"
             local status
-            status="$(curl --silent --show-error --max-time 20 \
+            local -a request_headers
+            request_headers=(--header 'content-type: application/json')
+
+            if [[ "$mode" == "invalid" ]]; then
+              request_headers+=(--header 'x-ylp-scheduler-secret: invalid-test-secret-not-a-real-credential')
+            fi
+
+            if ! status="$(curl --silent --show-error --max-time 20 \
               --output "$response_file" --write-out '%{http_code}' \
               --request POST "$API_URL" \
-              --header 'content-type: application/json' \
-              --header "x-ylp-scheduler-secret: $header_value" \
-              --data '{"action":"schedulerAutoClose","payload":{}}')"
-            if [[ "$status" != "401" && "$status" != "403" ]]; then
-              echo "FAIL: $label was expected to be rejected with HTTP 401/403; received $status"
+              "${request_headers[@]}" \
+              --data '{"action":"schedulerAutoClose","payload":{}}')"; then
+              echo "FAIL: $label request could not reach Staging endpoint"
               rm -f "$response_file"
               exit 1
             fi
-            echo "PASS: $label rejected with HTTP $status"
+
+            # ylp-api represents application errors in its JSON envelope; do
+            # not assume AuthenticationError maps to HTTP 401/403.
+            if ! jq -e '.ok == false and .error == "Authentication failed."' "$response_file" >/dev/null; then
+              echo "FAIL: $label was not rejected as an authentication failure (HTTP $status)"
+              jq -c . "$response_file" || cat "$response_file"
+              rm -f "$response_file"
+              exit 1
+            fi
+            echo "PASS: $label rejected as an authentication failure (HTTP $status)"
             rm -f "$response_file"
           }
 
           # This endpoint is explicitly pinned to the Staging project.
-          # Both requests use non-production dummy values and must be rejected
-          # before auto-close logic can run; no session rows should be changed.
-          check_rejected "missing scheduler secret" ""
-          check_rejected "invalid scheduler secret" "invalid-test-secret-not-a-real-credential"
+          # No valid secret is supplied, so scheduler auto-close must not run.
+          check_rejected "missing scheduler secret" "missing"
+          check_rejected "invalid scheduler secret" "invalid"
