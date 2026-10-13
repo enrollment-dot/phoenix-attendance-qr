@@ -25,10 +25,8 @@ jobs:
         run: |
           test -n "$API_URL" || { echo "Missing environment secret YLP_STAGING_API_URL"; exit 1; }
           test -n "$SCHEDULER_SECRET" || { echo "Missing environment secret YLP_STAGING_SCHEDULER_SECRET"; exit 1; }
-          case "$API_URL" in
-            https://*.supabase.co/functions/v1/ylp-api) ;;
-            *) echo "API_URL must be the staging ylp-api HTTPS endpoint"; exit 1 ;;
-          esac
+          test "$API_URL" = "https://yvtgwzvjpztvztozcfir.supabase.co/functions/v1/ylp-api" \
+            || { echo "API_URL must match the exact staging ylp-api endpoint"; exit 1; }
       - name: Close eligible staging sessions
         env:
           API_URL: ${{ secrets.YLP_STAGING_API_URL }}
