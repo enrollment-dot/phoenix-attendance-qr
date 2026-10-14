@@ -1,6 +1,15 @@
 # Session Auto-Close Scheduler Design
 
-Status: design proposal only; no production behavior changed.
+Status: implementation exists in GitHub Actions and the deployed `ylp-api`; positive-path execution is not yet fully verified. This document retains the original design rationale, with the current implementation status recorded below.
+
+## Implementation status — 2026-10-14
+
+- GitHub Actions contains a Staging scheduler workflow scheduled every 15 minutes and a separate manually triggered negative-auth regression workflow.
+- The Staging negative-auth workflow passed for missing and invalid scheduler secrets. This verifies rejection only; it does not verify valid-secret execution or successful closure of an eligible session.
+- Staging and Production `ylp-api` deployments both contain the `schedulerAutoClose` action, validate `x-ylp-scheduler-secret`, and call `ylp_auto_close_sessions_v1` only after the secret check passes.
+- The live migration ledgers record the scheduler under environment-specific versions: Staging `20261012052803`, Production `20261013174134`. The repository contains two similar scheduler migration files with different ACL assertion/grant details; do not replay either migration as part of documentation reconciliation.
+- At the latest read-only inventory, both environments had zero active sessions, so there was no eligible session available to verify the automatic-close success path without a controlled Staging fixture.
+- Production SQL, configuration, and attendance data were not changed during this verification.
 
 ## Goal
 
@@ -11,7 +20,7 @@ Automatically close sessions after their existing attendance scan grace period, 
 - Session creation starts sessions with status `active`.
 - `ylp_close_session_v1(p_session_id)` is idempotent and only executable by `postgres` and `service_role`.
 - Scanning requires an active session and uses the configured window from 30 minutes before session start through 15 minutes after session end.
-- There is no scheduler configured in the repository's current GitHub Actions workflow or `vercel.json`.
+- A GitHub Actions scheduler workflow now exists; verify its successful scheduled runs separately from Edge Function RPC logs.
 - Existing session close actions are admin-authorized; a scheduler must not impersonate a browser admin or weaken that authorization.
 
 ## Database facts verified in both staging and production
@@ -27,7 +36,7 @@ Therefore the eligibility boundary must use the same conversion as scanning:
 
 This is a design expression, not an executed statement or migration. Keep the existing settings and use the audited +07:00 / Asia-Bangkok behavior; do not use the Edge Function host's local timezone.
 
-## Proposed design
+## Design rationale and expected behavior
 
 Use a scheduled GitHub Actions workflow as the trigger and a dedicated server-to-server action handled by `ylp-api`. Keep the trigger separate from ordinary user-facing session actions.
 
