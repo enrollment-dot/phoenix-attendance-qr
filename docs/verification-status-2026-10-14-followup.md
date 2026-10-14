@@ -15,8 +15,9 @@
 
 ### Follow-up CI verification — 2026-10-14
 
-- PR #125 head `bb27a4284926c6e9cd2b9208d71cb4760a1147f9` completed GitHub Actions run [#348](https://github.com/enrollment-dot/phoenix-attendance-qr/actions/runs/38523275512) successfully. The `test` job passed, including `npm test` and `npm run test:browser`.
-- GitHub Vercel status checks for this PR head reported both Staging and Production preview deployments as `Ready`: [Staging](https://vercel.com/chillvibesonlyphyo-9992/phoenix-attendance-rbac-staging/7nRwsgughzG9HbFPgAnjzM7xrikN) and [Production project deployment](https://vercel.com/chillvibesonlyphyo-9992/phoenix-attendance-rbac-production/Gvrv5SQshJggyffZhAWRYSAky1FK). These are provider status signals only; because direct Vercel API access returned 403, they do not independently prove the custom domain is serving this exact SHA.
+- PR #125 head `16120ce614bafcdf605126c0dfcdea1fd96c7613` completed GitHub Actions run [#349](https://github.com/enrollment-dot/phoenix-attendance-qr/actions/runs/38524385004) successfully. The run passed `npm test` and `npm run test:browser`.
+- GitHub Vercel status checks for this head reported success for both Staging and Production project preview deployments: [Staging](https://vercel.com/chillvibesonlyphyo-9992/phoenix-attendance-rbac-staging/B1P4hSMGPMmKEHqzGC16TwP8NnGi) and [Production project deployment](https://vercel.com/chillvibesonlyphyo-9992/phoenix-attendance-rbac-production/g9i9bDyCUbGRS1Cir9hSbPztEYYa). These are provider status signals only; because direct Vercel API access returned 403/404 for project/deployment detail, they do not independently prove the custom domain is serving this exact SHA.
+- PR #125 remains open and unmerged. Its changes are documentation-only; do not merge without the normal review/approval decision.
 
 ## Supabase project health and current scheduler state
 
@@ -55,7 +56,7 @@ The repository currently contains 25 migration files, while Staging records 23 e
 - Neither Staging nor Production records the exact version `20261014120000`; both already have the scheduler function recorded under environment-specific versions (`20261012052803` in Staging and `20261013174134` in Production).
 - Both files define the same core eligibility rule: only active sessions whose scheduled end plus 15 minutes has elapsed in `Asia/Bangkok`, processing up to 100 rows with `FOR UPDATE SKIP LOCKED`.
 - The older file explicitly grants EXECUTE to `postgres` and includes a post-migration ACL assertion block. The newer file omits both. The currently inspected live ACLs already permit `postgres` and `service_role` while denying `anon` and `authenticated`.
-- This means the two files are not byte-equivalent and should not both remain as competing migration candidates. **No file was renamed, deleted, reordered, or applied during this audit.** The safest next action is a focused repository-only decision on canonical history after checking the full live function definition and migration ledger; do not apply either migration again as part of that decision.
+- These files are not byte-equivalent and should not both remain as competing migration candidates. **No file was renamed, deleted, reordered, or applied during this audit.** The next action remains a focused repository-only decision on canonical history after checking the full live function definition and migration ledger; do not apply either migration again as part of that decision.
 
 ### Role constraint capture gap
 
@@ -63,8 +64,8 @@ The live `admin_profiles_role_check` constraint allows `admin`, `operator`, and 
 
 ## Vercel verification limits
 
-- GitHub Vercel status comments report Staging and Production preview deployments as `Ready` for the docs PR.
-- Direct Vercel deployment-list/detail calls returned `403 forbidden` for team scope `chillvibesonlyphyo-9992`. Therefore this audit does not claim independent verification of the exact deployment Git SHA, custom-domain mapping, or end-to-end browser behavior.
+- GitHub Vercel status checks report Staging and Production project preview deployments as successful for PR #125 head `16120ce614bafcdf605126c0dfcdea1fd96c7613`.
+- Direct Vercel project/deployment detail calls remain inaccessible through the current team scope `chillvibesonlyphyo-9992` (403/404). This audit does not claim independent verification of the exact live deployment Git SHA, custom-domain mapping, or end-to-end browser behavior.
 - Do not repeat the same unauthorized calls unchanged. Use a supported authenticated Vercel connection/CLI when available.
 
 ## Supabase Security Advisor
