@@ -53,6 +53,8 @@ A noteworthy item requires investigation before any future database action:
 - Neither Staging nor Production records that exact migration version.
 - Both databases already have the scheduler function, recorded under environment-specific historical versions (`20261012052803` in Staging and `20261013174134` in Production).
 - Git also contains an earlier scheduler migration file, `20261012120000_secure_session_auto_close_scheduler.sql`.
+- These two repository migration files are not identical. The earlier file includes an explicit `GRANT EXECUTE ... TO postgres` and a post-migration ACL assertion block; the later file omits those statements. Both express the same active-session/end-plus-15-minute eligibility rule, but the ACL/assertion difference should be resolved deliberately before either file is applied.
+- Live Staging and Production scheduler function ACLs currently show `postgres` and `service_role` execution, with `anon` and `authenticated` execution denied. The live definitions differ in formatting/casing but preserve the same eligibility logic.
 
 Do not apply either migration again or alter migration history until the SQL, live function definition, and intended canonical migration are reconciled. Do not reorder, squash, delete, or fabricate historical entries.
 
