@@ -43,7 +43,9 @@ jobs:
           sudo apt-get install --yes postgresql-client
       - name: Prepare disposable test schema
         run: psql -v ON_ERROR_STOP=1 -f tests/sql/session-auto-close-setup.sql
-      - name: Apply actual auto-close migration
+      - name: Apply baseline auto-close migration
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261012120000_secure_session_auto_close_scheduler.sql
-      - name: Verify close behavior and execution privileges
+      - name: Apply scan-out and 120-minute fallback migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261014150000_allow_scan_out_until_session_auto_close.sql
+      - name: Verify scan predicate, close behavior, and execution privileges
         run: psql -v ON_ERROR_STOP=1 -f tests/sql/session-auto-close-assertions.sql
