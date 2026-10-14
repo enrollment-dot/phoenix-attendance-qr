@@ -403,7 +403,7 @@ function createForm() {
 }
 async function showQr(s) {
   frame(
-    `<div class="page-title"><div><p class="eyebrow">SESSION QR</p><h1>${esc(s.course)}</h1><p>${esc(sessionLabel(s, data.settings.offset))}</p></div><button id="back" class="secondary">← Back to overview</button></div><section class="card qr-card"><div class="qr-status"><span class="badge present">${esc(s.status)}</span></div><div class="qr-visual"><div class="qr-brand"><img class="qr-brand-mark" src="${esc(branding.scan_logo_url)}" alt="" /><strong>YLP</strong><span>Learn. Lead. Build. Inspire</span></div><div class="qr-code-wrap"><div class="qr-scan-frame"><canvas id="qr" aria-label="Cohort attendance QR code"></canvas></div></div></div><div class="qr-session-panel"><h2 class="qr-session-name">${esc(s.course)}</h2><h3 class="qr-attendance-title">Record your attendance</h3></div><div class="qr-instructions"><span class="qr-instructions-icon" aria-hidden="true">▯</span><p>Open your phone camera and point it at this QR.<br>Enter your cohort member name and cohort ID, then choose Check In or Check Out.</p></div><div class="actions"><button id="copy" class="primary">↗ &nbsp; Copy cohort link</button><button id="download" class="secondary">↓ &nbsp; Download QR</button>${s.status === 'active' ? '<button id="close" class="danger">Close session</button>' : s.status === 'closed' && role === 'super_admin' ? '<button id="delete-session" class="danger">Delete session</button>' : ''}</div><p class="helper">Share this QR only with YLP members in this YLP cohort. It gives access to this session.</p>${s.status === 'closed' && role === 'super_admin' ? `<dialog id="delete-dialog" class="confirm-dialog"><form id="delete-form"><span class="step">DESTRUCTIVE ACTION</span><h2>Delete closed session?</h2><p>This permanently deletes <strong>${esc(s.course)}</strong> and its attendance history. Enter the <strong>same super admin username and password</strong> you used to sign in.</p><label>Username<input name="username" type="text" autocomplete="username" required></label><label>Password<input name="password" type="password" autocomplete="current-password" required minlength="16"></label><div class="actions"><button type="button" class="secondary" id="delete-cancel">Cancel</button><button type="submit" class="danger" id="delete-confirm">Delete permanently</button></div></form></dialog>` : ''}</section>`,
+    `<div class="page-title"><div><p class="eyebrow">SESSION QR</p><h1>${esc(s.course)}</h1><p>${esc(sessionLabel(s, data.settings.offset))}</p></div><button id="back" class="secondary">← Back to overview</button></div><section class="card qr-card"><div class="qr-status"><span class="badge present">${esc(s.status)}</span></div><div class="qr-session-panel qr-session-panel-top"><h2 class="qr-session-name">${esc(s.course)}</h2><h3 class="qr-attendance-title">SCAN TO RECORD ATTENDANCE</h3></div><div class="qr-visual"><div class="qr-code-wrap"><div class="qr-scan-frame"><canvas id="qr" aria-label="Cohort attendance QR code"></canvas><img class="qr-embedded-logo" src="${esc(branding.scan_logo_url)}" alt="YLP logo embedded in QR code" /></div></div></div><div class="qr-instructions"><span class="qr-instructions-icon" aria-hidden="true">▯</span><p>Open your phone camera and point it at this QR.<br>Enter your cohort member name and cohort ID, then choose Check In or Check Out.</p></div><div class="actions"><button id="copy" class="primary">↗ &nbsp; Copy cohort link</button><button id="download" class="secondary">↓ &nbsp; Download QR</button>${s.status === 'active' ? '<button id="close" class="danger">Close session</button>' : s.status === 'closed' && role === 'super_admin' ? '<button id="delete-session" class="danger">Delete session</button>' : ''}</div><p class="helper">Share this QR only with YLP members in this YLP cohort. It gives access to this session.</p>${s.status === 'closed' && role === 'super_admin' ? `<dialog id="delete-dialog" class="confirm-dialog"><form id="delete-form"><span class="step">DESTRUCTIVE ACTION</span><h2>Delete closed session?</h2><p>This permanently deletes <strong>${esc(s.course)}</strong> and its attendance history. Enter the <strong>same super admin username and password</strong> you used to sign in.</p><label>Username<input name="username" type="text" autocomplete="username" required></label><label>Password<input name="password" type="password" autocomplete="current-password" required minlength="16"></label><div class="actions"><button type="button" class="secondary" id="delete-cancel">Cancel</button><button type="submit" class="danger" id="delete-confirm">Delete permanently</button></div></form></dialog>` : ''}</section>`,
   );
   // Defensive DOM fallback: ensure the destructive confirmation dialog exists
   // even if the browser's HTML parser omits the dialog from the rendered template.
@@ -423,17 +423,100 @@ async function showQr(s) {
     errorCorrectionLevel: 'H',
     color: { dark: '#152c2a', light: '#ffffff' },
   });
+  // Embed the same configurable YLP mark into the QR canvas so downloaded PNGs
+  // retain the logo. Keep the white quiet-zone plate small for scan reliability.
+  const logo = new Image();
+  logo.src = branding.scan_logo_url || '/ylp-logo-icon.png';
+  try {
+    await logo.decode();
+    if (!current()) return;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      const plateSize = 58;
+      const logoSize = 42;
+      const x = (canvas.width - plateSize) / 2;
+      const y = (canvas.height - plateSize) / 2;
+      ctx.save();
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.roundRect(x, y, plateSize, plateSize, 9);
+      ctx.fill();
+      ctx.drawImage(logo, (canvas.width - logoSize) / 2, (canvas.height - logoSize) / 2, logoSize, logoSize);
+      ctx.restore();
+    }
+  } catch {
+    // If the optional branding image fails to load, preserve the scannable QR.
+  }
   if (!current()) return;
   document.querySelector('#copy').onclick = (e) =>
     busy(e.target, async () => {
       await navigator.clipboard.writeText(scanLink(s));
       if (current()) notice('Cohort link copied.', false);
     });
-  document.querySelector('#download').onclick = () => {
-    const a = document.createElement('a');
-    a.download = `ylp-${s.session_id}.png`;
-    a.href = canvas.toDataURL();
-    a.click();
+  document.querySelector('#download').onclick = async (event) => {
+    const button = event.currentTarget;
+    if (button.disabled) return;
+    button.disabled = true;
+    try {
+      const scale = 2;
+      const width = 440;
+      const padding = 32;
+      const qrSize = 320;
+      const headerHeight = 116;
+      const footerHeight = 64;
+      const height = padding + headerHeight + qrSize + footerHeight + padding;
+      const exportCanvas = document.createElement('canvas');
+      exportCanvas.width = width * scale;
+      exportCanvas.height = height * scale;
+      const ctx = exportCanvas.getContext('2d');
+      if (!ctx) throw new Error('Could not prepare the QR download.');
+      ctx.scale(scale, scale);
+      const roundedRect = (x, y, w, h, r) => {
+        ctx.beginPath();
+        ctx.roundRect(x, y, w, h, r);
+      };
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, width, height);
+      ctx.strokeStyle = '#e2e8f0';
+      ctx.lineWidth = 1;
+      roundedRect(1, 1, width - 2, height - 2, 20);
+      ctx.stroke();
+      const primary = /^#[0-9a-f]{6}$/i.test(branding.primary_color) ? branding.primary_color : '#185ADB';
+      const textColor = /^#[0-9a-f]{6}$/i.test(branding.text_color) ? branding.text_color : '#12213f';
+      const muted = /^#[0-9a-f]{6}$/i.test(branding.muted_text_color) ? branding.muted_text_color : '#64748b';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = textColor;
+      ctx.font = '700 28px Manrope, Arial, sans-serif';
+      const title = String(s.course || 'YLP Session');
+      let titleSize = 28;
+      while (ctx.measureText(title).width > width - padding * 2 && titleSize > 17) {
+        titleSize -= 1;
+        ctx.font = '700 ' + titleSize + 'px Manrope, Arial, sans-serif';
+      }
+      ctx.fillText(title, width / 2, padding + 34);
+      ctx.fillStyle = muted;
+      ctx.font = '600 12px Arial, sans-serif';
+      ctx.letterSpacing = '2px';
+      ctx.fillText('SCAN TO RECORD ATTENDANCE', width / 2, padding + 62);
+      ctx.letterSpacing = '0px';
+      ctx.fillStyle = primary;
+      roundedRect(padding, padding + 82, width - padding * 2, 3, 2);
+      ctx.fill();
+      ctx.drawImage(canvas, (width - qrSize) / 2, padding + headerHeight, qrSize, qrSize);
+      ctx.fillStyle = muted;
+      ctx.font = '600 11px Arial, sans-serif';
+      ctx.letterSpacing = '2px';
+      ctx.fillText('YOUNG LEADERSHIP PROGRAM', width / 2, height - padding - 22);
+      ctx.letterSpacing = '0px';
+      const a = document.createElement('a');
+      a.download = `ylp-${s.session_id}.png`;
+      a.href = exportCanvas.toDataURL('image/png');
+      a.click();
+    } catch (error) {
+      notice(error.message || 'Could not prepare the QR download.');
+    } finally {
+      button.disabled = false;
+    }
   };
   document.querySelector('#close')?.addEventListener('click', (e) => {
     if (

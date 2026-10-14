@@ -296,7 +296,7 @@ test('safe read-only actions retry redirected 404; writes and other failures do 
     );
 });
 
-test('cohort QR uses the YLP branded layout without an embedded logo', async ({ page }) => {
+test('cohort QR embeds the YLP logo and displays the session name from its record', async ({ page }) => {
   await mock(page);
   await page.goto('/');
   await page.getByText('Sign in to Young Leadership Program').waitFor();
@@ -305,40 +305,33 @@ test('cohort QR uses the YLP branded layout without an embedded logo', async ({ 
   await page.locator('#login button.primary').click();
   await page.getByText('Cohort overview').waitFor();
   await page.getByRole('button', { name: 'Display QR ↗' }).click();
-  await expect(page.locator('.qr-brand')).toHaveCount(1);
-  await expect(page.locator('.qr-brand-mark')).toHaveAttribute('src', '/ylp-logo-icon.png');
+  await expect(page.locator('.qr-brand')).toHaveCount(0);
+  await expect(page.locator('.qr-embedded-logo')).toHaveAttribute('src', '/ylp-logo-icon.png');
   await expect(page.locator('.qr-visual')).toBeVisible();
   await expect(page.locator('.qr-scan-frame')).toBeVisible();
   await expect(page.locator('.qr-corner')).toHaveCount(0);
-  await expect(page.locator('.qr-brand strong')).toHaveText('YLP');
-  await expect(page.locator('.qr-brand span')).toHaveText('Learn. Lead. Build. Inspire');
+  await expect(page.locator('.qr-embedded-logo')).toBeVisible();
   const logoAsset = await page.request.get('/ylp-logo-exact.svg?v=ylp-v10');
   expect(logoAsset.ok()).toBeTruthy();
   expect(logoAsset.headers()['content-type']).toContain('image/svg+xml');
   await expect(page.locator('.qr-session-name')).toHaveText('English · Intermediate');
-  await expect(page.locator('.qr-attendance-title')).toHaveText('Record your attendance');
+  await expect(page.locator('.qr-attendance-title')).toHaveText('SCAN TO RECORD ATTENDANCE');
   await expect(page.locator('.qr-instructions p')).toContainText(
     'Enter your cohort member name and cohort ID, then choose Check In or Check Out.',
   );
   const qr = page.locator('#qr');
   await expect(qr).toBeVisible();
-  const centerLightGreenPixels = await qr.evaluate((canvas) => {
+  const centerPixels = await qr.evaluate((canvas) => {
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error('QR canvas context is unavailable.');
-    const image = ctx.getImageData(119, 119, 82, 82).data;
-    let count = 0;
+    const image = ctx.getImageData(135, 135, 50, 50).data;
+    let whitePixels = 0;
     for (let i = 0; i < image.length; i += 4) {
-      if (
-        image[i] === 242 &&
-        image[i + 1] === 247 &&
-        image[i + 2] === 237 &&
-        image[i + 3] === 255
-      )
-        count++;
+      if (image[i] > 245 && image[i + 1] > 245 && image[i + 2] > 245) whitePixels++;
     }
-    return count;
+    return whitePixels;
   });
-  expect(centerLightGreenPixels).toBe(0);
+  expect(centerPixels).toBeGreaterThan(100);
   await expect(page.getByRole('button', { name: 'Download QR' })).toBeVisible();
 });
 

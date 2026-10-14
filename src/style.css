@@ -506,34 +506,21 @@ input::placeholder {
     0 34px 0 -8px rgba(204, 235, 180, 0.24),
     0 68px 0 -16px rgba(204, 235, 180, 0.18);
 }
-.qr-brand {
-  position: relative;
-  z-index: 2;
-  margin: 0 auto 18px;
-  display: grid;
-  gap: 5px;
-  justify-items: center;
-}
-.qr-brand-mark {
-  width: 64px;
-  height: 64px;
+.qr-embedded-logo {
+  position: absolute;
+  z-index: 3;
+  width: 42px;
+  height: 42px;
+  max-width: 18%;
+  max-height: 18%;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
   object-fit: contain;
-  margin-bottom: 1px;
-}
-.qr-brand strong {
-  max-width: 100%;
-  overflow-wrap: anywhere;
-  font: 800 clamp(24px, 3vw, 32px) Manrope, system-ui;
-  letter-spacing: -0.9px;
-  color: var(--brand-text);
-  text-align: center;
-}
-.qr-brand span {
-  color: #6f827b;
-  font-size: 14px;
-  font-weight: 600;
-  letter-spacing: 0.8px;
-  text-align: center;
+  padding: 4px;
+  border-radius: 9px;
+  background: #fff;
+  pointer-events: none;
 }
 .qr-code-wrap {
   position: relative;
