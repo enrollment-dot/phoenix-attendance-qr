@@ -2,6 +2,26 @@
 
 This document records the verified relationship between the production Supabase migration history and repository migrations. It is a reconciliation record, not an instruction to replay historical production migrations.
 
+## Latest read-only inventory — 2026-10-14
+
+A fresh read-only query on 2026-10-14 supersedes the migration-count snapshot below:
+
+- Production currently records **28** migration entries.
+- Staging currently records **23** migration entries.
+- The current repository `main` contains **25** migration files.
+- This confirms migration-history drift remains unresolved. These counts do not identify a safe replay sequence; compare exact versions, logical changes, and actual schema/functions before any reconciliation.
+
+Newer Production history entries visible in the current live inventory but not included in the historical list below are:
+
+- `20261004171121` — `20261005010000_add_login_welcome_branding`
+- `20261004185133` — `20261005020000_add_scan_qr_branding`
+- `20261008173501` — `reconcile_branding_update_rpc`
+- `20261009091953` — `fix_branding_rpc_target_singleton_row`
+- `20261011174119` — `super_admin_closed_session_delete`
+- `20261013174134` — `secure_session_auto_close_scheduler`
+
+Do not replay, rename, reorder, or delete historical migration entries based on these counts. See [the current verification follow-up](verification-status-2026-10-14-followup.md) for the latest read-only ACL, scheduler, and deployment findings.
+
 ## Verified production history
 
 Production currently records 23 migrations:
