@@ -41,7 +41,7 @@ BEGIN
       'p_request_id uuid, p_session_id text, p_qr_token_hash text, p_student_id text, p_student_name text, p_direction text, p_fingerprint text';
 
   IF v_definition IS NULL
-     OR pg_catalog.position('p_direction = ''in'' AND v_now > v_end_at + pg_catalog.make_interval(mins => v_close_minutes)' in v_definition) = 0 THEN
+     OR pg_catalog.strpos(v_definition, 'p_direction = ''in'' AND v_now > v_end_at + pg_catalog.make_interval(mins => v_close_minutes)') = 0 THEN
     RAISE EXCEPTION 'Scan RPC did not retain the Scan In-only close-window predicate';
   END IF;
 END
