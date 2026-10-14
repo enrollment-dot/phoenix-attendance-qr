@@ -15,8 +15,9 @@
 
 ### Follow-up CI verification — 2026-10-14
 
-- PR #125 head `16120ce614bafcdf605126c0dfcdea1fd96c7613` completed GitHub Actions run [#349](https://github.com/enrollment-dot/phoenix-attendance-qr/actions/runs/38524385004) successfully. The run passed `npm test` and `npm run test:browser`.
-- GitHub Vercel status checks for this head reported success for both Staging and Production project preview deployments: [Staging](https://vercel.com/chillvibesonlyphyo-9992/phoenix-attendance-rbac-staging/B1P4hSMGPMmKEHqzGC16TwP8NnGi) and [Production project deployment](https://vercel.com/chillvibesonlyphyo-9992/phoenix-attendance-rbac-production/g9i9bDyCUbGRS1Cir9hSbPztEYYa). These are provider status signals only; because direct Vercel API access returned 403/404 for project/deployment detail, they do not independently prove the custom domain is serving this exact SHA.
+- PR #125 prior head `16120ce614bafcdf605126c0dfcdea1fd96c7613` completed GitHub Actions run [#349](https://github.com/enrollment-dot/phoenix-attendance-qr/actions/runs/38524385004) successfully.
+- **Latest PR #125 head `07f8ec90f0ad77a99e80a454c03d33abe058e1f4` also passed GitHub Actions run [#350](https://github.com/enrollment-dot/phoenix-attendance-qr/actions/runs/38532163958)**. The `test` job completed successfully, including `npm test` and `npm run test:browser`.
+- GitHub Vercel status checks for the latest head report success for both Staging and Production project preview deployments: [Staging](https://vercel.com/chillvibesonlyphyo-9992/phoenix-attendance-rbac-staging/8EfEgzWqJvzzTUcuDgSmGuzC6aMF) and [Production project deployment](https://vercel.com/chillvibesonlyphyo-9992/phoenix-attendance-rbac-production/ESXbc49DCRqZSjuo33HcFnNyL8Gx). These are provider status signals only; direct Vercel API access returned 403/404 for project/deployment detail, so they do not independently prove the custom domain is serving this exact SHA.
 - PR #125 remains open and unmerged. Its changes are documentation-only; do not merge without the normal review/approval decision.
 
 ## Supabase project health and current scheduler state
