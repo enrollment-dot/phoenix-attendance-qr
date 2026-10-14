@@ -8,13 +8,10 @@
 
 - `main` points to `b2a3a3714a6e856f1bffbb17d7c2c193a0ef48c9`.
 - PR #124 is merged. It aligns the branding hardening migration filename with the version already recorded by Staging; it does not apply SQL.
-- Checks for the merge commit passed:
-  - `test`
-  - `postgres-regression`
-  - `auto-close-staging`
-  - `auto-close-production`
-- The GitHub branch API currently reports `main` as unprotected (`protected: false`). This is a repository-governance gap; no repository settings were changed during this audit.
-- PR #102 remains open and is not merged. It captures the Staging role constraint migration `20261011101546_allow_super_admin_role_constraint`. Before deciding its disposition, reconcile its older branch/base with current `main`. Do not merge it blindly.
+- Checks for the merge commit passed: `test`, `postgres-regression`, `auto-close-staging`, and `auto-close-production`.
+- The GitHub branch API reports `main` as unprotected (`protected: false`). This is a repository-governance gap; no repository settings were changed during this audit.
+- PR #102 remains open and is not merged. Its branch is 1 commit ahead and 33 commits behind current `main`; its only changed file is `20261011101546_allow_super_admin_role_constraint.sql`. Do not merge the stale branch blindly.
+- **Staging scheduler negative-auth workflow passed:** [Run #2](https://github.com/enrollment-dot/phoenix-attendance-qr/actions/runs/38521682488), commit `b2a3a3714a6e856f1bffbb17d7c2c193a0ef48c9`. The job `reject-unauthenticated-scheduler-calls` completed successfully; the step verifies both missing and invalid scheduler secrets against the Staging endpoint. This does not test valid-secret scheduler execution.
 
 ## Supabase project health and current scheduler state
 
@@ -47,24 +44,22 @@ For the nine public tables in both environments, direct `SELECT` privileges for 
 
 The repository currently contains 25 migration files, while Staging records 23 entries and Production records 28. Many history versions and names differ. These counts are inventory indicators only; they are not a safe replay plan.
 
-A noteworthy item requires investigation before any future database action:
+### Scheduler migration comparison
 
-- Git contains `20261014120000_secure_session_auto_close_scheduler.sql`.
-- Neither Staging nor Production records that exact migration version.
-- Both databases already have the scheduler function, recorded under environment-specific historical versions (`20261012052803` in Staging and `20261013174134` in Production).
-- Git also contains an earlier scheduler migration file, `20261012120000_secure_session_auto_close_scheduler.sql`.
-- These two repository migration files are not identical. The earlier file includes an explicit `GRANT EXECUTE ... TO postgres` and a post-migration ACL assertion block; the later file omits those statements. Both express the same active-session/end-plus-15-minute eligibility rule, but the ACL/assertion difference should be resolved deliberately before either file is applied.
-- Live Staging and Production scheduler function ACLs currently show `postgres` and `service_role` execution, with `anon` and `authenticated` execution denied. The live definitions differ in formatting/casing but preserve the same eligibility logic.
+- Git contains `20261012120000_secure_session_auto_close_scheduler.sql` and `20261014120000_secure_session_auto_close_scheduler.sql`.
+- Neither Staging nor Production records the exact version `20261014120000`; both already have the scheduler function recorded under environment-specific versions (`20261012052803` in Staging and `20261013174134` in Production).
+- Both files define the same core eligibility rule: only active sessions whose scheduled end plus 15 minutes has elapsed in `Asia/Bangkok`, processing up to 100 rows with `FOR UPDATE SKIP LOCKED`.
+- The older file explicitly grants EXECUTE to `postgres` and includes a post-migration ACL assertion block. The newer file omits both. The currently inspected live ACLs already permit `postgres` and `service_role` while denying `anon` and `authenticated`.
+- This means the two files are not byte-equivalent and should not both remain as competing migration candidates. **No file was renamed, deleted, reordered, or applied during this audit.** The safest next action is a focused repository-only decision on canonical history after checking the full live function definition and migration ledger; do not apply either migration again as part of that decision.
 
-Do not apply either migration again or alter migration history until the SQL, live function definition, and intended canonical migration are reconciled. Do not reorder, squash, delete, or fabricate historical entries.
+### Role constraint capture gap
 
-The live `admin_profiles_role_check` constraint allows `admin`, `operator`, and `super_admin` in both environments. Staging records `20261011101546_allow_super_admin_role_constraint`, but the corresponding migration file is still only in open PR #102, not in current `main`. Production already has the equivalent allowed-role constraint. Resolve this repository capture gap after reviewing PR #102 against current `main`; do not infer that the Production change should be applied again.
+The live `admin_profiles_role_check` constraint allows `admin`, `operator`, and `super_admin` in both environments. Staging records `20261011101546_allow_super_admin_role_constraint`, but the corresponding migration file is only in open PR #102, not current `main`. Production already has the equivalent allowed-role constraint. PR #102 is 33 commits behind `main`; its migration drops and recreates the constraint. Do not merge the stale branch or apply the migration to either database without a deliberate reconciliation plan. A repository capture must avoid creating a migration that would unexpectedly replay against Production.
 
 ## Vercel verification limits
 
-- The Vercel Staging project metadata reports its latest deployment as `READY`.
-- GitHub's Vercel Staging and Production status checks for the current merge commit report `success`.
-- Direct Vercel deployment-detail and project-domain API calls returned `403 forbidden` for team scope `chillvibesonlyphyo-9992`. Therefore this audit does not claim independent verification of the exact deployment's Git SHA, custom-domain mapping, or end-to-end browser behavior.
+- GitHub Vercel status comments report Staging and Production preview deployments as `Ready` for the docs PR.
+- Direct Vercel deployment-list/detail calls returned `403 forbidden` for team scope `chillvibesonlyphyo-9992`. Therefore this audit does not claim independent verification of the exact deployment Git SHA, custom-domain mapping, or end-to-end browser behavior.
 - Do not repeat the same unauthorized calls unchanged. Use a supported authenticated Vercel connection/CLI when available.
 
 ## Supabase Security Advisor
@@ -73,17 +68,17 @@ Staging still reports:
 - INFO: nine RLS-enabled tables without policies.
 - WARN: leaked-password protection disabled.
 
-Do not add broad RLS policies merely to silence the INFO finding. The current Free Plan/Auth limitation is documented; no plan upgrade or Auth change is authorized by this audit.
+Do not add broad RLS policies merely to silence the INFO finding. No plan upgrade or Auth change is authorized by this audit.
 
 ## Next steps
 
-1. Review PR #102 and capture the already-applied Staging role-constraint migration in a focused, current branch without replaying it against Staging.
-2. Reconcile the duplicate scheduler migration files with actual Staging/Production migration histories and live function definitions. Do not apply SQL as part of this investigation.
-3. Continue the Staging-only scheduler negative-auth workflow for missing and invalid secrets. The workflow exists as a manual-dispatch workflow; this audit did not dispatch it.
-4. Investigate a supported approach for the `supabase_admin` default function ACL. Do not bypass PostgreSQL platform protections.
-5. Prepare a separate Production helper-function ACL migration only after explicit approval.
-6. Address Vercel team-scope access so deployment SHA/domain mapping can be independently verified.
-7. Consider enabling required status checks and branch protection for `main`; no repository settings were changed here.
+1. Reconcile the duplicate scheduler migration files and live migration histories in a repository-only change; do not apply SQL.
+2. Decide how to capture the already-applied Staging role-constraint migration without accidentally replaying it against Production.
+3. Investigate a supported approach for the `supabase_admin` default function ACL. Do not bypass PostgreSQL platform protections.
+4. Prepare a separate Production helper-function ACL migration only after explicit approval.
+5. Reauthorize the Vercel connection/team scope so deployment SHA/domain mapping can be independently verified.
+6. Consider enabling required status checks and branch protection for `main`; no repository settings were changed here.
+7. If scheduler positive-path verification is needed, design a Staging-only test using a valid secret and controlled safe fixture; the current negative-auth workflow deliberately does not exercise valid-secret execution.
 
 ## Safety statement
 
