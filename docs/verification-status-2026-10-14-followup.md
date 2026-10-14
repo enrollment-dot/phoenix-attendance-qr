@@ -13,6 +13,11 @@
 - PR #102 remains open and is not merged. Its branch is 1 commit ahead and 33 commits behind current `main`; its only changed file is `20261011101546_allow_super_admin_role_constraint.sql`. Do not merge the stale branch blindly.
 - **Staging scheduler negative-auth workflow passed:** [Run #2](https://github.com/enrollment-dot/phoenix-attendance-qr/actions/runs/38521682488), commit `b2a3a3714a6e856f1bffbb17d7c2c193a0ef48c9`. The job `reject-unauthenticated-scheduler-calls` completed successfully; the step verifies both missing and invalid scheduler secrets against the Staging endpoint. This does not test valid-secret scheduler execution.
 
+### Follow-up CI verification — 2026-10-14
+
+- PR #125 head `bb27a4284926c6e9cd2b9208d71cb4760a1147f9` completed GitHub Actions run [#348](https://github.com/enrollment-dot/phoenix-attendance-qr/actions/runs/38523275512) successfully. The `test` job passed, including `npm test` and `npm run test:browser`.
+- GitHub Vercel status checks for this PR head reported both Staging and Production preview deployments as `Ready`: [Staging](https://vercel.com/chillvibesonlyphyo-9992/phoenix-attendance-rbac-staging/7nRwsgughzG9HbFPgAnjzM7xrikN) and [Production project deployment](https://vercel.com/chillvibesonlyphyo-9992/phoenix-attendance-rbac-production/Gvrv5SQshJggyffZhAWRYSAky1FK). These are provider status signals only; because direct Vercel API access returned 403, they do not independently prove the custom domain is serving this exact SHA.
+
 ## Supabase project health and current scheduler state
 
 Both Supabase projects report `ACTIVE_HEALTHY`.
