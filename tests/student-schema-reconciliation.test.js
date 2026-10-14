@@ -7,7 +7,7 @@ const migration = await readFile(migrationPath, 'utf8');
 
 test('student reconciliation migration adds optional email and required enrollment date safely', () => {
   assert.match(migration, /ADD COLUMN IF NOT EXISTS enrolled_from date/i);
-  assert.match(migration, /created_at AT TIME ZONE 'Asia\\/Bangkok'/i);
+  assert.ok(migration.includes("created_at AT TIME ZONE 'Asia/Bangkok'"));
   assert.match(migration, /ALTER COLUMN enrolled_from SET NOT NULL/i);
   assert.match(migration, /ADD COLUMN IF NOT EXISTS email text/i);
   assert.match(migration, /email IS NULL/i);
