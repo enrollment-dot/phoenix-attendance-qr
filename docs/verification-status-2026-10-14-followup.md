@@ -91,3 +91,18 @@ Do not add broad RLS policies merely to silence the INFO finding. No plan upgrad
 ## Safety statement
 
 No Production SQL, migration, ACL, RLS, Auth, Edge Function, environment-variable, account, or attendance-data changes were performed during this verification. Production security remediation remains gated by separate explicit approval.
+
+
+## Vercel verification correction — 2026-10-14
+
+This section supersedes the earlier **Vercel verification limits** section above, which stated that direct Vercel project/deployment calls were inaccessible. A read-only Vercel connection is now available and the following metadata was inspected directly:
+
+- Production project: `phoenix-attendance-rbac-production` (`prj_q1AuOtViTk4YnNm5o0COdVewrExi`).
+- Latest Production deployment: `dpl_FJhf37RCDDYiaxdZdJYZiHp7dFb9`, state `READY`, target `production`, commit `b2a3a3714a6e856f1bffbb17d7c2c193a0ef48c9` on `main`.
+- The deployment's alias list includes `ylp.siferlab.space`; the Production project's domain metadata reports that domain as verified.
+- Production deployment inspector: https://vercel.com/chillvibesonlyphyo-9992/phoenix-attendance-rbac-production/FJhf37RCDDYiaxdZdJYZiHp7dFb9
+- Staging project: `phoenix-attendance-rbac-staging` (`prj_wPffXwbqsqhiMkk2iDAB4rEqqQFj`).
+- Latest Staging-project deployment: `dpl_EXNjV6U66dGjYV2jyWZSRL7wbNGZ`, state `READY`, commit `b2a3a3714a6e856f1bffbb17d7c2c193a0ef48c9` on `main`. The Vercel API labels its target as `production` even though the project is the separately named Staging project; do not interpret that target field alone as a Production environment.
+- Staging deployment inspector: https://vercel.com/chillvibesonlyphyo-9992/phoenix-attendance-rbac-staging/EXNjV6U66dGjYV2jyWZSRL7wbNGZ
+
+**Scope limitation:** This verifies Vercel deployment metadata, the Git SHA attached to the current Production deployment, and the custom-domain alias mapping. It does not verify successful browser login, runtime RBAC, QR scan behavior, or end-to-end API/database behavior. No Vercel settings or deployments were changed.
