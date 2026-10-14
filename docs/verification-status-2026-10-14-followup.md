@@ -17,8 +17,8 @@
 
 - PR #125 head `16120ce614bafcdf605126c0dfcdea1fd96c7613` passed GitHub Actions run [#349](https://github.com/enrollment-dot/phoenix-attendance-qr/actions/runs/38524385004), including `npm test` and `npm run test:browser`.
 - Commit `07f8ec90f0ad77a99e80a454c03d33abe058e1f4` passed GitHub Actions run [#350](https://github.com/enrollment-dot/phoenix-attendance-qr/actions/runs/38532163958), including `npm test` and `npm run test:browser`.
-- **Exact current PR #125 HEAD verified:** `c4eb45567414dbed22d58a04e98b8bcafd75c676` passed GitHub Actions run [#353](https://github.com/enrollment-dot/phoenix-attendance-qr/actions/runs/38544811262). The run metadata confirms the exact head SHA and PR #125; job `test` passed both `npm test` and `npm run test:browser`.
-- The exact current HEAD's combined GitHub status shows successful Vercel provider checks for Staging and Production project preview deployments: [Staging](https://vercel.com/chillvibesonlyphyo-9992/phoenix-attendance-rbac-staging/3crDrx8cNxQbrEXTvEH7bDhJTtrX) and [Production project deployment](https://vercel.com/chillvibesonlyphyo-9992/phoenix-attendance-rbac-production/Dcw5K7grVwaBR9zAFJj4vmVDjKTU). These are provider status signals only; direct Vercel API access remains blocked (403/404), so they do not independently prove the custom domain is serving this exact SHA.
+- **Exact PR #125 HEAD verified at follow-up:** `6c8953109a60fbe5d3d16ed019bb2469518ee78c` passed GitHub Actions run [#354](https://github.com/enrollment-dot/phoenix-attendance-qr/actions/runs/38545324281). The run metadata confirms the exact head SHA and PR #125; `npm test` and `npm run test:browser` passed.
+- Vercel provider comments report successful Staging and Production project preview deployments, but the referenced deployment links do not independently establish that the custom domain is serving PR #125's exact HEAD. Direct Vercel API access remains blocked (403/404); treat live domain/SHA verification as unresolved.
 - PR #125 remains open and unmerged. Its changes are documentation-only; do not merge without the normal review/approval decision.
 
 ## Supabase project health and current scheduler state
@@ -66,7 +66,7 @@ The live `admin_profiles_role_check` constraint allows `admin`, `operator`, and 
 
 ## Vercel verification limits
 
-- GitHub Vercel status checks report Staging and Production project preview deployments as successful for PR #125 head `16120ce614bafcdf605126c0dfcdea1fd96c7613`.
+- Earlier GitHub Vercel status checks reported successful preview deployments for an earlier PR #125 HEAD; do not treat those older statuses as proof of the current HEAD or production custom-domain state.
 - Direct Vercel project/deployment detail calls remain inaccessible through the current team scope `chillvibesonlyphyo-9992` (403/404). This audit does not claim independent verification of the exact live deployment Git SHA, custom-domain mapping, or end-to-end browser behavior.
 - Do not repeat the same unauthorized calls unchanged. Use a supported authenticated Vercel connection/CLI when available.
 
