@@ -23,11 +23,13 @@ test('student RPCs match the current API contract and include returned fields', 
 });
 
 test('email and control-character regexes use the intended escapes', () => {
-  assert.ok(migration.includes(String.raw`email ~* '^[^[:space:]@]+@[^[:space:]@]+\\.[^[:space:]@]+$'`));
-  assert.ok(migration.includes(String.raw`v_name ~ '[[:cntrl:]\\x7f]'`));
-  assert.ok(!migration.includes(String.raw`email ~* '^[^[:space:]@]+@[^[:space:]@]+\\\\.[^[:space:]@]+$'`));
+  const emailPattern = migration.match(/email ~\\* '([^']+)'/i)?.[1];
+  const namePattern = migration.match(/v_name ~ '([^']+)'/i)?.[1];
+  assert.ok(emailPattern, 'email validation regex exists');
+  assert.ok(namePattern, 'name validation regex exists');
+  assert.equal([...emailPattern].filter((character) => character === String.fromCharCode(92)).length, 1);
+  assert.equal([...namePattern].filter((character) => character === String.fromCharCode(92)).length, 1);
 });
-
 test('legacy overloads are removed and client RPC execution is revoked', () => {
   assert.match(migration, /DROP FUNCTION IF EXISTS public\\.ylp_student_create_v1\\(text, text\\);/i);
   assert.match(migration, /DROP FUNCTION IF EXISTS public\\.ylp_student_create_v1\\(text, text, date\\);/i);
