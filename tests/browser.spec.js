@@ -315,7 +315,7 @@ test('cohort QR embeds the YLP logo and displays the session name from its recor
   expect(logoAsset.ok()).toBeTruthy();
   expect(logoAsset.headers()['content-type']).toContain('image/svg+xml');
   await expect(page.locator('.qr-session-name')).toHaveText('English · Intermediate');
-  await expect(page.locator('.qr-attendance-title')).toHaveText('Record your attendance');
+  await expect(page.locator('.qr-attendance-title')).toHaveText('SCAN TO RECORD ATTENDANCE');
   await expect(page.locator('.qr-instructions p')).toContainText(
     'Enter your cohort member name and cohort ID, then choose Check In or Check Out.',
   );
