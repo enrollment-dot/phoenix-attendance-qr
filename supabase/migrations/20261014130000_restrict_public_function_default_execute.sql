@@ -1,11 +1,9 @@
--- Restrict client-role execution on future public-schema functions in Staging.
--- Scope is deliberately limited to public-schema functions created by these owners.
+-- Restrict client-role execution on future public-schema functions created by postgres.
+-- The Supabase migration connection cannot alter supabase_admin-owned default ACLs;
+-- that owner-specific default ACL requires a separate privileged remediation.
 -- Existing service_role/postgres grants are preserved; other schemas are untouched.
 
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
-  REVOKE EXECUTE ON FUNCTIONS FROM anon, authenticated;
-
-ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public
   REVOKE EXECUTE ON FUNCTIONS FROM anon, authenticated;
 
 -- Explicitly enforce least privilege for the three reviewed helper functions.
