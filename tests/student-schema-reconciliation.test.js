@@ -23,8 +23,14 @@ test('student RPCs match the current API contract and include returned fields', 
 });
 
 test('email and control-character regexes use the intended escapes', () => {
-  const emailPattern = migration.match(/email ~\\* '([^']+)'/i)?.[1];
-  const namePattern = migration.match(/v_name ~ '([^']+)'/i)?.[1];
+  const emailMarker = "email ~* '";
+  const emailStart = migration.indexOf(emailMarker);
+  const emailEnd = migration.indexOf("'", emailStart + emailMarker.length);
+  const emailPattern = emailStart >= 0 && emailEnd > emailStart ? migration.slice(emailStart + emailMarker.length, emailEnd) : null;
+  const nameMarker = "v_name ~ '";
+  const nameStart = migration.indexOf(nameMarker);
+  const nameEnd = migration.indexOf("'", nameStart + nameMarker.length);
+  const namePattern = nameStart >= 0 && nameEnd > nameStart ? migration.slice(nameStart + nameMarker.length, nameEnd) : null;
   assert.ok(emailPattern, 'email validation regex exists');
   assert.ok(namePattern, 'name validation regex exists');
   assert.equal([...emailPattern].filter((character) => character === String.fromCharCode(92)).length, 1);
