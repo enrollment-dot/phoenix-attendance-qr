@@ -17,8 +17,8 @@
 
 - PR #125 head `16120ce614bafcdf605126c0dfcdea1fd96c7613` passed GitHub Actions run [#349](https://github.com/enrollment-dot/phoenix-attendance-qr/actions/runs/38524385004), including `npm test` and `npm run test:browser`.
 - Commit `07f8ec90f0ad77a99e80a454c03d33abe058e1f4` passed GitHub Actions run [#350](https://github.com/enrollment-dot/phoenix-attendance-qr/actions/runs/38532163958), including `npm test` and `npm run test:browser`.
-- **Exact PR #125 HEAD verified at follow-up:** `6c8953109a60fbe5d3d16ed019bb2469518ee78c` passed GitHub Actions run [#354](https://github.com/enrollment-dot/phoenix-attendance-qr/actions/runs/38545324281). The run metadata confirms the exact head SHA and PR #125; `npm test` and `npm run test:browser` passed.
-- Vercel provider comments report successful Staging and Production project preview deployments, but the referenced deployment links do not independently establish that the custom domain is serving PR #125's exact HEAD. Direct Vercel API access remains blocked (403/404); treat live domain/SHA verification as unresolved.
+- The PR head and its CI result change as documentation commits are added. Treat the live PR Checks tab as the source of truth for the current head rather than treating this static report as a live CI status.
+- A later combined GitHub status check for the follow-up documentation commit reports successful Vercel provider checks for Staging and Production preview deployments. These are preview/provider signals, not proof that the custom domain is serving that commit. Direct Vercel API access remains blocked (403/404); treat live domain/SHA verification as unresolved.
 - PR #125 remains open and unmerged. Its changes are documentation-only; do not merge without the normal review/approval decision.
 
 ## Supabase project health and current scheduler state
