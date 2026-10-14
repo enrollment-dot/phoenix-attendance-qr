@@ -96,7 +96,7 @@ Key relationships observed from Staging schema metadata:
 - `attendance.student_id` intentionally has no foreign key to `students.student_id`, because historical attendance imports can contain unresolved student references. Do not invent an Auth-UID/student-ID relationship or add a foreign key without an explicit data migration plan.
 - `sessions` stores QR token hashes and encrypted QR token/access-code material; do not expose those columns to clients directly.
 
-The live Staging schema reports four triggers; Production reported zero triggers at audit time. This difference requires a migration/schema reconciliation review and is not assumed to be a vulnerability without inspecting trigger definitions and migration intent. Neither environment reported public views in the catalog query.
+The live Staging schema reports four BEFORE UPDATE timestamp triggers: `admin_profiles_set_updated_at`, `sessions_set_updated_at`, `settings_set_updated_at`, and `students_set_updated_at`, each calling `set_updated_at()`. Production reported zero public-schema triggers at audit time. This is a verified schema difference that can affect `updated_at` maintenance; reconcile it against repository migrations and intended behavior before proposing any change. It is not automatically a vulnerability. Neither environment reported public views in the catalog query.
 
 ## Authentication and RBAC inventory
 
@@ -109,7 +109,7 @@ Roles are `super_admin`, `admin`, and `operator`. The current Edge Function sour
 - Operator must not access Student management or Accounts and must not perform destructive actions. Keep authorization in the Edge Function; frontend hiding is not a security boundary.
 - Only `super_admin` may delete a closed session. This is a required invariant for both code and regression tests.
 
-These role gates are based on the currently retrieved Production and Staging `ylp-api` source. Production reports Edge Function version 43 and Staging version 50; their deployed source hashes differ. The inspected `index.ts` action authorization sections match, but the version/hash difference means full byte-for-byte deployment parity is not established. Continue to compare the deployed `index.ts`, `types.ts`, and `cors.js` before any release.
+These role gates are based on the currently retrieved Production and Staging `ylp-api` source. Production reports Edge Function version 43 and Staging version 50; their deployed source hashes differ. A direct comparison of retrieved deployed files found `index.ts` and `types.ts` byte-for-byte identical, while `cors.js` differs (Production content length 1,030 bytes; Staging 1,040 bytes). Thus the main action/auth implementation matches, but the CORS configuration is intentionally or historically different and must be reviewed before any release. Function metadata reports `verify_jwt=false` in both environments; custom JWT verification in `ylp-api` is therefore a critical control.
 
 ## RLS and database permission interpretation
 
