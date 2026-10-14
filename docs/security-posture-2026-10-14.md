@@ -47,9 +47,9 @@ This is a sample, not a claim that every function in the database was exhaustive
 Both environments reported:
 
 1. **Info — RLS Enabled No Policy:** nine tables. This is documented above and should be interpreted together with actual grants and the service-mediated architecture, not addressed by adding permissive policies.
-2. **Warning — Leaked Password Protection Disabled:** Supabase Auth's compromised-password protection is disabled.
+2. **Warning — Leaked Password Protection Disabled:** Supabase Auth's compromised-password protection is disabled. The projects are on the Supabase Free Plan, and this control is being recorded as a plan/configuration limitation for the current setup.
 
-Enabling leaked-password protection changes an Auth security setting. No setting was changed during this audit; obtain explicit product approval and coordinate the change with authentication regression testing before enabling it.
+No Auth setting was changed. Do not upgrade the plan or attempt to enable this control solely to clear the advisory. Revisit only if plan eligibility or product requirements change.
 
 ## PR #118 verification record
 
@@ -60,3 +60,4 @@ Note: deployment status checks reported success for the Vercel Staging and Produ
 ## Change log
 
 - This is documentation-only; no database, RLS, Auth, environment variable, Edge Function, or production data was changed by this audit.
+- Clarified the leaked-password protection advisory as a Supabase Free Plan limitation/configuration note; no plan or Auth setting changes are requested or made.
