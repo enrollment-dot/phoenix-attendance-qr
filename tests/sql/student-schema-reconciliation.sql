@@ -31,6 +31,14 @@ BEGIN
   IF coalesce((v_result->>'ok')::boolean, true) IS NOT FALSE THEN
     RAISE EXCEPTION 'invalid email was accepted: %', v_result;
   END IF;
+  v_result := public.ylp_student_create_v1('TEST-BAD-DOT', 'Bad Domain Student', DATE '2026-10-01', 'valid@exampleXcom');
+  IF coalesce((v_result->>'ok')::boolean, true) IS NOT FALSE THEN
+    RAISE EXCEPTION 'email without a literal domain dot was accepted: %', v_result;
+  END IF;
+  v_result := public.ylp_student_create_v1('TEST-DOUBLE-DOT', 'Double Dot Student', DATE '2026-10-01', 'valid@example..com');
+  IF coalesce((v_result->>'ok')::boolean, true) IS NOT FALSE THEN
+    RAISE EXCEPTION 'email with an empty domain label was accepted: %', v_result;
+  END IF;
 
   v_result := public.ylp_student_create_v1('TEST-BLANK-EMAIL', 'Blank Email Student', DATE '2026-10-02', '   ');
   IF coalesce((v_result->>'ok')::boolean, false) IS NOT TRUE OR v_result#>>'{data,email}' IS NOT NULL THEN
