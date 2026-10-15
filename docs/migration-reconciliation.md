@@ -2,9 +2,29 @@
 
 This document records the verified relationship between the production Supabase migration history and repository migrations. It is a reconciliation record, not an instruction to replay historical production migrations.
 
-## Verified production history
+## Latest read-only inventory — 2026-10-14
 
-Production currently records 23 migrations:
+A fresh read-only query on 2026-10-14 supersedes the historical list below:
+
+- Production currently records **28** migration entries.
+- Staging currently records **23** migration entries.
+- The current repository `main` contains **25** migration files.
+- This confirms migration-history drift remains unresolved. These counts do not identify a safe replay sequence; compare exact versions, logical changes, and actual schema/functions before any reconciliation.
+
+Newer Production history entries visible in the current live inventory but not included in the historical snapshot below are:
+
+- `20261004171121` — `20261005010000_add_login_welcome_branding`
+- `20261004185133` — `20261005020000_add_scan_qr_branding`
+- `20261008173501` — `reconcile_branding_update_rpc`
+- `20261009091953` — `fix_branding_rpc_target_singleton_row`
+- `20261011174119` — `super_admin_closed_session_delete`
+- `20261013174134` — `secure_session_auto_close_scheduler`
+
+Do not replay, rename, reorder, or delete historical migration entries based on these counts. See [the current verification follow-up](verification-status-2026-10-14-followup.md) for the latest read-only ACL, scheduler, and deployment findings.
+
+## Historical production history snapshot — 2026-10-01
+
+The following list is a **historical snapshot of 22 entries**, not the current Production migration history. The current count is 28 as documented above.
 
 - 20260922120037 ylp_production_schema_v1
 - 20260922120126 ylp_production_rpc_v1
@@ -54,8 +74,6 @@ The production bootstrap/RPC chain and promote_rbac_functions_to_production_v3 a
 - PR #69: explicitly revokes PUBLIC EXECUTE on `ylp_create_session_v1`, `ylp_close_session_v1`, `ylp_scan_v1`, and `ylp_consume_rate_limit_v1`, and grants `service_role` EXECUTE.
 - Production ACL verification after the controlled SQL application confirmed for all four functions: `anon=false`, `authenticated=false`, `service_role=true`, `postgres=true`.
 - The production ACL change was applied through the controlled SQL path because `supabase db push --dry-run` is blocked by historical migration drift. PR #69 records the exact ACL change for repository reproducibility.
-
-
 
 - PR #44: student RPC EXECUTE hardening capture. Production ACLs were already verified as backend-only.
 - PR #45: admin login identity RPC EXECUTE hardening. Deployed Edge Function and production log review showed application calls using the service-role backend.
