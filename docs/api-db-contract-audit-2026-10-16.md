@@ -83,3 +83,15 @@ The ledgers differ and the repository has historical migration drift. These coun
 ## Safety note
 
 This audit performed read-only SQL catalog queries and source inspection only. No database data, schema, grants, secrets, Edge Function deployment, Vercel deployment, or account was changed. Production and Staging must continue to be treated as separate environments.
+
+
+### Authorization helper definition difference
+
+A follow-up read-only definition comparison confirmed that `ylp_authorize_admin_v1(uuid, uuid)` has the same basic query intent in both environments: it returns an active profile only when the supplied admin ID matches a row in `auth.sessions` for the supplied session ID. Both versions are `SECURITY DEFINER` and deny `EXECUTE` to `anon` and `authenticated`, while granting it to `service_role`.
+
+Differences:
+- Staging uses `SET search_path TO 'pg_catalog', 'public'` and does not declare the SQL function `STABLE` (so it defaults to `VOLATILE`).
+- Production uses `SET search_path TO ''` and declares the function `STABLE`.
+- Both versions schema-qualify the referenced relations as `public.admin_profiles` and `auth.sessions`.
+
+This is configuration/volatility drift, not evidence by itself of an authorization bypass. Production's empty search path is more restrictive; Staging should not be changed without a separate reviewed migration and explicit approval. Confirm whether the function is safe to mark `STABLE` under the intended behavior before harmonizing it.
