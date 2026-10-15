@@ -14,12 +14,12 @@ test('student reconciliation migration adds optional email and required enrollme
 });
 
 test('student RPCs match the current API contract and include returned fields', () => {
-  assert.match(migration, /ylp_student_create_v1\\([\\s\\S]*p_enrolled_from date DEFAULT current_date,[\\s\\S]*p_email text DEFAULT NULL/i);
-  assert.match(migration, /ylp_student_update_v1\\([\\s\\S]*p_enrolled_from date DEFAULT NULL,[\\s\\S]*p_email text DEFAULT NULL/i);
-  assert.match(migration, /'email', v_row\\.email/i);
-  assert.match(migration, /'enrolled_from', v_row\\.enrolled_from/i);
-  assert.match(migration, /'email', s\\.email/i);
-  assert.match(migration, /'enrolled_from', s\\.enrolled_from/i);
+  assert.match(migration, /ylp_student_create_v1\([\s\S]*p_enrolled_from date DEFAULT current_date,[\s\S]*p_email text DEFAULT NULL/i);
+  assert.match(migration, /ylp_student_update_v1\([\s\S]*p_enrolled_from date DEFAULT NULL,[\s\S]*p_email text DEFAULT NULL/i);
+  assert.match(migration, /'email', v_row\.email/i);
+  assert.match(migration, /'enrolled_from', v_row\.enrolled_from/i);
+  assert.match(migration, /'email', s\.email/i);
+  assert.match(migration, /'enrolled_from', s\.enrolled_from/i);
 });
 
 test('email and control-character regexes use the intended escapes', () => {
@@ -36,12 +36,13 @@ test('email and control-character regexes use the intended escapes', () => {
   assert.equal([...emailPattern].filter((character) => character === String.fromCharCode(92)).length, 1);
   assert.equal([...namePattern].filter((character) => character === String.fromCharCode(92)).length, 1);
 });
+
 test('legacy overloads are removed and client RPC execution is revoked', () => {
-  assert.match(migration, /DROP FUNCTION IF EXISTS public\\.ylp_student_create_v1\\(text, text\\);/i);
-  assert.match(migration, /DROP FUNCTION IF EXISTS public\\.ylp_student_create_v1\\(text, text, date\\);/i);
-  assert.match(migration, /DROP FUNCTION IF EXISTS public\\.ylp_student_update_v1\\(text, text\\);/i);
-  assert.match(migration, /DROP FUNCTION IF EXISTS public\\.ylp_student_update_v1\\(text, text, date\\);/i);
-  assert.match(migration, /REVOKE ALL ON FUNCTION public\\.ylp_students_v1\\(\\) FROM PUBLIC, anon, authenticated/i);
-  assert.match(migration, /GRANT EXECUTE ON FUNCTION public\\.ylp_student_create_v1\\(text, text, date, text\\) TO service_role, postgres/i);
-  assert.match(migration, /GRANT EXECUTE ON FUNCTION public\\.ylp_student_update_v1\\(text, text, date, text\\) TO service_role, postgres/i);
+  assert.match(migration, /DROP FUNCTION IF EXISTS public\.ylp_student_create_v1\(text, text\);/i);
+  assert.match(migration, /DROP FUNCTION IF EXISTS public\.ylp_student_create_v1\(text, text, date\);/i);
+  assert.match(migration, /DROP FUNCTION IF EXISTS public\.ylp_student_update_v1\(text, text\);/i);
+  assert.match(migration, /DROP FUNCTION IF EXISTS public\.ylp_student_update_v1\(text, text, date\);/i);
+  assert.match(migration, /REVOKE ALL ON FUNCTION public\.ylp_students_v1\(\) FROM PUBLIC, anon, authenticated/i);
+  assert.match(migration, /GRANT EXECUTE ON FUNCTION public\.ylp_student_create_v1\(text, text, date, text\) TO service_role, postgres/i);
+  assert.match(migration, /GRANT EXECUTE ON FUNCTION public\.ylp_student_update_v1\(text, text, date, text\) TO service_role, postgres/i);
 });
