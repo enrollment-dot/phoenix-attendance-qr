@@ -95,3 +95,24 @@ Differences:
 - Both versions schema-qualify the referenced relations as `public.admin_profiles` and `auth.sessions`.
 
 This is configuration/volatility drift, not evidence by itself of an authorization bypass. Production's empty search path is more restrictive; Staging should not be changed without a separate reviewed migration and explicit approval. Confirm whether the function is safe to mark `STABLE` under the intended behavior before harmonizing it.
+
+
+## Follow-up review of student reconciliation PR #130
+
+At the follow-up review, PR #130 remained Draft and unmerged. Its head commit was `91d832cd5e10fc3a5b39beec81b4780cd7eefa6e`, based on main `b2a3a3714a6e856f1bffbb17d7c2c193a0ef48c9`.
+
+The following GitHub Actions runs for that PR head were observed as completed successfully:
+- `Student Schema PostgreSQL Regression`, run #3
+- `Test`, run #369
+- `Session Auto-Close PostgreSQL Regression`, run #25
+
+The Student Schema PostgreSQL Regression workflow uses a disposable PostgreSQL service and a minimal synthetic pre-migration schema. This is useful executable regression evidence, but it is **not** proof that the migration is compatible with the actual Staging or Production schema, nor does it validate the live migration ledger. No live migration was applied.
+
+### Review notes before any database application
+
+- The SQL test file correctly checks that `anon` and `authenticated` cannot execute sampled Student RPCs and that `service_role` can execute the create RPC. The workflow's preliminary inline `anon` check is logically inverted/redundant; the subsequent SQL test currently performs the meaningful denial check. Correct the inline check to avoid confusing future readers.
+- The migration backfills missing `enrolled_from` values from `created_at` in `Asia/Bangkok`, then sets the column `NOT NULL`. This is consistent with the documented intended business timezone but still needs validation against actual row counts, nullability, and data before applying to an environment.
+- The migration drops the legacy two- and three-argument create/update overloads. Confirm all deployed callers and any other database functions that depend on those overloads before application; current `main` Edge Function calls the four-argument contract.
+- The migration has not been applied to either environment. Its synthetic-schema workflow cannot replace the required live-schema and migration-ledger reconciliation.
+
+Status remains: **Staging mismatch verified; remediation PR has promising isolated CI evidence, but live compatibility and deployment are not verified.**
