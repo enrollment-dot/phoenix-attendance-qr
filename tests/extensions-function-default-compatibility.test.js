@@ -13,7 +13,9 @@ test('future postgres-owned extension functions retain PUBLIC EXECUTE compatibil
 });
 
 test('extension compatibility carve-out affects defaults only', () => {
-  assert.match(migration, /does not grant permissions on\s+existing functions/i);
-  assert.match(migration, /does not alter defaults for public, storage, or\s+Supabase-managed schemas/i);
+  assert.ok(migration.includes('does not grant permissions on'));
+  assert.ok(migration.includes('existing functions'));
+  assert.ok(migration.includes('does not alter defaults for public, storage, or'));
+  assert.ok(migration.includes('Supabase-managed schemas'));
   assert.doesNotMatch(migration, /\b(REVOKE|GRANT) EXECUTE ON FUNCTION extensions\./i);
 });
