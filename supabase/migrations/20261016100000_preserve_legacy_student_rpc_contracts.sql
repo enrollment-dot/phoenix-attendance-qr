@@ -55,6 +55,7 @@ BEGIN
   ));
 END;
 $function$;
+REVOKE ALL ON FUNCTION public.ylp_student_create_v1(text, text, date, text) FROM PUBLIC, anon, authenticated;
 
 CREATE OR REPLACE FUNCTION public.ylp_student_update_v1(
   p_student_id text,
@@ -103,6 +104,7 @@ BEGIN
   ));
 END;
 $function$;
+REVOKE ALL ON FUNCTION public.ylp_student_update_v1(text, text, date, text) FROM PUBLIC, anon, authenticated;
 
 -- Two-argument create wrapper supports older payloads and defaults enrollment date.
 CREATE OR REPLACE FUNCTION public.ylp_student_create_v1(
@@ -116,6 +118,7 @@ SET search_path TO ''
 AS $function$
   SELECT public.ylp_student_create_v1(p_student_id, p_name, current_date, NULL::text);
 $function$;
+REVOKE ALL ON FUNCTION public.ylp_student_create_v1(text, text) FROM PUBLIC, anon, authenticated;
 
 -- Three-argument create wrapper preserves the supplied enrollment date.
 CREATE OR REPLACE FUNCTION public.ylp_student_create_v1(
@@ -130,6 +133,7 @@ SET search_path TO ''
 AS $function$
   SELECT public.ylp_student_create_v1(p_student_id, p_name, p_enrolled_from, NULL::text);
 $function$;
+REVOKE ALL ON FUNCTION public.ylp_student_create_v1(text, text, date) FROM PUBLIC, anon, authenticated;
 
 -- Legacy update wrappers intentionally do not update email: old callers have no email field.
 CREATE OR REPLACE FUNCTION public.ylp_student_update_v1(
@@ -166,6 +170,7 @@ BEGIN
   ));
 END;
 $function$;
+REVOKE ALL ON FUNCTION public.ylp_student_update_v1(text, text) FROM PUBLIC, anon, authenticated;
 
 CREATE OR REPLACE FUNCTION public.ylp_student_update_v1(
   p_student_id text,
@@ -205,6 +210,7 @@ BEGIN
   ));
 END;
 $function$;
+REVOKE ALL ON FUNCTION public.ylp_student_update_v1(text, text, date) FROM PUBLIC, anon, authenticated;
 
 -- Explicit least-privilege ACLs: no direct execution by public client roles.
 REVOKE ALL ON FUNCTION public.ylp_student_create_v1(text, text) FROM PUBLIC, anon, authenticated;
