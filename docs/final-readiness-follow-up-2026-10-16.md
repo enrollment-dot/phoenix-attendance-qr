@@ -67,3 +67,27 @@ The database RPC `public.ylp_auto_close_sessions_v1()` exists in both environmen
 - Production: 35 Student rows; `students.enrolled_from` default remains `CURRENT_DATE`; none of those three Staging-specific migration versions are present.
 - No Production migration or database change was performed.
 - Vercel's latest preview deployments for the PR #133 commit were READY, but preview status is not evidence that a Production database migration was applied or that all browser workflows passed in live Production.
+
+
+## Read-only database security comparison (2026-10-16, follow-up)
+
+The following checks were executed directly against both Supabase projects using PostgreSQL catalogs and effective privilege functions. They were read-only.
+
+### Table grants and RLS
+
+For the eight application tables checked — `admin_profiles`, `api_rate_limit_counters`, `scan_receipts`, `session_creation_receipts`, `attendance`, `sessions`, `settings`, and `students` — RLS is enabled in both environments. Effective `anon` and `authenticated` SELECT/INSERT privileges were false for all eight tables in both environments. `service_role` has the required table privileges checked by the audit.
+
+### Sensitive RPCs and helper-function ACL drift
+
+- The checked account-management RPCs, `ylp_delete_session_v1`, attendance/session RPCs, and Student create/update/list overloads were not executable by `anon` or `authenticated` in either environment; `service_role` and `postgres` had execute permission.
+- **Production-specific drift:** `ylp_advisory_key_v1(text,text)`, `ylp_is_uuid_v4_v1(uuid)`, and `ylp_scan_rejection_v1(text,text)` are executable by `anon` and `authenticated` in Production, while all three are not executable by those client roles in Staging. The definitions were inspected: they are simple immutable SQL helpers (hash-derived advisory key, UUIDv4 predicate, and JSON scan-rejection envelope), are not `SECURITY DEFINER`, and use an empty search path. This does not by itself demonstrate data access or a direct authorization bypass, but it is inconsistent with Git migration `20261014052752_restrict_public_function_default_execute.sql` and its explicit helper-function revokes. Record as a Production ACL drift item requiring a separately approved, targeted remediation after confirming intended API compatibility.
+- **Default privileges drift:** the `postgres` default ACL for future functions in schema `public` is restricted in Staging (`postgres` and `service_role` only), but Production's `postgres` default ACL still includes `anon` and `authenticated`. Both environments also show a separate `supabase_admin` default ACL with client execute grants. The repository migration explicitly notes that the migration connection cannot change `supabase_admin`-owned defaults. Do not infer that the existing migration fully resolves default-privilege drift across all owners.
+- **Branding function configuration drift:** Staging's `ylp_branding_get_v1()` and `ylp_branding_update_v1(...)` use `search_path=pg_catalog, public`; Production still reports `search_path=public`. The corresponding Git migration is recorded/applied in Staging but Production's current function configuration has not converged. The functions are not executable by `anon` or `authenticated` in either environment. Treat this as hardening drift, not proof of an exploit.
+
+### Recommended next steps (no changes applied)
+
+1. Keep the above Production ACL/default-privilege differences in the release-blocking security reconciliation list until the owner confirms whether the public helper RPC surface is intentional.
+2. Prepare a narrow Production migration that explicitly revokes `PUBLIC`, `anon`, and `authenticated` from the three helper functions and grants only the intended backend roles, after verifying the frontend and `ylp-api` do not invoke them through a client-role database connection.
+3. Separately plan owner-specific default-privilege remediation for `postgres` and, if authorized/possible, `supabase_admin`; do not claim the latter is fixed by the current migration.
+4. Apply the branding search-path hardening to Production only after explicit Production security-change approval and pre/post verification.
+5. Do not make any of these changes automatically: this audit only recorded findings and did not alter Production or Staging.
