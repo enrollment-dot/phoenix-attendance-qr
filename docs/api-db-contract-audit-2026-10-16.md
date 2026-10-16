@@ -140,3 +140,26 @@ The proposed PR #130 migration version `20261015120000` is later than both curre
 A read-only `pg_depend` query found no catalog-tracked dependent objects referencing the Student create/update overloads in either database. This is not a complete application-caller audit: dynamic SQL, deployed application versions, and callers outside the current `main` Edge Function source are not covered. Production currently has both three-argument and four-argument create/update overloads; PR #130 intentionally drops the three-argument overloads. Keep that as a compatibility review item before any application.
 
 The PR #130 workflow's preliminary anon privilege assertion was corrected in commit `7b89a990205c638b1540dc8c550753dddd9117da` to raise only when anon actually has EXECUTE. Follow-up GitHub Actions runs for that exact commit completed successfully: Student Schema PostgreSQL Regression run #4, Test run #380, and Session Auto-Close PostgreSQL Regression run #30. These are repository CI results using isolated test environments; they do not constitute live Staging/Production migration validation.
+
+### Staging application and post-migration verification (2026-10-16)
+
+With explicit approval scoped to Staging project `yvtgwzvjpztvztozcfir`, the Student schema/RPC reconciliation SQL from PR #130 was applied to Staging only. Production was not targeted by the migration operation.
+
+Immediately before applying, read-only checks confirmed:
+- Staging ledger latest version was `20261015094240` (`harden_global_function_default_execute`).
+- Staging had 13 Student rows, with no null `created_at`.
+- Neither `email` nor `enrolled_from` existed.
+- Student create/update RPCs were still two-argument overloads; anon and authenticated could not execute them.
+
+Post-apply verification confirmed:
+- Supabase recorded the applied migration as version `20261016040903`, name `reconcile_student_schema_and_rpcs`.
+- `students.enrolled_from` exists as `date NOT NULL DEFAULT CURRENT_DATE`; `students.email` exists as nullable `text`.
+- Existing Student row count remains 13. No `enrolled_from` values are null, and every existing value matches `(created_at AT TIME ZONE 'Asia/Bangkok')::date`.
+- The validated `students_email_format_check` constraint exists.
+- Only the four-argument create/update RPC signatures remain, plus `ylp_students_v1()`. All three are `SECURITY DEFINER` with empty `search_path`; anon/authenticated EXECUTE is false, while service_role/postgres EXECUTE is true.
+- The SQL regression behavior checks passed against Staging inside an explicit transaction followed by `ROLLBACK`. This exercised valid create, invalid email, missing email dot, blank-email normalization, control-character rejection, update semantics, list response fields, table constraint, and RPC ACLs. Follow-up verification confirmed the Student row count remained 13 and no transient test IDs remained.
+- Production read-only verification still showed 35 Student rows, both expected columns already present, and no `reconcile_student_schema_and_rpcs` migration-name entry in its ledger. No Production migration was applied.
+
+**Migration-ledger drift note:** the repository migration filename uses version `20261015120000`, while Supabase's migration apply tool recorded `20261016040903` for the same migration name. Do not assume these versions are interchangeable or blindly reapply via `db push`; reconcile the repository file and Staging migration ledger deliberately before any further migration workflow or Production promotion.
+
+CI for PR #130 commit `7b89a990205c638b1540dc8c550753dddd9117da` also passed: Student Schema PostgreSQL Regression #4, Test #380, and Session Auto-Close PostgreSQL Regression #30. These CI runs are separate from the Staging transaction checks described above.
