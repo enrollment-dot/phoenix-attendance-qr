@@ -323,3 +323,16 @@ A fresh read-only advisor refresh at approximately 2026-10-16 15:02 UTC found:
 #### Locked procedure / next work
 
 Continue in this order: (1) complete the bounded migration/object equivalence matrix and identify unreviewed high-risk objects; (2) inspect deployed Staging and Production `ylp-api` source/version parity; (3) finish manual session-close timestamp and branding RPC contract test design; (4) prepare proposed migrations only as tracked files with preflight/postflight assertions, without applying them; (5) run relevant tests and update the Master Handoff. Keep all changes read-only unless separately approved. PR #133 remains Draft/unmerged pending review.
+
+
+### Deployed Edge Function source parity — read-only (2026-10-16)
+
+Fetched the active deployed `ylp-api` source from both Supabase projects and compared the returned file contents:
+
+- Staging: ACTIVE, version 50, source hash `540a4d6db58f4d86b3d92ee6ceb4cea7a34ebecb872aaf0caf31042f062f9e39`.
+- Production: ACTIVE, version 43, source hash `c201461db172288cb41ba7d654f20a46123dcc6cc922b784da2aa106f71b9e51`.
+- `index.ts`: 1,336 lines in each; contents are byte-for-byte identical in the fetched source.
+- `types.ts`: 42 lines in each; contents are byte-for-byte identical.
+- `cors.js`: Staging matches current Git `main`; Production differs on the preview-origin regular expression. Staging accepts the `phoenix-attendance-rbac-stag` / `staging` variants with optional preview suffix; Production only accepts the strict `phoenix-attendance-rbac-staging-<suffix>.vercel.app` form.
+
+**Assessment:** The version numbers and source hashes differ, but the main API implementation and type definitions are identical in the fetched source. The CORS difference appears narrower in Production; do not broaden Production CORS or deploy code merely to equalize hashes. Confirm intended preview-origin policy and inspect the effective `YLP_ALLOW_VERCEL_PREVIEW_ORIGINS` runtime setting through an approved non-secret configuration check before deciding whether this is intentional. No secrets were retrieved or displayed; no Edge Function was deployed or changed.
