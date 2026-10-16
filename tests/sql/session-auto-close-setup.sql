@@ -57,3 +57,8 @@ BEGIN
   );
 END;
 $function$;
+
+-- Mirror the reviewed live baseline ACLs before running the migration preflight.
+REVOKE ALL ON FUNCTION public.ylp_close_session_v1(text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.ylp_close_session_v1(text) FROM anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.ylp_close_session_v1(text) TO service_role, postgres;
