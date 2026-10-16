@@ -10,17 +10,46 @@ DECLARE
   v_first_updated_at timestamptz;
   v_second_updated_at timestamptz;
 BEGIN
-  IF has_function_privilege('anon', 'public.ylp_close_session_v1(text)', 'EXECUTE') THEN
-    RAISE EXCEPTION 'anon unexpectedly has EXECUTE on close-session RPC';
+  -- Assert explicit ACL entries as well as effective permissions; postgres is a superuser.
+  IF EXISTS (
+    SELECT 1
+      FROM pg_catalog.pg_proc p
+      CROSS JOIN LATERAL pg_catalog.aclexplode(p.proacl) acl
+     WHERE p.oid = 'public.ylp_close_session_v1(text)'::pg_catalog.regprocedure
+       AND acl.privilege_type = 'EXECUTE'
+       AND acl.grantee IN (
+         0::oid,
+         'anon'::pg_catalog.regrole::oid,
+         'authenticated'::pg_catalog.regrole::oid
+       )
+  ) THEN
+    RAISE EXCEPTION 'PUBLIC, anon, or authenticated has an explicit EXECUTE ACL entry';
   END IF;
-  IF has_function_privilege('authenticated', 'public.ylp_close_session_v1(text)', 'EXECUTE') THEN
-    RAISE EXCEPTION 'authenticated unexpectedly has EXECUTE on close-session RPC';
+  IF NOT EXISTS (
+    SELECT 1
+      FROM pg_catalog.pg_proc p
+      CROSS JOIN LATERAL pg_catalog.aclexplode(p.proacl) acl
+     WHERE p.oid = 'public.ylp_close_session_v1(text)'::pg_catalog.regprocedure
+       AND acl.grantee = 'service_role'::pg_catalog.regrole::oid
+       AND acl.privilege_type = 'EXECUTE'
+  ) THEN
+    RAISE EXCEPTION 'service_role is missing an explicit EXECUTE ACL entry';
   END IF;
-  IF NOT has_function_privilege('service_role', 'public.ylp_close_session_v1(text)', 'EXECUTE') THEN
-    RAISE EXCEPTION 'service_role is missing EXECUTE on close-session RPC';
+  IF NOT EXISTS (
+    SELECT 1
+      FROM pg_catalog.pg_proc p
+      CROSS JOIN LATERAL pg_catalog.aclexplode(p.proacl) acl
+     WHERE p.oid = 'public.ylp_close_session_v1(text)'::pg_catalog.regprocedure
+       AND acl.grantee = 'postgres'::pg_catalog.regrole::oid
+       AND acl.privilege_type = 'EXECUTE'
+  ) THEN
+    RAISE EXCEPTION 'postgres is missing an explicit EXECUTE ACL entry';
   END IF;
-  IF NOT has_function_privilege('postgres', 'public.ylp_close_session_v1(text)', 'EXECUTE') THEN
-    RAISE EXCEPTION 'postgres is missing EXECUTE on close-session RPC';
+  IF has_function_privilege('anon', 'public.ylp_close_session_v1(text)', 'EXECUTE')
+     OR has_function_privilege('authenticated', 'public.ylp_close_session_v1(text)', 'EXECUTE')
+     OR NOT has_function_privilege('service_role', 'public.ylp_close_session_v1(text)', 'EXECUTE')
+     OR NOT has_function_privilege('postgres', 'public.ylp_close_session_v1(text)', 'EXECUTE') THEN
+    RAISE EXCEPTION 'Effective close-session RPC privileges differ from the backend-only policy';
   END IF;
 
   v_result := public.ylp_close_session_v1('manual-close-timestamp-test');
