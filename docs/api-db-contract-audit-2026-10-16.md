@@ -248,3 +248,14 @@ PR #130 now has a follow-up migration proposal (not applied) to:
 - add disposable PostgreSQL regression checks for two- and three-argument create/update behavior, including email preservation.
 
 The follow-up migration is committed on the PR #130 branch as `supabase/migrations/20261016100000_preserve_legacy_student_rpc_contracts.sql`. It has **not** been applied to Staging or Production. CI for the updated head has not yet been confirmed at the time of this note. Before applying the follow-up to Staging, review the migration against the exact live post-PR-130 schema and require a separate explicit approval. Production remains untouched.
+
+### Latest PR #130 compatibility migration regression — 2026-10-16
+
+The first disposable PostgreSQL run for the compatibility migration failed because PostgreSQL does not permit removing existing parameter defaults using `CREATE OR REPLACE FUNCTION`. The migration was corrected to drop and recreate the reviewed Student create/update overload set inside the migration transaction, then reapply explicit ACLs. A follow-up test assertion was also corrected to expect the enrollment date before and after each legacy update at the appropriate point.
+
+Latest PR #130 head `e38a05733ba75a2ed496c95dfb24995b9d54d294` has these observed completed-successful GitHub Actions runs:
+- Student Schema PostgreSQL Regression #16 (run ID `38850840634`): both migrations applied to a disposable PostgreSQL 17 schema; legacy 2-/3-argument create/update payload behavior, email preservation, no-default contract, `SECURITY DEFINER`, empty `search_path`, and role ACL checks passed.
+- Session Auto-Close PostgreSQL Regression #42 (run ID `38850840649`).
+- Test #402 (run ID `38850840612`): `npm test` and `npm run test:browser` passed.
+
+This is isolated CI evidence only. The follow-up compatibility migration remains unapplied to Staging and Production. PR #130 remains Draft/open/unmerged; Staging application requires separate explicit approval, and Production remains untouched.
