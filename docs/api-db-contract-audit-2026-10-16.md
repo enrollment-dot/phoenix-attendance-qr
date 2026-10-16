@@ -1,18 +1,5 @@
 # API ↔ RPC ↔ Database Contract Audit — 2026-10-16
 
-## Current status — updated after Staging compatibility migration
-
-**Current verified state:** PR #130 remains Draft/open/unmerged. Its compatibility migration has been applied to Staging project `yvtgwzvjpztvztozcfir` with explicit approval only. The applied ledger version is `20261016043513`, matching the renamed migration file `supabase/migrations/20261016043513_preserve_legacy_student_rpc_contracts.sql`. Production project `fsxdsdixxnslismxghfz` was not targeted.
-
-Latest live database checks:
-- Staging: 13 Student rows; migration versions `20261016040903` and `20261016043513` are present. Six Student create/update overloads exist (2-, 3-, and 4-argument signatures); all have zero argument defaults. All six are `SECURITY DEFINER`, use an empty `search_path`, deny EXECUTE to `anon` and `authenticated`, and grant EXECUTE to `service_role` and `postgres`.
-- Staging compatibility regression calls succeeded for 2-/3-/4-argument create/update behavior, including preservation of existing email during legacy updates. The test ran in a transaction and was rolled back; no test rows remain and the count is still 13.
-- Production: 35 Student rows. Compatibility migration version `20261016043513` is absent, and the previously observed 3-/4-argument RPC signatures remain. No Production migration or deployment was performed.
-- The compatibility migration's filename now matches Staging's actual recorded ledger version. The Student regression workflow and Node test references were updated to that filename on the PR #130 branch.
-- Latest observed CI after the filename/reference fix: Student Schema PostgreSQL Regression #19 (run ID `38851588692`) passed; Session Auto-Close PostgreSQL Regression #45 (run ID `38851588667`) passed; Test #407 (run ID `38851588608`) completed successfully, including `npm test` and `npm run test:browser`. Earlier Test #406 failed because it referenced the old migration filename; its browser tests were skipped after `npm test` failed. The path mismatch was fixed in the PR branch and the rerun passed.
-
-**Latest follow-up — Bangkok enrollment date default:** Final review identified that PostgreSQL session timezone is UTC while the product business timezone is Asia/Bangkok. A new additive proposal, `supabase/migrations/20261016045000_use_bangkok_enrollment_date_default.sql`, has been added to PR #130. It changes only the future `enrolled_from` column default and the legacy two-argument create wrapper to calculate the date in `Asia/Bangkok`; it does not rewrite existing Student dates. Regression coverage now checks the catalog default and calls the legacy create wrapper under a deliberately different session timezone. This migration has **not** been applied to Staging or Production. Latest PR #130 head `85ba97611e3609d4bbad72daae11bad5e2d1bed6` has Test #413, Student Schema PostgreSQL Regression #23, and Session Auto-Close PostgreSQL Regression #49 running; do not claim they passed until final results are observed. Vercel Staging and Production status checks were pending at the last check. PR #130 and PR #133 remain unmerged; no deployment was initiated. Do not reapply either existing Staging migration or apply any migration to Production without separate explicit approval and fresh schema/ledger review.
-
 ## Current status — verified 2026-10-16 after timezone fallback review
 
 **Current verified state:** PR #130 remains Draft/open/unmerged at head `2315d4411020621bec6b9f4bedd7160aa517c638`. PR #133 remains Draft/open/unmerged. No PR has been merged as part of this work.
@@ -51,6 +38,21 @@ PR #133 Test #414, run ID `38852014405`, also completed successfully, including 
 Do not reapply either existing Staging migration. Before any additional migration, compare the exact environment ledger, schema, function definitions, and ACLs again.
 
 ---
+
+
+## Previous status snapshot — superseded 2026-10-16
+
+**Current verified state:** PR #130 remains Draft/open/unmerged. Its compatibility migration has been applied to Staging project `yvtgwzvjpztvztozcfir` with explicit approval only. The applied ledger version is `20261016043513`, matching the renamed migration file `supabase/migrations/20261016043513_preserve_legacy_student_rpc_contracts.sql`. Production project `fsxdsdixxnslismxghfz` was not targeted.
+
+Latest live database checks:
+- Staging: 13 Student rows; migration versions `20261016040903` and `20261016043513` are present. Six Student create/update overloads exist (2-, 3-, and 4-argument signatures); all have zero argument defaults. All six are `SECURITY DEFINER`, use an empty `search_path`, deny EXECUTE to `anon` and `authenticated`, and grant EXECUTE to `service_role` and `postgres`.
+- Staging compatibility regression calls succeeded for 2-/3-/4-argument create/update behavior, including preservation of existing email during legacy updates. The test ran in a transaction and was rolled back; no test rows remain and the count is still 13.
+- Production: 35 Student rows. Compatibility migration version `20261016043513` is absent, and the previously observed 3-/4-argument RPC signatures remain. No Production migration or deployment was performed.
+- The compatibility migration's filename now matches Staging's actual recorded ledger version. The Student regression workflow and Node test references were updated to that filename on the PR #130 branch.
+- Latest observed CI after the filename/reference fix: Student Schema PostgreSQL Regression #19 (run ID `38851588692`) passed; Session Auto-Close PostgreSQL Regression #45 (run ID `38851588667`) passed; Test #407 (run ID `38851588608`) completed successfully, including `npm test` and `npm run test:browser`. Earlier Test #406 failed because it referenced the old migration filename; its browser tests were skipped after `npm test` failed. The path mismatch was fixed in the PR branch and the rerun passed.
+
+**Latest follow-up — Bangkok enrollment date default:** Final review identified that PostgreSQL session timezone is UTC while the product business timezone is Asia/Bangkok. A new additive proposal, `supabase/migrations/20261016045000_use_bangkok_enrollment_date_default.sql`, has been added to PR #130. It changes only the future `enrolled_from` column default and the legacy two-argument create wrapper to calculate the date in `Asia/Bangkok`; it does not rewrite existing Student dates. Regression coverage now checks the catalog default and calls the legacy create wrapper under a deliberately different session timezone. This migration has **not** been applied to Staging or Production. Latest PR #130 head `85ba97611e3609d4bbad72daae11bad5e2d1bed6` has Test #413, Student Schema PostgreSQL Regression #23, and Session Auto-Close PostgreSQL Regression #49 running; do not claim they passed until final results are observed. Vercel Staging and Production status checks were pending at the last check. PR #130 and PR #133 remain unmerged; no deployment was initiated. Do not reapply either existing Staging migration or apply any migration to Production without separate explicit approval and fresh schema/ledger review.
+
 
 ## Initial audit snapshot (historical pre-application baseline)
 
