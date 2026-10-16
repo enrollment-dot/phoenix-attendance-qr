@@ -144,3 +144,16 @@ All four call `public.set_updated_at()`, which sets `NEW.updated_at = now()` and
 This is a real schema difference and requires function-by-function review before deciding whether it affects application behavior. Many RPCs may already set `updated_at` explicitly; do not add triggers to Production until reviewing all update paths, avoiding behavior changes or timestamp semantics changes. No trigger or function was modified during this audit.
 
 The same inventory returned no `public` RLS policies in either environment. The reviewed application tables have RLS enabled and direct `anon`/`authenticated` table privileges revoked, so an empty policy inventory is consistent with a backend-only table-access model. Continue validating the Edge Function/RPC authorization boundary as the application access path.
+
+
+### Follow-up: impact of missing Production `updated_at` triggers (read-only, 2026-10-16)
+
+Function-by-function review narrowed the trigger drift impact for the inspected update RPCs:
+
+- `ylp_admin_account_update_v1(...)` explicitly assigns `updated_at = now()` in both environments.
+- All inspected `ylp_student_update_v1(...)` overloads explicitly assign `updated_at`; `ylp_student_set_active_v1(...)` also explicitly updates it in both environments.
+- `ylp_branding_update_v1(...)`, `ylp_auto_close_sessions_v1()`, and `ylp_set_session_access_code_v1(...)` explicitly assign `updated_at` in both environments.
+- **Confirmed affected path:** `ylp_close_session_v1(text)` updates `public.sessions.status = 'closed'` but does not explicitly assign `updated_at` in either environment. Staging's `sessions_set_updated_at` trigger therefore refreshes `updated_at`; Production has no corresponding trigger, so a session closed through this RPC may retain its prior `updated_at` value. The RPC returns that timestamp in its response, making this an observable Staging/Production behavior difference.
+- The automated close function does explicitly assign `updated_at = clock_timestamp()` in both environments, so this specific difference does not affect the inspected auto-close path.
+
+**Assessment:** This is a confirmed timestamp-consistency defect in the manual session-close path, not evidence of an authorization bypass. Do not add a Production trigger automatically: a trigger changes behavior for every update to that table, and must be evaluated against intended Production semantics and a tracked migration. Safest focused remediation options are (a) update `ylp_close_session_v1` to set `updated_at` explicitly in both environments through a reviewed migration, or (b) restore the intended trigger consistently after checking all write paths. Choose one approach, test it in Staging, and require explicit Production schema-change approval before Production rollout. No database changes were made.
