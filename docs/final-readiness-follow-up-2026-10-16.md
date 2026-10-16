@@ -475,3 +475,18 @@ A fresh catalog query in both live projects compared timestamp column defaults a
 
 **Decision remains open:** Do not apply blanket triggers or alter production functions yet. The next evidence step is to inventory each relevant update RPC/Edge Function path and confirm whether it explicitly assigns `updated_at`, then agree the intended semantics per table. Only after that should a separate migration proposal include scoped DDL, regression tests, and pre/postflight assertions. This was read-only; no database changes were made.
 
+
+
+### Follow-up: session, settings, and admin-profile update-path inventory — read-only (2026-10-16)
+
+The next bounded update-path pass compared Staging and Production function definitions and inspected the current Git `main` Edge Function adapter.
+
+- **Manual session close — confirmed timestamp defect:** `ylp_close_session_v1(text)` changes `sessions.status` to `closed` without assigning `updated_at`. Staging's `sessions_set_updated_at` trigger refreshes it; Production has no public timestamp triggers. The response includes `updated_at`, so the result can differ observably by environment. No live session was modified.
+- **Other inspected session writes:** `ylp_create_session_v1(...)` supplies both `created_at` and `updated_at` on insert; `ylp_set_session_access_code_v1(...)` explicitly refreshes `updated_at`; `ylp_auto_close_sessions_v1()` explicitly refreshes `updated_at` when closing eligible sessions. These paths do not rely on the missing Production trigger for the reviewed timestamp behavior.
+- **Admin profiles:** `ylp_admin_account_create_profile_v1(...)` explicitly supplies `created_at` and `updated_at` when inserting a profile. `ylp_admin_account_update_v1(...)` is present in both environments and its source references `updated_at`; prior function-source review confirmed an explicit `updated_at = now()` assignment. The profile-removal RPC deletes a profile rather than updating its timestamp. Thus the inspected account create/update paths do not show the same missing-trigger defect.
+- **Settings:** the catalog search for public function bodies referencing `public.settings` / `UPDATE settings` found reads (including dashboard and public-session settings reads), but no matching public function that updates settings. The inspected Git `main` `ylp-api/index.ts` adapter exposes dashboard settings as read data and had no settings mutation call in the searched code paths. This is bounded evidence only; it does not rule out a direct write path outside the inspected functions/files. No settings row was changed.
+- **Student and branding paths:** the previously inspected student-update overloads, `ylp_branding_update_v1(...)`, and the QR access-code update explicitly assign `updated_at`. No trigger restoration is justified for these specific paths by the evidence collected.
+
+**Decision:** retain the manual `ylp_close_session_v1` timestamp discrepancy as the clearest confirmed functional impact. The smallest candidate remediation is to update that RPC to assign `updated_at` explicitly, rather than blindly restoring four table-wide triggers; however, do not implement or apply it yet. First draft a tracked migration with preflight assertions, a regression test that verifies timestamp advancement on a safe test fixture, and postflight function-definition/ACL checks. Test in Staging first, then require explicit Production schema-change approval. The settings write path remains unproven beyond the bounded inspection above.
+
+No database writes, migrations, ACL changes, deployments, merges, account changes, or destructive operations were performed during this follow-up.
