@@ -8,6 +8,7 @@ DECLARE
   v_signature regprocedure;
   v_config text[];
   v_is_definer boolean;
+  v_has_defaults boolean;
 BEGIN
   IF NOT has_function_privilege('anon', 'public.ylp_students_v1()', 'EXECUTE') THEN
     NULL;
@@ -44,6 +45,19 @@ BEGIN
       RAISE EXCEPTION 'SECURITY DEFINER or empty search_path missing on %: %, %', v_signature, v_is_definer, v_config;
     END IF;
   END LOOP;
+
+  SELECT p.proargdefaults IS NOT NULL INTO v_has_defaults
+  FROM pg_proc p
+  WHERE p.oid = 'public.ylp_student_create_v1(text,text,date,text)'::regprocedure;
+  IF v_has_defaults IS NOT FALSE THEN
+    RAISE EXCEPTION 'four-argument create RPC still has defaults';
+  END IF;
+  SELECT p.proargdefaults IS NOT NULL INTO v_has_defaults
+  FROM pg_proc p
+  WHERE p.oid = 'public.ylp_student_update_v1(text,text,date,text)'::regprocedure;
+  IF v_has_defaults IS NOT FALSE THEN
+    RAISE EXCEPTION 'four-argument update RPC still has defaults';
+  END IF;
 
   v_result := public.ylp_student_create_v1('TEST-VALID-1', 'Valid Test Student', DATE '2026-10-01', 'valid@example.com');
   IF coalesce((v_result->>'ok')::boolean, false) IS NOT TRUE THEN
