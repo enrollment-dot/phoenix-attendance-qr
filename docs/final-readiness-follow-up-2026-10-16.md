@@ -194,3 +194,13 @@ The Supabase Security Advisor was queried directly for both Staging and Producti
 - **RLS Enabled No Policy (INFO):** the advisor reports nine `public` tables with RLS enabled and no policies: `admin_profiles`, `api_rate_limit_counters`, `attendance`, `branding_settings`, `scan_receipts`, `session_creation_receipts`, `sessions`, `settings`, and `students`. A direct read-only `information_schema.role_table_grants` check found only `service_role` table grants among `anon`, `authenticated`, and `service_role` for these nine tables; no direct table grants were returned for `anon` or `authenticated` in either environment. Therefore, the no-policy advisor finding is consistent with the backend-only table access model and is not, by itself, evidence of direct client table access. Preserve the RLS/no-policy design unless the access model is intentionally changed.
 
 **Security status:** Staging and Production have equal status for these two advisor categories as of this check. The leaked-password warning remains an unresolved security-hardening item in both environments. Do not silently change Auth settings as part of a read-only audit.
+
+
+### Supabase Performance Advisor refresh (read-only, 2026-10-16)
+
+The Performance Advisor returned no findings for Production in this check. Staging returned informational findings:
+
+- **Unindexed foreign key:** `public.branding_settings.branding_settings_updated_by_fkey` has no covering index according to the advisor. This may affect parent-row update/delete performance; it is not by itself a security issue. Inspect actual FK columns, query patterns, and index inventory before proposing an index migration.
+- **Four unused-index notices:** `attendance_status_session_idx`, `attendance_scan_in_idx`, `attendance_scan_out_idx`, and `api_rate_limit_updated_at_idx` were reported unused in Staging. Do not drop them based on a single advisor snapshot; usage statistics may reset and indexes can serve infrequent or future queries. Compare workload and query plans before any change.
+
+These findings are **Staging-only advisor results at the observation time**, not proof that Production is perfectly optimized or that Staging's indexes should be changed immediately. No indexes were added or removed. Any schema change remains subject to explicit approval and a tracked migration.
