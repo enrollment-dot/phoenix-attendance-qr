@@ -440,3 +440,15 @@ The earlier statement that Test run #443 was still in progress is superseded by 
 - Test run [#445](https://github.com/enrollment-dot/phoenix-attendance-qr/actions/runs/38921557305) also completed successfully for commit `cb430a92484b1440e668dc67e55f6e46bf8f1fb9`, including dependency installation, Playwright Chromium installation, `npm test`, and `npm run test:browser`.
 - The newest documentation commit is `3c4add6cbd1ac17d8fdc254b62382381dadad902`. No GitHub Actions run associated with this exact commit was returned at the latest check; therefore its own CI status is not yet verified.
 - Vercel Staging and Production preview status checks for the newest commit still report provider build-rate-limit failures. These failures do not negate the successful GitHub Actions test runs and do not establish live Production verification.
+
+
+### Migration-ledger lineage check for timestamp-trigger drift — read-only (2026-10-16)
+
+Queried `supabase_migrations.schema_migrations` in both live projects and checked whether `public.set_updated_at()` exists:
+
+- Production's ledger begins with legacy baseline entries such as `ylp_production_schema_v1` and related `ylp_production_rpc_v*` migrations; Staging begins with a different legacy set such as `ylp_phase5_option_b_v3_staging` and `ylp_phase*` entries.
+- The Production ledger includes 28 recorded entries in the returned snapshot; Staging includes 27. Their baseline history is not the same, so migration version numbers/names alone cannot be used as a direct one-to-one schema parity map.
+- Staging has `public.set_updated_at()` with `search_path = pg_catalog, public`; Production has no `public.set_updated_at()` function in the catalog query.
+- Current Git `main` has no migration named for creating the timestamp trigger/function. The trigger/function therefore appears to originate from Staging's legacy baseline or another historical setup path not represented by the current migration filenames. Exact origin is **not yet proven**.
+
+**Next safe action:** Continue comparing the actual baseline function/table definitions and historical migration evidence, then draft a separate reconciliation proposal. Do not add a trigger migration to this documentation-only PR, do not replay legacy baseline migrations, and do not apply any Production schema change without explicit approval.
