@@ -39,3 +39,23 @@ The read-only status count returned only closed sessions at the time of inspecti
 2. Do not modify either live setting as part of this audit; any future change requires a separate explicit product decision.
 3. Continue to verify scheduled GitHub Actions runs and the session-close timestamp fix separately. CI success on a disposable PostgreSQL database does not prove live database behavior.
 4. No live changes were performed or authorized by this audit note.
+
+
+## Follow-up checkpoint — scheduler evidence reviewed 2026-10-17
+
+### Workflow source inspection
+
+The current repository Staging and Production workflows both use `*/15 * * * *`, target their environment-specific `ylp-api` endpoint, and call `schedulerAutoClose`. Both require a response envelope with `ok == true` and numeric `data.closed_count`; HTTP 200 alone is not accepted as a successful application response.
+
+### Latest visible Supabase edge logs
+
+- Staging: `2026-10-16T18:00:29.102Z`, `POST | 200` to `ylp_auto_close_sessions_v1`.
+- Production: `2026-10-16T17:59:37.166Z`, `POST | 200` to `ylp_auto_close_sessions_v1`.
+
+The current log query does not expose the scheduler response body or `closed_count`. A search for the action name in the edge event text returned no matches. Treat these logs as endpoint reachability evidence only, not as proof that eligible sessions were closed.
+
+### Evidence limitation and disposition
+
+The available GitHub connector view does not expose complete scheduled-trigger run history; its commit-associated workflow-run wrapper is limited to pull-request-triggered runs. Previously recorded scheduled run evidence from 2026-10-16 includes successful Staging and Production runs with `closed_count: 0`, and earlier manual runs returned positive counts (Staging 12; Production 2). Those historical examples support that the API can close eligible sessions, but they do not prove every 15-minute scheduled run succeeds or establish a fresh eligible-session close on 2026-10-17.
+
+**Current status:** Workflow configuration and endpoint reachability have supporting evidence. Full cadence reliability and current end-to-end eligible-session closure remain partially verified. Do not create or close live sessions for testing; do not change cadence or attendance settings. No live database writes, migrations, ACL changes, merges, or deployments were performed for this checkpoint.
