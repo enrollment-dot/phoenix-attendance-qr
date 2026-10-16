@@ -184,3 +184,15 @@ CI for PR #130 commit `7b89a990205c638b1540dc8c550753dddd9117da` also passed: St
 ### Latest PR #130 review update — 2026-10-16
 
 The latest PR #130 head `82ec0f877d4ed54b232ba66493b59fefeb555af4` has all three observed CI workflows passing: Student Schema PostgreSQL Regression #6, Session Auto-Close PostgreSQL Regression #32, and Test #385. The API's current four-argument Student create/update calls match the new RPC signatures. This is not an approval to merge. A repository source search does not establish whether any external or previously deployed caller still depends on Production's legacy three-argument overloads; treat that as an unresolved compatibility question. PR #130 remains Draft/open/unmerged.
+
+
+### Production legacy RPC compatibility review — 2026-10-16
+
+A targeted source review compared the current `main` Edge Function, frontend API client, Student-related migrations, and available tests:
+
+- The current `supabase/functions/ylp-api/index.ts` calls `ylp_student_create_v1` and `ylp_student_update_v1` with four named arguments, including `p_email`.
+- The frontend `src/api.js` uses the application's API request layer; the frontend does not directly call the Supabase Student RPCs in the reviewed source.
+- The repository's historical Student migration `20260928210000_lock_attendance_enrollment_rules.sql` defines the three-argument create/update overloads. `20260928155309_add_optional_student_email.sql` defines the four-argument versions and optional email behavior. The current PR #130 migration drops the legacy two- and three-argument overloads.
+- No additional direct Student RPC invocation was identified in the files reviewed. This is limited to the tracked source and tests inspected; it cannot rule out older deployed Edge Function versions, external scripts, manual SQL clients, or other callers outside this repository.
+
+**Conclusion:** The current repository's API contract uses four arguments, but Production compatibility is not fully proven for removal of the three-argument overloads. Preserve this as a release gate until deployed callers and external integrations are accounted for. No database change or deployment was made during this review.
