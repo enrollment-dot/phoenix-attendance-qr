@@ -299,3 +299,27 @@ A fresh PostgreSQL catalog comparison found a return-type mismatch not captured 
 - The current `main` Edge Function `supabase/functions/ylp-api/index.ts`, method `branding()` (around lines 926–929), calls the RPC and normalizes an array result to its first item, otherwise returning the result as-is. This appears intended to tolerate different result shapes, but static inspection is not live API contract verification.
 
 **Assessment:** this is an API/RPC contract drift even though the current adapter may normalize the observed return shapes. Do not alter either database function solely to make signatures identical without checking client expectations and regression tests. Add a focused test covering the normalized branding response shape, then decide whether to standardize both environments on one return type through a tracked migration. No runtime request or database write was performed for this finding.
+
+
+### Locked audit checkpoint — latest CI and advisor refresh (2026-10-16)
+
+This checkpoint continues the existing read-only audit plan; it does not authorize any database, Auth, Vercel configuration, merge, or Production change.
+
+#### PR #133 and CI
+
+- PR #133 remains open, Draft, and unmerged; current head is `f06a2e1304e3891e93ae5b735cea12667fed61c9`.
+- GitHub Actions Test run [#441](https://github.com/enrollment-dot/phoenix-attendance-qr/actions/runs/38920467532) completed successfully for that exact head commit. The job completed both `npm test` and `npm run test:browser`.
+- The Vercel Production-project PR preview check is successful. The Vercel Staging preview check is failing due to the provider's build rate limit (reported retry in 24 hours), not a reported application test failure. Do not change the Vercel plan or configuration without approval.
+- Preview readiness is not live Production deployment verification.
+
+#### Current Supabase advisor and Edge Function snapshot
+
+A fresh read-only advisor refresh at approximately 2026-10-16 15:02 UTC found:
+
+- Staging and Production Security Advisor both report 9 RLS-enabled tables without policies and leaked-password protection disabled (WARN). The no-policy result is consistent with the reviewed backend-only table-access model; no client table grants were found in the prior direct grant checks. The Auth setting remains an unresolved hardening item and must not be changed during this read-only audit.
+- Staging Performance Advisor reports one unindexed FK on `branding_settings.updated_by` and four unused-index notices. Production Performance Advisor returned no findings in this snapshot. Do not add/drop indexes based on these notices alone.
+- Staging `ylp-api` is ACTIVE at function version 50; Production `ylp-api` is ACTIVE at function version 43. This is a deployment-version difference only; it does not prove the code versions are equivalent or incompatible. Compare deployed source/hash against the intended repository commit before drawing a deployment-parity conclusion.
+
+#### Locked procedure / next work
+
+Continue in this order: (1) complete the bounded migration/object equivalence matrix and identify unreviewed high-risk objects; (2) inspect deployed Staging and Production `ylp-api` source/version parity; (3) finish manual session-close timestamp and branding RPC contract test design; (4) prepare proposed migrations only as tracked files with preflight/postflight assertions, without applying them; (5) run relevant tests and update the Master Handoff. Keep all changes read-only unless separately approved. PR #133 remains Draft/unmerged pending review.
