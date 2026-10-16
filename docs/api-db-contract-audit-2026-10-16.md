@@ -1,17 +1,17 @@
 # API ↔ RPC ↔ Database Contract Audit — 2026-10-16
 
-## Current status — updated after Staging application
+## Current status — updated after Staging compatibility migration
 
-**Current verified state:** PR #130 remains Draft/open/unmerged. Its latest reviewed head is `82ec0f877d4ed54b232ba66493b59fefeb555af4`, based on main `b2a3a3714a6e856f1bffbb17d7c2c193a0ef48c9`. The Student schema reconciliation migration was applied to Staging project `yvtgwzvjpztvztozcfir` with explicit approval, and the post-apply checks passed. Production project `fsxdsdixxnslismxghfz` was not targeted by the migration.
+**Current verified state:** PR #130 remains Draft/open/unmerged. Its compatibility migration has been applied to Staging project `yvtgwzvjpztvztozcfir` with explicit approval only. The applied ledger version is `20261016043513`, matching the renamed migration file `supabase/migrations/20261016043513_preserve_legacy_student_rpc_contracts.sql`. Production project `fsxdsdixxnslismxghfz` was not targeted.
 
-Latest read-only database checks:
-- Staging: 13 Student rows; `enrolled_from` and `email` exist; no null enrollment dates; valid four-argument create/update RPCs plus `ylp_students_v1()`; all three are `SECURITY DEFINER` with empty `search_path`; `anon` and `authenticated` EXECUTE denied; `service_role` EXECUTE granted. Migration ledger records version `20261016040903`, name `reconcile_student_schema_and_rpcs`.
-- Production: 35 Student rows; `enrolled_from` and `email` exist; no null enrollment dates or invalid existing email values found; both four-argument and legacy three-argument create/update RPC overloads remain; sampled Student RPC ACLs deny `anon` and `authenticated` and grant `service_role`. No `reconcile_student_schema_and_rpcs` ledger entry was found.
-- Staging transaction-wrapped SQL regression checks passed and were rolled back; the row count stayed 13 and no test IDs remained.
-- GitHub Actions on PR #130 head `82ec0f877d4ed54b232ba66493b59fefeb555af4`: Student Schema PostgreSQL Regression #6, Session Auto-Close PostgreSQL Regression #32, and Test #385 all completed successfully; `npm test` and `npm run test:browser` passed.
-- The migration file in PR #130 was renamed to `20261016040903_reconcile_student_schema_and_rpcs.sql` to match Staging's already-recorded migration version. This repository change does not apply any database migration.
+Latest live database checks:
+- Staging: 13 Student rows; migration versions `20261016040903` and `20261016043513` are present. Six Student create/update overloads exist (2-, 3-, and 4-argument signatures); all have zero argument defaults. All six are `SECURITY DEFINER`, use an empty `search_path`, deny EXECUTE to `anon` and `authenticated`, and grant EXECUTE to `service_role` and `postgres`.
+- Staging compatibility regression calls succeeded for 2-/3-/4-argument create/update behavior, including preservation of existing email during legacy updates. The test ran in a transaction and was rolled back; no test rows remain and the count is still 13.
+- Production: 35 Student rows. Compatibility migration version `20261016043513` is absent, and the previously observed 3-/4-argument RPC signatures remain. No Production migration or deployment was performed.
+- The compatibility migration's filename now matches Staging's actual recorded ledger version. The Student regression workflow and Node test references were updated to that filename on the PR #130 branch.
+- Latest observed CI after the filename/reference fix: Student Schema PostgreSQL Regression #19 (run ID `38851588692`) passed; Session Auto-Close PostgreSQL Regression #45 (run ID `38851588667`) passed; Test #407 (run ID `38851588608`) was still in progress at the time of this update. Earlier Test #406 failed because it referenced the old migration filename; its browser tests were skipped after `npm test` failed. Do not claim Test #407 passed until its final status is verified.
 
-**Remaining release gates:** PR #130 still needs final compatibility review for external callers of Production's legacy three-argument RPC overloads and normal PR review. No PR was merged and no deployment was initiated. Do not apply this migration again to Staging. Do not apply it to Production without a separate explicit approval and a fresh schema/ledger review.
+**Remaining release gates:** PR #130 needs Test #407 to finish successfully and a final review of the complete diff. No PR was merged and no deployment was initiated. Do not apply the Staging compatibility migration again. Do not apply either migration to Production without separate explicit approval and fresh schema/ledger review.
 
 ## Initial audit snapshot (historical pre-application baseline)
 
