@@ -20,13 +20,14 @@
 
 ### Latest PR #130 CI after ledger filename alignment
 
-PR #130 head is `97720ce05f604072e3cc28addb98c58e436c34d8`. The migration filename and references in the Node regression test and PostgreSQL regression workflow now match the actual Staging ledger version. The latest observed runs are still in progress at this snapshot:
-- Student Schema PostgreSQL Regression #32, run ID `38867499938`.
-- Session Auto-Close PostgreSQL Regression #58, run ID `38867499675`.
-- Test #425, run ID `38867499729`.
-- Vercel Staging and Production PR status checks were pending at the last check.
+PR #130 head is `97720ce05f604072e3cc28addb98c58e436c34d8`. All latest checks completed successfully:
+- Student Schema PostgreSQL Regression #32, run ID `38867499938`: **success**.
+- Session Auto-Close PostgreSQL Regression #58, run ID `38867499675`: **success**.
+- Test #425, run ID `38867499729`: **success**, including `npm test` and `npm run test:browser`.
+- Vercel Staging status check: **success**.
+- Vercel Production status check: **success**. These are PR preview/status checks, not evidence of a Production database migration or deployment.
 
-Do not report these checks as passed until the final outcomes are observed. Vercel PR checks are not evidence that a Production database migration was applied.
+PR #133 documentation update Test #426, run ID `38867576215`, also completed successfully, including `npm test` and `npm run test:browser`.
 
 ### Remaining gates
 
