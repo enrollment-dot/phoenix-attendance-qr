@@ -222,3 +222,16 @@ A read-only search of Production's Supabase `edge_logs` for the 24-hour window `
 **Updated release decision:** Do **not** remove the legacy two- and three-argument overloads as part of PR #130 until the historical two-argument usage is explained and current/external callers are accounted for. The repository and currently deployed `ylp-api` use four arguments, but historical database statistics demonstrate prior use of the two-argument contract. Consider a compatibility-first migration that retains legacy overloads temporarily (with reviewed, safe behavior and ACLs) or obtain independent evidence that all old callers have been retired before dropping them. Any change to the migration must be tested, reviewed, and must not be applied to Production without separate explicit approval. No database or deployment changes were made during this review.
 
 **Important interpretation limitation:** The `pg_stat_statements` query text records the named arguments supplied by the PostgREST request, not the resolved function OID. A request containing only `p_student_id` and `p_name` could resolve to a three-argument overload if `p_enrolled_from` has a default and the exact two-argument overload is absent. Because these statistics do not expose the last execution time or the resolved overload OID, the 11 create and 2 update calls cannot be safely classified as calls to the historical two-argument functions versus calls resolved to a defaulted three-argument function, nor can they be placed entirely before or after the 2026-09-28 migration activity. This uncertainty is directly relevant to PR #130's removal of the three-argument overloads; the release gate remains in place.
+
+### Production overload defaults and targeted query-shape check
+
+A further read-only catalog check confirmed the current Production overload defaults:
+
+- Three-argument create: `p_enrolled_from date DEFAULT CURRENT_DATE`.
+- Three-argument update: `p_enrolled_from date DEFAULT NULL`.
+- Four-argument create: `p_enrolled_from date DEFAULT CURRENT_DATE, p_email text DEFAULT NULL`.
+- Four-argument update: `p_enrolled_from date DEFAULT NULL, p_email text DEFAULT NULL`.
+
+A focused `pg_stat_statements` query looking for a Student create invocation that includes `p_enrolled_from` but not `p_email` returned no rows. This is limited evidence only: statistics can be reset/evicted, query text is not a resolved overload OID, and it does not establish whether three-argument external calls occurred outside the retained statistics.
+
+Because both three- and four-argument functions have defaulted parameters, do not infer overload resolution from argument count alone. Keep PR #130's compatibility gate until the exact client payload contract and PostgREST overload resolution are verified in a disposable environment or by equivalent safe evidence. No Production function was invoked for this check and no database changes were made.
