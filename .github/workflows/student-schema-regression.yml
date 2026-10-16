@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "supabase/migrations/20261016040903_reconcile_student_schema_and_rpcs.sql"
+      - "supabase/migrations/20261016100000_preserve_legacy_student_rpc_contracts.sql"
       - "tests/sql/student-schema-reconciliation.sql"
       - ".github/workflows/student-schema-regression.yml"
   workflow_dispatch:
@@ -52,6 +53,8 @@ jobs:
           SQL
       - name: Apply Student reconciliation migration
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261016040903_reconcile_student_schema_and_rpcs.sql
+      - name: Preserve legacy Student RPC payload semantics
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261016100000_preserve_legacy_student_rpc_contracts.sql
       - name: Verify backfill, RPC behavior, and privileges
         run: |
           psql -v ON_ERROR_STOP=1 <<'SQL'
