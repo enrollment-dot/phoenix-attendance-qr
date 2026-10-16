@@ -114,3 +114,18 @@ The current `ylp_force_delete_session_v1(text)` definition in both environments 
 ### Full SECURITY DEFINER client-execution sweep
 
 A read-only catalog sweep across all functions in schema `public` found **zero `SECURITY DEFINER` functions executable by `anon` or `authenticated` in either Staging or Production**. This is an important positive control: the three Production helper functions noted above are not `SECURITY DEFINER` functions. Their client EXECUTE grants remain ACL drift and should be reviewed, but they are not an identified public SECURITY DEFINER execution path.
+
+
+### Core constraint equivalence and naming drift
+
+Read-only `pg_constraint` comparison of `admin_profiles`, `students`, `sessions`, `attendance`, and `scan_receipts` found the checked core validation definitions semantically equivalent across environments:
+- Role allow-list: `super_admin`, `admin`, `operator`.
+- Username format: optional/null or 3–40 characters from `A–Z`, `a–z`, digits, dot, underscore, hyphen.
+- Student email: optional/null, maximum 254 characters, basic email-shape check.
+- Session status: `active` or `closed`; end time must be later than start time; late threshold 0–240.
+- Attendance duration nonnegative; Scan Out requires Scan In; Scan Out timestamp cannot precede Scan In.
+- Scan receipt direction limited to `in` or `out`.
+
+Constraint names differ for the username-format constraint (`admin_profiles_username_format_check` in Staging vs `admin_profiles_username_check` in Production), and the role value order differs, but the inspected expressions are equivalent. The extra `2200_..._not_null` catalog entries appear in both environments with different internal identifiers; do not treat those generated names as business-schema drift by themselves.
+
+This is a bounded comparison of the listed core constraints, not a complete canonical schema diff of every table, trigger, policy, view, and function.
