@@ -371,3 +371,34 @@ A fresh catalog comparison covered all `public` functions named `ylp_%` plus all
 - Vercel Staging and Production PR preview checks were both blocked by the provider build rate limit at the latest check. This is not proof of an application build failure and is not live Production deployment verification.
 
 No database writes, migrations, function ACL changes, deployments, or destructive calls were performed during this inspection.
+
+
+### Follow-up: destructive student route and close-session timestamp parity — read-only (2026-10-16)
+
+#### Student deletion authorization path confirmed in Git `main`
+
+Reviewed `supabase/functions/ylp-api/index.ts` at current `main`:
+
+- `deleteStudent` requires `super_admin` on the current authenticated token.
+- It requires a non-empty username and password, applies the global login rate limit, performs a fresh login, validates the re-authenticated token as `super_admin`, and compares the re-authenticated subject to the current session subject before calling `backend.forceDeleteStudent(...)`.
+- The backend adapter invokes `ylp_force_delete_student_v1`; the route does not call the destructive RPC until these checks pass.
+- The Production database definition of `ylp_force_delete_student_v1(text)` is SECURITY DEFINER with an empty search path and schema-qualified table references. Effective EXECUTE is denied to `anon` and `authenticated`, and allowed to `service_role`. Staging does not currently contain this function.
+
+**Assessment:** The checked-in route implements the required super-admin + fresh re-authentication + same-account check + rate limit. Production's backend-only RPC permission is consistent with that boundary. Remaining work is to verify the deployed Production Edge Function version's route matches Git and to check the client UI's confirmation flow without performing a deletion. This is source/catalog verification, not a destructive end-to-end test. No RPC was invoked.
+
+#### Manual session-close timestamp behavior
+
+Compared `ylp_close_session_v1(text)`, trigger definitions, and effective RPC permissions in both databases:
+
+- Both environments' close RPC locks the target session, changes `status` to `closed` only when it is not already closed, and returns the row's `updated_at`. Effective EXECUTE is denied to `anon` and `authenticated`, and allowed to `service_role`.
+- Staging has `sessions_set_updated_at` and `students_set_updated_at` BEFORE UPDATE triggers calling `set_updated_at()`; that trigger function assigns `new.updated_at = now()`.
+- Production has no non-internal triggers on the queried `sessions`, `students`, `attendance`, or `branding_settings` tables in this snapshot.
+- Consequently, when the Production close RPC changes a session from non-closed to closed, the shown function does not itself assign `updated_at`, and the queried table has no trigger to assign it. The returned timestamp can therefore remain unchanged. In Staging, the sessions trigger supplies the timestamp on the update.
+
+**Assessment:** This is a confirmed cross-environment behavior difference and a likely Production `updated_at` consistency defect, not just a theoretical migration mismatch. Do not apply a trigger or function change yet. First inspect all timestamp columns, other table triggers, current migration history, and update paths; then prepare a tracked migration with preflight/postflight checks and regression coverage. A live close-session write was intentionally not performed during this read-only audit.
+
+#### Latest CI / PR checkpoint
+
+- GitHub Actions Test run [#443](https://github.com/enrollment-dot/phoenix-attendance-qr/actions/runs/38920847667) remains `in_progress` at the latest poll: `npm install` passed; Playwright Chromium installation is still running; `npm test` and `npm run test:browser` have not started. CI is not yet green for the latest documentation commit.
+- The latest commit's Vercel Staging and Production preview status checks both report provider build-rate-limit failures. This is not evidence that application tests failed and does not verify live Production.
+- PR [#133](https://github.com/enrollment-dot/phoenix-attendance-qr/pull/133) remains open, Draft, and unmerged. No database writes, migrations, ACL changes, deployments, merges, or destructive actions were performed.
