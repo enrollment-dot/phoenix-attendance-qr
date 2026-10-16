@@ -129,3 +129,18 @@ Read-only `pg_constraint` comparison of `admin_profiles`, `students`, `sessions`
 Constraint names differ for the username-format constraint (`admin_profiles_username_format_check` in Staging vs `admin_profiles_username_check` in Production), and the role value order differs, but the inspected expressions are equivalent. The extra `2200_..._not_null` catalog entries appear in both environments with different internal identifiers; do not treat those generated names as business-schema drift by themselves.
 
 This is a bounded comparison of the listed core constraints, not a complete canonical schema diff of every table, trigger, policy, view, and function.
+
+
+### Trigger and RLS policy inventory
+
+A read-only catalog comparison found **four non-internal triggers in Staging and zero in Production**. Staging triggers are:
+- `admin_profiles_set_updated_at`
+- `sessions_set_updated_at`
+- `settings_set_updated_at`
+- `students_set_updated_at`
+
+All four call `public.set_updated_at()`, which sets `NEW.updated_at = now()` and has `search_path=pg_catalog, public`. Production has no non-internal triggers in the `public` schema according to the same query.
+
+This is a real schema difference and requires function-by-function review before deciding whether it affects application behavior. Many RPCs may already set `updated_at` explicitly; do not add triggers to Production until reviewing all update paths, avoiding behavior changes or timestamp semantics changes. No trigger or function was modified during this audit.
+
+The same inventory returned no `public` RLS policies in either environment. The reviewed application tables have RLS enabled and direct `anon`/`authenticated` table privileges revoked, so an empty policy inventory is consistent with a backend-only table-access model. Continue validating the Edge Function/RPC authorization boundary as the application access path.
