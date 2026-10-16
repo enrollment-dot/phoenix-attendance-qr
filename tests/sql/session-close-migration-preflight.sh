@@ -67,6 +67,11 @@ REVOKE CREATE ON SCHEMA public FROM service_role;
 SQL
 expect_refusal_without_change owner_mismatch "$db"
 
+new_db security_mode_mismatch
+db="$DB"
+psql -X -v ON_ERROR_STOP=1 -d "$db" -c 'ALTER FUNCTION public.ylp_close_session_v1(text) SECURITY DEFINER' >/dev/null
+expect_refusal_without_change security_mode_mismatch "$db"
+
 new_db search_path_mismatch
 db="$DB"
 psql -X -v ON_ERROR_STOP=1 -d "$db" -c 'ALTER FUNCTION public.ylp_close_session_v1(text) SET search_path TO public' >/dev/null
