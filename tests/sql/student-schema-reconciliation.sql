@@ -71,7 +71,7 @@ BEGIN
   v_result := public.ylp_student_update_v1(p_student_id := 'TEST-VALID-1', p_name := 'Legacy Two-Argument Update');
   IF coalesce((v_result->>'ok')::boolean, false) IS NOT TRUE
      OR v_result#>>'{data,email}' <> 'valid@example.com'
-     OR v_result#>>'{data,enrolled_from}' <> '2026-10-01' THEN
+     OR v_result#>>'{data,enrolled_from}' <> '2026-10-04' THEN
     RAISE EXCEPTION 'two-argument update changed email or enrollment date: %', v_result;
   END IF;
 
@@ -90,12 +90,12 @@ BEGIN
   IF coalesce((v_result->>'ok')::boolean, false) IS NOT TRUE OR v_result#>>'{data,email}' IS NOT NULL THEN
     RAISE EXCEPTION 'update did not normalize blank email to NULL: %', v_result;
   END IF;
-  IF v_result#>>'{data,enrolled_from}' <> '2026-10-01' THEN
+  IF v_result#>>'{data,enrolled_from}' <> '2026-10-04' THEN
     RAISE EXCEPTION 'update unexpectedly changed enrollment date: %', v_result;
   END IF;
 
   v_list := public.ylp_students_v1();
-  IF NOT (v_list @> '[{"student_id":"TEST-VALID-1","email":null,"enrolled_from":"2026-10-01"}]'::jsonb) THEN
+  IF NOT (v_list @> '[{"student_id":"TEST-VALID-1","email":null,"enrolled_from":"2026-10-04"}]'::jsonb) THEN
     RAISE EXCEPTION 'list RPC does not include expected email/enrollment fields: %', v_list;
   END IF;
 
