@@ -205,7 +205,7 @@ A read-only check of Supabase's live Edge Function inventory confirmed:
 - Staging `ylp-api` is ACTIVE at version 50, SHA `540a4d6db58f4d86b3d92ee6ceb4cea7a34ebecb872aaf0caf31042f062f9e39`.
 - The retrieved deployed `index.ts` code in both projects uses the four-argument `ylp_student_create_v1` and `ylp_student_update_v1` RPC contract (`p_student_id`, `p_name`, `p_enrolled_from`, `p_email`). This confirms the deployed Edge Function source currently inspected, not every historical deployment or external client.
 
-Production's read-only `pg_stat_statements` data adds evidence that legacy callers existed historically:
+Production's read-only `pg_stat_statements` data records historical query shapes that supplied only the two named Student arguments; it does not identify the resolved function OID:
 
 | Query pattern in PostgreSQL statistics | Calls recorded |
 |---|---:|
@@ -219,7 +219,7 @@ The database statistics reset timestamp observed was `2026-08-25 20:33:23+00`; t
 
 A read-only search of Production's Supabase `edge_logs` for the 24-hour window `2026-10-15T04:00:00Z` through `2026-10-16T04:00:00Z` found no requests whose logged RPC path contained `ylp_student_create_v1`, `ylp_student_update_v1`, or `ylp_students_v1`. This only describes that queried log window and is not proof of no usage outside it. PostgreSQL function-call statistics were unavailable from `pg_stat_user_functions` (no rows returned), so that view could not independently establish overload-specific call counts.
 
-**Updated release decision:** Do **not** remove the legacy two- and three-argument overloads as part of PR #130 until the historical two-argument usage is explained and current/external callers are accounted for. The repository and currently deployed `ylp-api` use four arguments, but historical database statistics demonstrate prior use of the two-argument contract. Consider a compatibility-first migration that retains legacy overloads temporarily (with reviewed, safe behavior and ACLs) or obtain independent evidence that all old callers have been retired before dropping them. Any change to the migration must be tested, reviewed, and must not be applied to Production without separate explicit approval. No database or deployment changes were made during this review.
+**Updated release decision:** Do not remove legacy payload support without a compatibility-safe replacement. The current four-argument update RPC defaults `p_email` to NULL; a caller that omits `p_email` can therefore unintentionally clear an existing email if the request resolves to the four-argument function. The current repository API always supplies all four arguments, but older clients may not. The recorded query shapes are not enough to prove which overload resolved or whether old clients remain active. A compatibility-first approach is to remove defaults from the four-argument functions and provide explicit 2-/3-argument wrappers, with legacy update wrappers preserving email, all under `service_role` / `postgres` ACLs. PR #130 is being updated to test this approach; its follow-up migration has not been applied to either environment. No Production database or deployment change was made during this review.
 
 **Important interpretation limitation:** The `pg_stat_statements` query text records the named arguments supplied by the PostgREST request, not the resolved function OID. A request containing only `p_student_id` and `p_name` could resolve to a three-argument overload if `p_enrolled_from` has a default and the exact two-argument overload is absent. Because these statistics do not expose the last execution time or the resolved overload OID, the 11 create and 2 update calls cannot be safely classified as calls to the historical two-argument functions versus calls resolved to a defaulted three-argument function, nor can they be placed entirely before or after the 2026-09-28 migration activity. This uncertainty is directly relevant to PR #130's removal of the three-argument overloads; the release gate remains in place.
 
@@ -235,3 +235,16 @@ A further read-only catalog check confirmed the current Production overload defa
 A focused `pg_stat_statements` query looking for a Student create invocation that includes `p_enrolled_from` but not `p_email` returned no rows. This is limited evidence only: statistics can be reset/evicted, query text is not a resolved overload OID, and it does not establish whether three-argument external calls occurred outside the retained statistics.
 
 Because both three- and four-argument functions have defaulted parameters, do not infer overload resolution from argument count alone. Keep PR #130's compatibility gate until the exact client payload contract and PostgREST overload resolution are verified in a disposable environment or by equivalent safe evidence. No Production function was invoked for this check and no database changes were made.
+
+### Follow-up: legacy update payload semantic compatibility — 2026-10-16
+
+Reviewing the actual Production function definitions identified a more concrete compatibility concern than the historical query counters alone: the four-argument `ylp_student_update_v1` has `p_email DEFAULT NULL` and sets `students.email = v_email`. If an older update client omits `p_email` and the call resolves to that four-argument function, the omitted email is normalized to NULL and an existing email could be cleared. Historical update wrappers did not have an email parameter and did not change the email column.
+
+PR #130 now has a follow-up migration proposal (not applied) to:
+- remove default values from the four-argument create/update RPC signatures;
+- restore explicit two- and three-argument create/update wrappers to preserve supported legacy payload shapes without overlapping default-argument resolution;
+- keep legacy update wrappers from changing the email column;
+- enforce `SECURITY DEFINER`, empty `search_path`, and explicit `service_role` / `postgres` EXECUTE grants while denying `PUBLIC`, `anon`, and `authenticated`;
+- add disposable PostgreSQL regression checks for two- and three-argument create/update behavior, including email preservation.
+
+The follow-up migration is committed on the PR #130 branch as `supabase/migrations/20261016100000_preserve_legacy_student_rpc_contracts.sql`. It has **not** been applied to Staging or Production. CI for the updated head has not yet been confirmed at the time of this note. Before applying the follow-up to Staging, review the migration against the exact live post-PR-130 schema and require a separate explicit approval. Production remains untouched.
