@@ -13,6 +13,7 @@ BEGIN
          p.prorettype,
          p.prolang,
          p.proconfig,
+         p.proacl,
          pg_catalog.pg_get_userbyid(p.proowner) AS owner_name
     INTO v_proc
     FROM pg_catalog.pg_proc AS p
@@ -36,11 +37,30 @@ BEGIN
     RAISE EXCEPTION 'Preflight failed: close-session RPC owner, security mode, return type, language, or search_path differs from the reviewed baseline';
   END IF;
 
-  IF pg_catalog.has_function_privilege('anon', 'public.ylp_close_session_v1(text)', 'EXECUTE')
-     OR pg_catalog.has_function_privilege('authenticated', 'public.ylp_close_session_v1(text)', 'EXECUTE')
-     OR NOT pg_catalog.has_function_privilege('service_role', 'public.ylp_close_session_v1(text)', 'EXECUTE')
-     OR NOT pg_catalog.has_function_privilege('postgres', 'public.ylp_close_session_v1(text)', 'EXECUTE') THEN
-    RAISE EXCEPTION 'Preflight failed: close-session RPC effective EXECUTE privileges differ from the reviewed baseline';
+  -- Check explicit ACL entries, not only effective privileges (postgres is a superuser).
+  IF EXISTS (
+       SELECT 1
+         FROM pg_catalog.aclexplode(v_proc.proacl) AS acl
+        WHERE acl.privilege_type = 'EXECUTE'
+          AND acl.grantee IN (
+            0::oid,
+            'anon'::pg_catalog.regrole::oid,
+            'authenticated'::pg_catalog.regrole::oid
+          )
+     )
+     OR NOT EXISTS (
+       SELECT 1
+         FROM pg_catalog.aclexplode(v_proc.proacl) AS acl
+        WHERE acl.grantee = 'service_role'::pg_catalog.regrole::oid
+          AND acl.privilege_type = 'EXECUTE'
+     )
+     OR NOT EXISTS (
+       SELECT 1
+         FROM pg_catalog.aclexplode(v_proc.proacl) AS acl
+        WHERE acl.grantee = 'postgres'::pg_catalog.regrole::oid
+          AND acl.privilege_type = 'EXECUTE'
+     ) THEN
+    RAISE EXCEPTION 'Preflight failed: explicit close-session RPC ACL entries differ from the reviewed baseline';
   END IF;
 
   SELECT pg_catalog.pg_get_functiondef(
