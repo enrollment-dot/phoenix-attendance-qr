@@ -164,3 +164,23 @@ Function-by-function review narrowed the trigger drift impact for the inspected 
 A read-only static search of the current `main` frontend source modules and `supabase/functions/ylp-api` source files inspected during this follow-up found no literal references to `ylp_advisory_key_v1`, `ylp_is_uuid_v4_v1`, or `ylp_scan_rejection_v1`. The inspected frontend modules also showed no direct `.rpc(...)` calls; the architecture uses the Edge Function API boundary. This is bounded source inspection, not a complete runtime call-graph proof, so it supports but does not by itself authorize revoking Production privileges.
 
 The read-only privilege query reconfirmed that all three helpers are executable by `anon` and `authenticated` in Production, but not in Staging; they are not `SECURITY DEFINER` functions and use an empty search path. Keep this as an explicit Production ACL drift item. Any Production grant change still requires explicit approval and a focused migration with regression coverage.
+
+
+### CI status refresh and default-function ACL comparison (2026-10-16)
+
+The documentation commit `56f9fea538365b1ffe491a86c1056ba12d34f50c` completed GitHub Actions Test run [38901032231](https://github.com/enrollment-dot/phoenix-attendance-qr/actions/runs/38901032231) successfully. The run completed `npm test` and `npm run test:browser`. Its Vercel Staging and Production preview status checks were also successful. These are PR preview/CI checks only; they are not evidence of a Production deployment or live Production end-to-end behavior.
+
+A fresh direct catalog read reconfirmed default EXECUTE ACL differences:
+
+| Owner | Schema | Staging default function ACL | Production default function ACL |
+| --- | --- | --- | --- |
+| `postgres` | `public` | `postgres, service_role` | `postgres, anon, authenticated, service_role` |
+| `postgres` | `storage` | `postgres, anon, authenticated, service_role` | `postgres, anon, authenticated, service_role` |
+| `postgres` | global (no schema) | `postgres` | No global default ACL record returned |
+| `supabase_admin` | `public` | `postgres, anon, authenticated, service_role` | `postgres, anon, authenticated, service_role` |
+
+This confirms the previously recorded Production `postgres` public-schema default ACL drift. It also confirms that Staging's explicit `storage` default grants to client roles remain, and that `supabase_admin` retains a public-schema default ACL with client grants in both environments. The current Staging hardening migration does not remediate `supabase_admin`-owned defaults; do not claim that it does. Production changes remain unapproved and untouched.
+
+### Documentation consistency follow-up
+
+The existing `docs/migration-reconciliation.md` on `main` lists an older Production migration ledger count of 23 and an older history snapshot. Current direct read-only checks for this audit report 28 Production ledger records. Treat that document as historical rather than the current ledger source until it is refreshed from a new export/catalog check; do not use its old count as current Production evidence.
