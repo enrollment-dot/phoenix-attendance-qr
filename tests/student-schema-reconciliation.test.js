@@ -4,6 +4,8 @@ import { readFile } from 'node:fs/promises';
 
 const migrationPath = new URL('../supabase/migrations/20261016040903_reconcile_student_schema_and_rpcs.sql', import.meta.url);
 const migration = await readFile(migrationPath, 'utf8');
+const compatibilityPath = new URL('../supabase/migrations/20261016100000_preserve_legacy_student_rpc_contracts.sql', import.meta.url);
+const compatibilityMigration = await readFile(compatibilityPath, 'utf8');
 
 test('student reconciliation migration adds optional email and required enrollment date safely', () => {
   assert.match(migration, /ADD COLUMN IF NOT EXISTS enrolled_from date/i);
@@ -37,7 +39,7 @@ test('email and control-character regexes use the intended escapes', () => {
   assert.equal([...namePattern].filter((character) => character === String.fromCharCode(92)).length, 1);
 });
 
-test('legacy overloads are removed and client RPC execution is revoked', () => {
+test('legacy overloads are removed from the first migration and client RPC execution is revoked', () => {
   assert.match(migration, /DROP FUNCTION IF EXISTS public\.ylp_student_create_v1\(text, text\);/i);
   assert.match(migration, /DROP FUNCTION IF EXISTS public\.ylp_student_create_v1\(text, text, date\);/i);
   assert.match(migration, /DROP FUNCTION IF EXISTS public\.ylp_student_update_v1\(text, text\);/i);
@@ -45,4 +47,17 @@ test('legacy overloads are removed and client RPC execution is revoked', () => {
   assert.match(migration, /REVOKE ALL ON FUNCTION public\.ylp_students_v1\(\) FROM PUBLIC, anon, authenticated/i);
   assert.match(migration, /GRANT EXECUTE ON FUNCTION public\.ylp_student_create_v1\(text, text, date, text\) TO service_role, postgres/i);
   assert.match(migration, /GRANT EXECUTE ON FUNCTION public\.ylp_student_update_v1\(text, text, date, text\) TO service_role, postgres/i);
+});
+
+
+test('compatibility migration preserves old payload semantics without default-argument ambiguity', () => {
+  assert.match(compatibilityMigration, /p_enrolled_from date,\s*p_email text\s*\)/i);
+  assert.doesNotMatch(compatibilityMigration, /p_enrolled_from date DEFAULT/i);
+  assert.match(compatibilityMigration, /CREATE OR REPLACE FUNCTION public\\.ylp_student_create_v1\\(\s*p_student_id text,\s*p_name text\s*\)/i);
+  assert.match(compatibilityMigration, /CREATE OR REPLACE FUNCTION public\\.ylp_student_create_v1\\(\s*p_student_id text,\s*p_name text,\s*p_enrolled_from date\s*\)/i);
+  assert.match(compatibilityMigration, /CREATE OR REPLACE FUNCTION public\\.ylp_student_update_v1\\(\s*p_student_id text,\s*p_name text\s*\)/i);
+  assert.match(compatibilityMigration, /CREATE OR REPLACE FUNCTION public\\.ylp_student_update_v1\\(\s*p_student_id text,\s*p_name text,\s*p_enrolled_from date\s*\)/i);
+  assert.match(compatibilityMigration, /Legacy update wrappers intentionally do not update email/i);
+  assert.match(compatibilityMigration, /REVOKE ALL ON FUNCTION public\\.ylp_student_update_v1\\(text, text, date\) FROM PUBLIC, anon, authenticated/i);
+  assert.match(compatibilityMigration, /GRANT EXECUTE ON FUNCTION public\\.ylp_student_update_v1\\(text, text, date\) TO service_role, postgres/i);
 });
