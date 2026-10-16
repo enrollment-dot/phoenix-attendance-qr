@@ -1,41 +1,40 @@
 # API ↔ RPC ↔ Database Contract Audit — 2026-10-16
 
-## Current status — verified 2026-10-16 after timezone fallback review
+## Current status — verified after Staging timezone migration
 
-**Current verified state:** PR #130 remains Draft/open/unmerged at head `2315d4411020621bec6b9f4bedd7160aa517c638`. PR #133 remains Draft/open/unmerged. No PR has been merged as part of this work.
+**Current verified state:** PR #130 and PR #133 remain Draft/open/unmerged. No PR was merged. The Bangkok enrollment-date migration was applied to **Staging only** after explicit approval. Production was not modified.
 
 ### Staging and Production database state
 
-- **Staging** project `yvtgwzvjpztvztozcfir`: migration versions `20261016040903` and `20261016043513` were applied with explicit Staging-only approval. Student row count remains 13. Compatibility checks for the 2-/3-/4-argument create/update RPCs succeeded, including legacy update email preservation; regression calls were rolled back and no test rows remain.
-- **Production** project `fsxdsdixxnslismxghfz`: read-only audit observed 35 Student rows. Migration `20261016043513` is absent. No Production migration or database change was performed.
-- The follow-up migration `20261016045000_use_bangkok_enrollment_date_default.sql` is present only on PR #130's branch and has **not** been applied to Staging or Production.
+- **Staging** project `yvtgwzvjpztvztozcfir`: migration versions `20261016040903`, `20261016043513`, and `20261016072742` are present. The third ledger row is named `20261016045000_use_bangkok_enrollment_date_default`; the migration tool generated ledger version `20261016072742`, so the PR #130 migration file was renamed to `supabase/migrations/20261016072742_use_bangkok_enrollment_date_default.sql` to match the actual Staging ledger.
+- Staging Student count remains 13. `students.enrolled_from` is `date NOT NULL`; its default now resolves to `(now() AT TIME ZONE 'Asia/Bangkok')::date`.
+- The six Student create/update RPC overloads (2-, 3-, and 4-argument signatures) remain `SECURITY DEFINER` with empty `search_path`, no argument defaults, `anon`/ `authenticated` EXECUTE denied, and `service_role`/ `postgres` EXECUTE granted.
+- **Production** project `fsxdsdixxnslismxghfz`: previous read-only audit observed 35 Student rows and did not include compatibility migration `20261016043513`. No Production migration, database change, or deployment was performed during this operation.
 
-### Latest PR #130 changes and CI
+### Post-migration behavior verification
 
-The timezone follow-up now:
-- Sets `students.enrolled_from` default using `(now() AT TIME ZONE 'Asia/Bangkok')::date`.
-- Updates the four-argument create RPC so an explicit `p_enrolled_from = NULL` also falls back to Bangkok's business date. The table default alone would not cover this path because the function inserts `enrolled_from` explicitly.
-- Keeps the legacy two-argument create wrapper on the same Bangkok-date behavior.
-- Reasserts backend-only EXECUTE grants for the four-argument and legacy two-argument create functions.
-- Adds regression coverage for a deliberately different session timezone and for explicit NULL on the four-argument create RPC.
+- Read-only catalog query confirmed the Bangkok timezone table default and the function definitions for `ylp_student_create_v1(text,text,date,text)` and the legacy `ylp_student_create_v1(text,text)` wrapper.
+- A transaction changed the session timezone to `Pacific/Honolulu`, called the four-argument create RPC with explicit `p_enrolled_from = NULL`, and called the legacy two-argument create wrapper. Both returned the Bangkok business date; the legacy wrapper returned NULL email as expected. The transaction was rolled back.
+- Post-test Student count remains 13 and the specific regression IDs `TEST-NULL-4` and `TEST-LEGACY-2` are absent.
+- ACL verification confirmed no EXECUTE for `anon` or `authenticated` on the Student RPC overloads and EXECUTE for `service_role` and `postgres`.
 
-Latest observed CI on PR #130 head `2315d4411020621bec6b9f4bedd7160aa517c638`:
-- Student Schema PostgreSQL Regression #28, run ID `38852333067`: **success**.
-- Session Auto-Close PostgreSQL Regression #54, run ID `38852333130`: **success**.
-- Test #419, run ID `38852333164`: **success**, including `npm test` and `npm run test:browser`.
-- Vercel Staging status check: **success**.
-- Vercel Production status check: **success**. These are PR commit checks; they are not evidence that the proposed database migration was applied or that a new production deployment was initiated.
+### Latest PR #130 CI after ledger filename alignment
 
-PR #133 Test #414, run ID `38852014405`, also completed successfully, including `npm test` and `npm run test:browser`.
+PR #130 head is `97720ce05f604072e3cc28addb98c58e436c34d8`. The migration filename and references in the Node regression test and PostgreSQL regression workflow now match the actual Staging ledger version. The latest observed runs are still in progress at this snapshot:
+- Student Schema PostgreSQL Regression #32, run ID `38867499938`.
+- Session Auto-Close PostgreSQL Regression #58, run ID `38867499675`.
+- Test #425, run ID `38867499729`.
+- Vercel Staging and Production PR status checks were pending at the last check.
+
+Do not report these checks as passed until the final outcomes are observed. Vercel PR checks are not evidence that a Production database migration was applied.
 
 ### Remaining gates
 
-1. Review the latest PR #130 diff and regression results before deciding whether it is ready to leave Draft.
-2. Keep the Bangkok timezone migration unapplied until it receives separate explicit approval for the target environment. Production must remain untouched without separate Production approval.
-3. Reconcile this document and the PR #133 description with the current evidence before final audit sign-off.
-4. Do not merge either PR or claim production verification beyond the read-only Production evidence recorded above.
+1. Confirm latest PR #130 CI and Vercel status checks after the migration-file/ledger alignment.
+2. Review the final PR #130 diff; leave PRs Draft/unmerged until reviewed and explicitly approved.
+3. Continue final audit, risk-register, and documentation reconciliation. Production remains read-only and unchanged.
 
-Do not reapply either existing Staging migration. Before any additional migration, compare the exact environment ledger, schema, function definitions, and ACLs again.
+Do not reapply the Staging migration. The Staging ledger entry is already present under version `20261016072742`. Any future Production migration requires separate explicit approval and a fresh Production schema/ledger review.
 
 ---
 
