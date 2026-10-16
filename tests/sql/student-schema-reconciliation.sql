@@ -23,7 +23,7 @@ BEGIN
     RAISE EXCEPTION 'valid create failed: %', v_result;
   END IF;
   v_data := v_result->'data';
-  IF v_data->>'email' <> 'valid@example.com' OR v_data->>'enrolled_from' <> '2026-10-01' THEN
+  IF v_data->>'email' IS DISTINCT FROM 'valid@example.com' OR v_data->>'enrolled_from' IS DISTINCT FROM '2026-10-01' THEN
     RAISE EXCEPTION 'create response fields incorrect: %', v_data;
   END IF;
 
@@ -62,7 +62,7 @@ BEGIN
     p_enrolled_from := DATE '2026-10-03'
   );
   IF coalesce((v_result->>'ok')::boolean, false) IS NOT TRUE
-     OR v_result#>>'{data,enrolled_from}' <> '2026-10-03'
+     OR v_result#>>'{data,enrolled_from}' IS DISTINCT FROM '2026-10-03'
      OR v_result#>>'{data,email}' IS NOT NULL THEN
     RAISE EXCEPTION 'three-argument create compatibility failed: %', v_result;
   END IF;
@@ -70,8 +70,8 @@ BEGIN
   -- Legacy update payloads must preserve email because those clients cannot submit it.
   v_result := public.ylp_student_update_v1(p_student_id := 'TEST-VALID-1', p_name := 'Legacy Two-Argument Update');
   IF coalesce((v_result->>'ok')::boolean, false) IS NOT TRUE
-     OR v_result#>>'{data,email}' <> 'valid@example.com'
-     OR v_result#>>'{data,enrolled_from}' <> '2026-10-04' THEN
+     OR v_result#>>'{data,email}' IS DISTINCT FROM 'valid@example.com'
+     OR v_result#>>'{data,enrolled_from}' IS DISTINCT FROM '2026-10-04' THEN
     RAISE EXCEPTION 'two-argument update changed email or enrollment date: %', v_result;
   END IF;
 
@@ -90,7 +90,7 @@ BEGIN
   IF coalesce((v_result->>'ok')::boolean, false) IS NOT TRUE OR v_result#>>'{data,email}' IS NOT NULL THEN
     RAISE EXCEPTION 'update did not normalize blank email to NULL: %', v_result;
   END IF;
-  IF v_result#>>'{data,enrolled_from}' <> '2026-10-04' THEN
+  IF v_result#>>'{data,enrolled_from}' IS DISTINCT FROM '2026-10-04' THEN
     RAISE EXCEPTION 'update unexpectedly changed enrollment date: %', v_result;
   END IF;
 
