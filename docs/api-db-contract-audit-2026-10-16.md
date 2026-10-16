@@ -259,3 +259,5 @@ Latest PR #130 head `e38a05733ba75a2ed496c95dfb24995b9d54d294` has these observe
 - Test #402 (run ID `38850840612`): `npm test` and `npm run test:browser` passed.
 
 This is isolated CI evidence only. The follow-up compatibility migration remains unapplied to Staging and Production. PR #130 remains Draft/open/unmerged; Staging application requires separate explicit approval, and Production remains untouched.
+
+**Latest security refinement:** PR #130 head was subsequently advanced to `c3cd75683fd25e3fbe1489d2f5704d2c34003fa2`. The compatibility migration now revokes `PUBLIC`, `anon`, and `authenticated` EXECUTE immediately after each function creation, before the final explicit `service_role` / `postgres` grants. All three workflows passed on that exact head: Student Schema PostgreSQL Regression #17 (run ID `38851005741`), Session Auto-Close PostgreSQL Regression #43 (run ID `38851005737`), and Test #404 (run ID `38851005736`, including `npm test` and `npm run test:browser`). The migration remains unapplied to both live environments.
