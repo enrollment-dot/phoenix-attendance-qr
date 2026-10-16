@@ -52,6 +52,10 @@ BEGIN
 END;
 $function$;
 
+-- Reassert the backend-only ACL after replacing the four-argument function.
+REVOKE ALL ON FUNCTION public.ylp_student_create_v1(text, text, date, text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.ylp_student_create_v1(text, text, date, text) TO service_role, postgres;
+
 -- Legacy two-argument create calls must use the same business-date default.
 CREATE OR REPLACE FUNCTION public.ylp_student_create_v1(
   p_student_id text,
