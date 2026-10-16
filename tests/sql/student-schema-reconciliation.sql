@@ -112,7 +112,7 @@ BEGIN
   v_result := public.ylp_student_update_v1(p_student_id := 'TEST-VALID-1', p_name := 'Legacy Two-Argument Update');
   IF coalesce((v_result->>'ok')::boolean, false) IS NOT TRUE
      OR v_result#>>'{data,email}' IS DISTINCT FROM 'valid@example.com'
-     OR v_result#>>'{data,enrolled_from}' IS DISTINCT FROM '2026-10-04' THEN
+     OR v_result#>>'{data,enrolled_from}' IS DISTINCT FROM '2026-10-01' THEN
     RAISE EXCEPTION 'two-argument update changed email or enrollment date: %', v_result;
   END IF;
 
@@ -122,8 +122,8 @@ BEGIN
     p_enrolled_from := DATE '2026-10-04'
   );
   IF coalesce((v_result->>'ok')::boolean, false) IS NOT TRUE
-     OR v_result#>>'{data,email}' <> 'valid@example.com'
-     OR v_result#>>'{data,enrolled_from}' <> '2026-10-04' THEN
+     OR v_result#>>'{data,email}' IS DISTINCT FROM 'valid@example.com'
+     OR v_result#>>'{data,enrolled_from}' IS DISTINCT FROM '2026-10-04' THEN
     RAISE EXCEPTION 'three-argument update changed email or failed to update enrollment date: %', v_result;
   END IF;
 
