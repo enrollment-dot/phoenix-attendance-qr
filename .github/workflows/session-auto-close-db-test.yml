@@ -5,12 +5,14 @@ on:
     paths:
       - "supabase/migrations/**"
       - "tests/sql/session-auto-close-*.sql"
+      - "tests/sql/helper-function-acl-assertions.sql"
       - ".github/workflows/session-auto-close-db-test.yml"
   push:
     branches: [main]
     paths:
       - "supabase/migrations/**"
       - "tests/sql/session-auto-close-*.sql"
+      - "tests/sql/helper-function-acl-assertions.sql"
       - ".github/workflows/session-auto-close-db-test.yml"
 
 jobs:
@@ -45,5 +47,9 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f tests/sql/session-auto-close-setup.sql
       - name: Apply actual auto-close migration
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261012120000_secure_session_auto_close_scheduler.sql
+      - name: Apply helper function ACL migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261017100000_restrict_helper_function_execute.sql
+      - name: Verify helper function ACLs
+        run: psql -v ON_ERROR_STOP=1 -f tests/sql/helper-function-acl-assertions.sql
       - name: Verify close behavior and execution privileges
         run: psql -v ON_ERROR_STOP=1 -f tests/sql/session-auto-close-assertions.sql
