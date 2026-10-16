@@ -287,3 +287,15 @@ This matrix is intentionally bounded to reviewed families and does not claim a f
 ### Read-only safety statement
 
 This follow-up used catalog reads and migration-ledger reads only. No database writes, migrations, grants, Auth configuration changes, index/trigger changes, deployments, merges, or account changes were performed. The existing Staging-only Bangkok enrollment-date migrations were not reapplied. All Production changes remain on hold pending exact-scope approval.
+
+
+### Additional API/RPC contract drift — branding GET return type
+
+A fresh PostgreSQL catalog comparison found a return-type mismatch not captured by the earlier search-path-only note:
+
+- Staging `ylp_branding_get_v1()` returns `jsonb` and its body selects `to_jsonb(b)`.
+- Production `ylp_branding_get_v1()` returns the composite type `branding_settings`.
+- Both functions are `SECURITY DEFINER`; both deny effective EXECUTE to `anon` and `authenticated`; search-path drift remains as recorded above.
+- The current `main` Edge Function `supabase/functions/ylp-api/index.ts`, method `branding()` (around lines 926–929), calls the RPC and normalizes an array result to its first item, otherwise returning the result as-is. This appears intended to tolerate different result shapes, but static inspection is not live API contract verification.
+
+**Assessment:** this is an API/RPC contract drift even though the current adapter may normalize the observed return shapes. Do not alter either database function solely to make signatures identical without checking client expectations and regression tests. Add a focused test covering the normalized branding response shape, then decide whether to standardize both environments on one return type through a tracked migration. No runtime request or database write was performed for this finding.
