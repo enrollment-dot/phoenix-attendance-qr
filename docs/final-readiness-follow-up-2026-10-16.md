@@ -204,3 +204,13 @@ The Performance Advisor returned no findings for Production in this check. Stagi
 - **Four unused-index notices:** `attendance_status_session_idx`, `attendance_scan_in_idx`, `attendance_scan_out_idx`, and `api_rate_limit_updated_at_idx` were reported unused in Staging. Do not drop them based on a single advisor snapshot; usage statistics may reset and indexes can serve infrequent or future queries. Compare workload and query plans before any change.
 
 These findings are **Staging-only advisor results at the observation time**, not proof that Production is perfectly optimized or that Staging's indexes should be changed immediately. No indexes were added or removed. Any schema change remains subject to explicit approval and a tracked migration.
+
+
+### Follow-up: `branding_settings.updated_by` foreign-key drift (read-only, 2026-10-16)
+
+A direct `pg_constraint` / `pg_index` comparison was run to validate the Staging Performance Advisor finding:
+
+- **Staging:** `branding_settings_updated_by_fkey` exists as `FOREIGN KEY (updated_by) REFERENCES auth.users(id)`, but `branding_settings` has only its primary-key index; no valid index begins with `updated_by`.
+- **Production:** the same query returned no foreign-key constraints on `public.branding_settings`, so the Staging FK is not present there. Production's absence of this FK is a schema-integrity difference, not an index-performance finding.
+
+Do not automatically add the FK to Production or an index to Staging. First inspect the migration history and current values/nullability of `updated_by`, establish the intended invariant, and confirm how Auth user deletion should behave. If the invariant is approved, plan separate tracked migrations with preflight checks and test referential behavior in Staging. No schema changes were made.
