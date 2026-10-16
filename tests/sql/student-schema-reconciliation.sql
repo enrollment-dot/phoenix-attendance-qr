@@ -9,6 +9,8 @@ DECLARE
   v_config text[];
   v_is_definer boolean;
   v_has_defaults boolean;
+  v_default_expression text;
+  v_expected_bangkok_date date;
 BEGIN
   IF NOT has_function_privilege('anon', 'public.ylp_students_v1()', 'EXECUTE') THEN
     NULL;
@@ -89,12 +91,25 @@ BEGIN
     RAISE EXCEPTION 'control character in name was accepted: %', v_result;
   END IF;
 
-  -- Legacy create payloads still resolve after the 4-argument RPC defaults are removed.
+  -- The table default and legacy two-argument wrapper must use Bangkok's date, not session CURRENT_DATE.
+  SELECT pg_catalog.pg_get_expr(d.adbin, d.adrelid) INTO v_default_expression
+  FROM pg_catalog.pg_attrdef d
+  JOIN pg_catalog.pg_class c ON c.oid = d.adrelid
+  JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+  JOIN pg_catalog.pg_attribute a ON a.attrelid = c.oid AND a.attnum = d.adnum
+  WHERE n.nspname = 'public' AND c.relname = 'students' AND a.attname = 'enrolled_from';
+  IF v_default_expression IS NULL OR position('Asia/Bangkok' IN v_default_expression) = 0 THEN
+    RAISE EXCEPTION 'enrolled_from default is not explicitly tied to Asia/Bangkok: %', v_default_expression;
+  END IF;
+  PERFORM pg_catalog.set_config('TimeZone', 'Pacific/Honolulu', true);
+  v_expected_bangkok_date := (pg_catalog.now() AT TIME ZONE 'Asia/Bangkok')::date;
+
+  -- Legacy create payloads still resolve and use the business timezone after defaults are removed.
   v_result := public.ylp_student_create_v1(p_student_id := 'TEST-LEGACY-2', p_name := 'Legacy Two-Argument Create');
   IF coalesce((v_result->>'ok')::boolean, false) IS NOT TRUE
-     OR v_result#>>'{data,enrolled_from}' IS NULL
+     OR v_result#>>'{data,enrolled_from}' IS DISTINCT FROM v_expected_bangkok_date::text
      OR v_result#>>'{data,email}' IS NOT NULL THEN
-    RAISE EXCEPTION 'two-argument create compatibility failed: %', v_result;
+    RAISE EXCEPTION 'two-argument create compatibility or Bangkok date default failed: expected %, got %', v_expected_bangkok_date, v_result;
   END IF;
 
   v_result := public.ylp_student_create_v1(
