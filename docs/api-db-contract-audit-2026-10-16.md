@@ -135,7 +135,7 @@ The exact latest migration ledger entries at this check were:
 - Staging: `20261015094240` (`harden_global_function_default_execute`)
 - Production: `20261013174134` (`secure_session_auto_close_scheduler`)
 
-The proposed PR #130 migration version `20261015120000` is later than both current ledger maxima, but this ordering alone does not resolve the broader historical drift or prove the migration should be applied to Production.
+At the time of the pre-application audit, the PR #130 migration filename used version `20261015120000`, which was later than both then-current ledger maxima. That ordering alone did not resolve broader historical drift or prove the migration should be applied to Production.
 
 A read-only `pg_depend` query found no catalog-tracked dependent objects referencing the Student create/update overloads in either database. This is not a complete application-caller audit: dynamic SQL, deployed application versions, and callers outside the current `main` Edge Function source are not covered. Production currently has both three-argument and four-argument create/update overloads; PR #130 intentionally drops the three-argument overloads. Keep that as a compatibility review item before any application.
 
@@ -160,6 +160,6 @@ Post-apply verification confirmed:
 - The SQL regression behavior checks passed against Staging inside an explicit transaction followed by `ROLLBACK`. This exercised valid create, invalid email, missing email dot, blank-email normalization, control-character rejection, update semantics, list response fields, table constraint, and RPC ACLs. Follow-up verification confirmed the Student row count remained 13 and no transient test IDs remained.
 - Production read-only verification still showed 35 Student rows, both expected columns already present, and no `reconcile_student_schema_and_rpcs` migration-name entry in its ledger. No Production migration was applied.
 
-**Migration-ledger drift note:** the repository migration filename uses version `20261015120000`, while Supabase's migration apply tool recorded `20261016040903` for the same migration name. Do not assume these versions are interchangeable or blindly reapply via `db push`; reconcile the repository file and Staging migration ledger deliberately before any further migration workflow or Production promotion.
+**Migration-ledger reconciliation follow-up:** after confirming Staging's recorded version `20261016040903`, PR #130's working branch was updated to rename the migration file to `20261016040903_reconcile_student_schema_and_rpcs.sql` and update the regression workflow and Node test path references. This is a repository-branch change only; it does not modify either database. The purpose is to make the repository version match Staging's already-applied ledger entry and avoid an accidental second migration during a future `db push`. The updated branch must pass CI and receive normal review before merge. Production has not received this migration.
 
 CI for PR #130 commit `7b89a990205c638b1540dc8c550753dddd9117da` also passed: Student Schema PostgreSQL Regression #4, Test #380, and Session Auto-Close PostgreSQL Regression #30. These CI runs are separate from the Staging transaction checks described above.
