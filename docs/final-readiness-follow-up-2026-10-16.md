@@ -109,3 +109,8 @@ The current `ylp_force_delete_session_v1(text)` definition in both environments 
 
 - Production has `idx_scan_receipts_session_id` on `scan_receipts(session_id)`, matching Git migration `20260926140000_add_scan_receipts_session_id_index.sql`.
 - Staging does not have that exact index, but it does have `scan_receipts_session_student_idx` on `(session_id, student_id)`. Because `session_id` is the leading column, that composite index can support lookups by `session_id`; the intended access path may therefore already be covered. Staging also has `scan_receipts_created_at_idx`, while Production's current index list does not show that index. This is index-definition drift, not by itself proof of a functional or security defect. Check representative query plans and workload before proposing an extra index; no index was created or dropped during this audit.
+
+
+### Full SECURITY DEFINER client-execution sweep
+
+A read-only catalog sweep across all functions in schema `public` found **zero `SECURITY DEFINER` functions executable by `anon` or `authenticated` in either Staging or Production**. This is an important positive control: the three Production helper functions noted above are not `SECURITY DEFINER` functions. Their client EXECUTE grants remain ACL drift and should be reviewed, but they are not an identified public SECURITY DEFINER execution path.
