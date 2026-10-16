@@ -1,0 +1,77 @@
+name: Student Schema PostgreSQL Regression
+
+on:
+  pull_request:
+    paths:
+      - "supabase/migrations/20261016040903_reconcile_student_schema_and_rpcs.sql"
+      - "supabase/migrations/20261016043513_preserve_legacy_student_rpc_contracts.sql"
+      - "supabase/migrations/20261016072742_use_bangkok_enrollment_date_default.sql"
+      - "tests/sql/student-schema-reconciliation.sql"
+      - ".github/workflows/student-schema-regression.yml"
+  workflow_dispatch:
+
+jobs:
+  student-schema-regression:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: student_schema_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d student_schema_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: student_schema_test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create minimal pre-migration schema
+        run: |
+          psql -v ON_ERROR_STOP=1 <<'SQL'
+          CREATE ROLE anon NOLOGIN;
+          CREATE ROLE authenticated NOLOGIN;
+          CREATE ROLE service_role NOLOGIN;
+          CREATE TABLE public.students (
+            student_id text PRIMARY KEY,
+            name text NOT NULL,
+            active boolean NOT NULL DEFAULT true,
+            created_at timestamptz NOT NULL DEFAULT now(),
+            updated_at timestamptz NOT NULL DEFAULT now()
+          );
+          INSERT INTO public.students (student_id, name, created_at, updated_at)
+          VALUES ('PREEXISTING-1', 'Pre-existing Student',
+                  '2026-10-01 18:00:00+00', '2026-10-01 18:00:00+00');
+          SQL
+      - name: Apply Student reconciliation migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261016040903_reconcile_student_schema_and_rpcs.sql
+      - name: Preserve legacy Student RPC payload semantics
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261016043513_preserve_legacy_student_rpc_contracts.sql
+      - name: Apply Bangkok enrollment date default migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261016072742_use_bangkok_enrollment_date_default.sql
+      - name: Verify backfill, RPC behavior, and privileges
+        run: |
+          psql -v ON_ERROR_STOP=1 <<'SQL'
+          DO $$
+          DECLARE v_date date;
+          BEGIN
+            SELECT enrolled_from INTO v_date FROM public.students WHERE student_id = 'PREEXISTING-1';
+            IF v_date IS DISTINCT FROM DATE '2026-10-02' THEN
+              RAISE EXCEPTION 'Asia/Bangkok backfill incorrect: %', v_date;
+            END IF;
+            IF has_function_privilege('anon', 'public.ylp_students_v1()', 'EXECUTE') THEN
+              RAISE EXCEPTION 'anon unexpectedly has EXECUTE on list RPC';
+            END IF;
+          END;
+          $$;
+          SQL
+          psql -v ON_ERROR_STOP=1 -f tests/sql/student-schema-reconciliation.sql

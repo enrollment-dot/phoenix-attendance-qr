@@ -1,0 +1,74 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+
+const migrationPath = new URL('../supabase/migrations/20261016040903_reconcile_student_schema_and_rpcs.sql', import.meta.url);
+const migration = await readFile(migrationPath, 'utf8');
+const compatibilityPath = new URL('../supabase/migrations/20261016043513_preserve_legacy_student_rpc_contracts.sql', import.meta.url);
+const compatibilityMigration = await readFile(compatibilityPath, 'utf8');
+const timezonePath = new URL('../supabase/migrations/20261016072742_use_bangkok_enrollment_date_default.sql', import.meta.url);
+const timezoneMigration = await readFile(timezonePath, 'utf8');
+
+test('student reconciliation migration adds optional email and required enrollment date safely', () => {
+  assert.match(migration, /ADD COLUMN IF NOT EXISTS enrolled_from date/i);
+  assert.ok(migration.includes("created_at AT TIME ZONE 'Asia/Bangkok'"));
+  assert.match(migration, /ALTER COLUMN enrolled_from SET NOT NULL/i);
+  assert.match(migration, /ADD COLUMN IF NOT EXISTS email text/i);
+  assert.match(migration, /email IS NULL/i);
+});
+
+test('student RPCs match the current API contract and include returned fields', () => {
+  assert.match(migration, /ylp_student_create_v1\([\s\S]*p_enrolled_from date DEFAULT current_date,[\s\S]*p_email text DEFAULT NULL/i);
+  assert.match(migration, /ylp_student_update_v1\([\s\S]*p_enrolled_from date DEFAULT NULL,[\s\S]*p_email text DEFAULT NULL/i);
+  assert.match(migration, /'email', v_row\.email/i);
+  assert.match(migration, /'enrolled_from', v_row\.enrolled_from/i);
+  assert.match(migration, /'email', s\.email/i);
+  assert.match(migration, /'enrolled_from', s\.enrolled_from/i);
+});
+
+test('email and control-character regexes use the intended escapes', () => {
+  const emailMarker = "email ~* '";
+  const emailStart = migration.indexOf(emailMarker);
+  const emailEnd = migration.indexOf("'", emailStart + emailMarker.length);
+  const emailPattern = emailStart >= 0 && emailEnd > emailStart ? migration.slice(emailStart + emailMarker.length, emailEnd) : null;
+  const nameMarker = "v_name ~ '";
+  const nameStart = migration.indexOf(nameMarker);
+  const nameEnd = migration.indexOf("'", nameStart + nameMarker.length);
+  const namePattern = nameStart >= 0 && nameEnd > nameStart ? migration.slice(nameStart + nameMarker.length, nameEnd) : null;
+  assert.ok(emailPattern, 'email validation regex exists');
+  assert.ok(namePattern, 'name validation regex exists');
+  assert.equal([...emailPattern].filter((character) => character === String.fromCharCode(92)).length, 1);
+  assert.equal([...namePattern].filter((character) => character === String.fromCharCode(92)).length, 1);
+});
+
+test('legacy overloads are removed from the first migration and client RPC execution is revoked', () => {
+  assert.match(migration, /DROP FUNCTION IF EXISTS public\.ylp_student_create_v1\(text, text\);/i);
+  assert.match(migration, /DROP FUNCTION IF EXISTS public\.ylp_student_create_v1\(text, text, date\);/i);
+  assert.match(migration, /DROP FUNCTION IF EXISTS public\.ylp_student_update_v1\(text, text\);/i);
+  assert.match(migration, /DROP FUNCTION IF EXISTS public\.ylp_student_update_v1\(text, text, date\);/i);
+  assert.match(migration, /REVOKE ALL ON FUNCTION public\.ylp_students_v1\(\) FROM PUBLIC, anon, authenticated/i);
+  assert.match(migration, /GRANT EXECUTE ON FUNCTION public\.ylp_student_create_v1\(text, text, date, text\) TO service_role, postgres/i);
+  assert.match(migration, /GRANT EXECUTE ON FUNCTION public\.ylp_student_update_v1\(text, text, date, text\) TO service_role, postgres/i);
+});
+
+
+test('compatibility migration preserves old payload semantics without default-argument ambiguity', () => {
+  assert.match(compatibilityMigration, /p_enrolled_from date,\s*p_email text\s*\)/i);
+  assert.doesNotMatch(compatibilityMigration, /p_enrolled_from date DEFAULT/i);
+  assert.match(compatibilityMigration, /CREATE OR REPLACE FUNCTION public\.ylp_student_create_v1\(\s*p_student_id text,\s*p_name text\s*\)/i);
+  assert.match(compatibilityMigration, /CREATE OR REPLACE FUNCTION public\.ylp_student_create_v1\(\s*p_student_id text,\s*p_name text,\s*p_enrolled_from date\s*\)/i);
+  assert.match(compatibilityMigration, /CREATE OR REPLACE FUNCTION public\.ylp_student_update_v1\(\s*p_student_id text,\s*p_name text\s*\)/i);
+  assert.match(compatibilityMigration, /CREATE OR REPLACE FUNCTION public\.ylp_student_update_v1\(\s*p_student_id text,\s*p_name text,\s*p_enrolled_from date\s*\)/i);
+  assert.match(compatibilityMigration, /Legacy update wrappers intentionally do not update email/i);
+  assert.match(compatibilityMigration, /REVOKE ALL ON FUNCTION public\.ylp_student_update_v1\(text, text, date\) FROM PUBLIC, anon, authenticated/i);
+  assert.match(compatibilityMigration, /GRANT EXECUTE ON FUNCTION public\.ylp_student_update_v1\(text, text, date\) TO service_role, postgres/i);
+});
+
+test('enrollment date defaults use Asia/Bangkok regardless of PostgreSQL session timezone', () => {
+  assert.match(timezoneMigration, /ALTER COLUMN enrolled_from\s+SET DEFAULT[\s\S]*Asia\/Bangkok/i);
+  assert.match(timezoneMigration, /pg_catalog\.now\(\) AT TIME ZONE 'Asia\/Bangkok'/i);
+  assert.match(timezoneMigration, /v_date date := coalesce\(p_enrolled_from, \(pg_catalog\.now\(\) AT TIME ZONE 'Asia\/Bangkok'\)::date\)/i);
+  assert.match(timezoneMigration, /CREATE OR REPLACE FUNCTION public\.ylp_student_create_v1\([\s\S]*p_student_id text,\s*p_name text\s*\)/i);
+  assert.match(timezoneMigration, /REVOKE ALL ON FUNCTION public\.ylp_student_create_v1\(text, text\) FROM PUBLIC, anon, authenticated/i);
+  assert.match(timezoneMigration, /GRANT EXECUTE ON FUNCTION public\.ylp_student_create_v1\(text, text\) TO service_role, postgres/i);
+});
