@@ -13,6 +13,45 @@ Latest live database checks:
 
 **Latest follow-up — Bangkok enrollment date default:** Final review identified that PostgreSQL session timezone is UTC while the product business timezone is Asia/Bangkok. A new additive proposal, `supabase/migrations/20261016045000_use_bangkok_enrollment_date_default.sql`, has been added to PR #130. It changes only the future `enrolled_from` column default and the legacy two-argument create wrapper to calculate the date in `Asia/Bangkok`; it does not rewrite existing Student dates. Regression coverage now checks the catalog default and calls the legacy create wrapper under a deliberately different session timezone. This migration has **not** been applied to Staging or Production. Latest PR #130 head `85ba97611e3609d4bbad72daae11bad5e2d1bed6` has Test #413, Student Schema PostgreSQL Regression #23, and Session Auto-Close PostgreSQL Regression #49 running; do not claim they passed until final results are observed. Vercel Staging and Production status checks were pending at the last check. PR #130 and PR #133 remain unmerged; no deployment was initiated. Do not reapply either existing Staging migration or apply any migration to Production without separate explicit approval and fresh schema/ledger review.
 
+## Current status — verified 2026-10-16 after timezone fallback review
+
+**Current verified state:** PR #130 remains Draft/open/unmerged at head `2315d4411020621bec6b9f4bedd7160aa517c638`. PR #133 remains Draft/open/unmerged. No PR has been merged as part of this work.
+
+### Staging and Production database state
+
+- **Staging** project `yvtgwzvjpztvztozcfir`: migration versions `20261016040903` and `20261016043513` were applied with explicit Staging-only approval. Student row count remains 13. Compatibility checks for the 2-/3-/4-argument create/update RPCs succeeded, including legacy update email preservation; regression calls were rolled back and no test rows remain.
+- **Production** project `fsxdsdixxnslismxghfz`: read-only audit observed 35 Student rows. Migration `20261016043513` is absent. No Production migration or database change was performed.
+- The follow-up migration `20261016045000_use_bangkok_enrollment_date_default.sql` is present only on PR #130's branch and has **not** been applied to Staging or Production.
+
+### Latest PR #130 changes and CI
+
+The timezone follow-up now:
+- Sets `students.enrolled_from` default using `(now() AT TIME ZONE 'Asia/Bangkok')::date`.
+- Updates the four-argument create RPC so an explicit `p_enrolled_from = NULL` also falls back to Bangkok's business date. The table default alone would not cover this path because the function inserts `enrolled_from` explicitly.
+- Keeps the legacy two-argument create wrapper on the same Bangkok-date behavior.
+- Reasserts backend-only EXECUTE grants for the four-argument and legacy two-argument create functions.
+- Adds regression coverage for a deliberately different session timezone and for explicit NULL on the four-argument create RPC.
+
+Latest observed CI on PR #130 head `2315d4411020621bec6b9f4bedd7160aa517c638`:
+- Student Schema PostgreSQL Regression #28, run ID `38852333067`: **success**.
+- Session Auto-Close PostgreSQL Regression #54, run ID `38852333130`: **success**.
+- Test #419, run ID `38852333164`: **success**, including `npm test` and `npm run test:browser`.
+- Vercel Staging status check: **success**.
+- Vercel Production status check: **success**. These are PR commit checks; they are not evidence that the proposed database migration was applied or that a new production deployment was initiated.
+
+PR #133 Test #414, run ID `38852014405`, also completed successfully, including `npm test` and `npm run test:browser`.
+
+### Remaining gates
+
+1. Review the latest PR #130 diff and regression results before deciding whether it is ready to leave Draft.
+2. Keep the Bangkok timezone migration unapplied until it receives separate explicit approval for the target environment. Production must remain untouched without separate Production approval.
+3. Reconcile this document and the PR #133 description with the current evidence before final audit sign-off.
+4. Do not merge either PR or claim production verification beyond the read-only Production evidence recorded above.
+
+Do not reapply either existing Staging migration. Before any additional migration, compare the exact environment ledger, schema, function definitions, and ACLs again.
+
+---
+
 ## Initial audit snapshot (historical pre-application baseline)
 
 
