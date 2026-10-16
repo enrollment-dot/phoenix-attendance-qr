@@ -184,3 +184,13 @@ This confirms the previously recorded Production `postgres` public-schema defaul
 ### Documentation consistency follow-up
 
 The existing `docs/migration-reconciliation.md` on `main` lists an older Production migration ledger count of 23 and an older history snapshot. Current direct read-only checks for this audit report 28 Production ledger records. Treat that document as historical rather than the current ledger source until it is refreshed from a new export/catalog check; do not use its old count as current Production evidence.
+
+
+### Supabase Security Advisor refresh (read-only, 2026-10-16)
+
+The Supabase Security Advisor was queried directly for both Staging and Production. Both environments returned the same two finding categories:
+
+- **Leaked Password Protection Disabled (WARN):** Supabase Auth's compromised-password check is disabled in both environments. This is an Auth configuration finding, not a PostgreSQL migration finding. No setting was changed. Enabling it requires an explicitly approved Auth configuration change and a follow-up login/password regression check in Staging before any separate Production approval.
+- **RLS Enabled No Policy (INFO):** the advisor reports nine `public` tables with RLS enabled and no policies: `admin_profiles`, `api_rate_limit_counters`, `attendance`, `branding_settings`, `scan_receipts`, `session_creation_receipts`, `sessions`, `settings`, and `students`. A direct read-only `information_schema.role_table_grants` check found only `service_role` table grants among `anon`, `authenticated`, and `service_role` for these nine tables; no direct table grants were returned for `anon` or `authenticated` in either environment. Therefore, the no-policy advisor finding is consistent with the backend-only table access model and is not, by itself, evidence of direct client table access. Preserve the RLS/no-policy design unless the access model is intentionally changed.
+
+**Security status:** Staging and Production have equal status for these two advisor categories as of this check. The leaked-password warning remains an unresolved security-hardening item in both environments. Do not silently change Auth settings as part of a read-only audit.
