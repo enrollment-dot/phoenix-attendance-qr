@@ -336,3 +336,38 @@ Fetched the active deployed `ylp-api` source from both Supabase projects and com
 - `cors.js`: Staging matches current Git `main`; Production differs on the preview-origin regular expression. Staging accepts the `phoenix-attendance-rbac-stag` / `staging` variants with optional preview suffix; Production only accepts the strict `phoenix-attendance-rbac-staging-<suffix>.vercel.app` form.
 
 **Assessment:** The version numbers and source hashes differ, but the main API implementation and type definitions are identical in the fetched source. The CORS difference appears narrower in Production; do not broaden Production CORS or deploy code merely to equalize hashes. Confirm intended preview-origin policy and inspect the effective `YLP_ALLOW_VERCEL_PREVIEW_ORIGINS` runtime setting through an approved non-secret configuration check before deciding whether this is intentional. No secrets were retrieved or displayed; no Edge Function was deployed or changed.
+
+
+### Expanded high-risk RPC and trigger matrix — read-only (2026-10-16)
+
+A fresh catalog comparison covered all `public` functions named `ylp_%` plus all SECURITY DEFINER functions, effective EXECUTE privileges, and triggers on `sessions`, `attendance`, `branding_settings`, and `students`.
+
+#### Confirmed client-role EXECUTE drift
+
+- Production permits `anon` and `authenticated` EXECUTE on `ylp_advisory_key_v1(text,text)`, `ylp_is_uuid_v4_v1(uuid)`, and `ylp_scan_rejection_v1(text,text)`; Staging denies both client roles.
+- The three functions are non-SECURITY-DEFINER, immutable SQL helpers with empty search paths and use only built-in expressions / `pg_catalog` functions in their bodies. The reviewed definitions do not directly read or mutate application tables, so this is unnecessary public RPC surface rather than evidence of a direct data-access bypass. Keep the Production ACL mismatch tracked for a narrowly scoped, approved migration after call-path and compatibility checks.
+- In this bounded function inventory, all listed SECURITY DEFINER functions deny effective EXECUTE to `anon` and `authenticated` in both environments. This is not a complete audit of every schema or object in PostgreSQL.
+
+#### Production-only destructive RPC
+
+- Production contains `ylp_force_delete_student_v1(text)`; Staging does not.
+- The Production definition is SECURITY DEFINER with an empty search path and explicitly schema-qualifies `public.students`, `public.attendance`, and `public.scan_receipts`. Effective EXECUTE is restricted to backend roles; `anon` and `authenticated` are denied.
+- The function deletes scan receipts, attendance rows, and the student. Its presence alone does not establish a vulnerability because the direct RPC is backend-only, but the environment difference must be reconciled with the Edge Function route and super-admin fresh re-authentication flow. Do not invoke it in either environment as part of audit/testing and do not add it to Staging without a tracked, reviewed migration and explicit approval.
+
+#### Student RPC overload drift
+
+- Staging has additional two-argument overloads of `ylp_student_create_v1(text,text)` and `ylp_student_update_v1(text,text)`; Production does not.
+- Both environments have the enrolled-date and email-aware overloads recorded in the existing migration matrix. All overloads in the bounded inventory deny client-role EXECUTE.
+- Determine whether the legacy overloads are still referenced by any backend/deployment path before considering removal; do not drop functions based solely on this inventory.
+
+#### Trigger drift
+
+- Staging has `sessions_set_updated_at` and `students_set_updated_at` BEFORE UPDATE triggers calling `set_updated_at()`.
+- Production returned no triggers for the four queried tables (`sessions`, `attendance`, `branding_settings`, `students`) in this snapshot. This confirms a broader trigger-parity difference than the previously documented manual-close timestamp symptom. Before proposing a trigger migration, inspect all table columns, existing trigger functions, update paths, and timestamp expectations to avoid duplicate or unintended side effects.
+
+#### CI checkpoint
+
+- The latest documentation commit `1777e35889f723c1257961099db7e2b03cf25341` triggered GitHub Actions Test run [#443](https://github.com/enrollment-dot/phoenix-attendance-qr/actions/runs/38920847667). At the time of this update, dependency installation had passed, Playwright browser installation was still in progress, and the test steps had not yet completed. Do not mark this commit CI-green until the run concludes successfully.
+- Vercel Staging and Production PR preview checks were both blocked by the provider build rate limit at the latest check. This is not proof of an application build failure and is not live Production deployment verification.
+
+No database writes, migrations, function ACL changes, deployments, or destructive calls were performed during this inspection.
