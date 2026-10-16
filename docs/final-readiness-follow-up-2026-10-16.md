@@ -214,3 +214,76 @@ A direct `pg_constraint` / `pg_index` comparison was run to validate the Staging
 - **Production:** the same query returned no foreign-key constraints on `public.branding_settings`, so the Staging FK is not present there. Production's absence of this FK is a schema-integrity difference, not an index-performance finding.
 
 Do not automatically add the FK to Production or an index to Staging. First inspect the migration history and current values/nullability of `updated_by`, establish the intended invariant, and confirm how Auth user deletion should behave. If the invariant is approved, plan separate tracked migrations with preflight checks and test referential behavior in Staging. No schema changes were made.
+
+
+
+## Follow-up read-only reconciliation — 2026-10-16 (second pass)
+
+### Latest PR/CI/preview evidence
+
+- PR #133 remains open, Draft, unmerged; head remains `0ce8ede4d5fa1f823496c19478b8099913511867` at the time of this check.
+- GitHub Actions Test run #439 (`38914671378`) completed successfully for that exact commit.
+- GitHub combined status reports Vercel Staging and Production preview checks as successful. Latest listed deployments for the same commit are `READY`:
+  - Staging: `dpl_Fdmqr43n7UCzkzbd2V2XqoigeRx7`
+  - Production preview project: `dpl_6Q3MbNghfQiux4fL4an3n6oamFLw`
+- These remain PR preview builds, not a claim of a new Production deployment or live Production end-to-end verification.
+
+### Branding `updated_by` FK — current values and delete semantics
+
+Read-only queries against `public.branding_settings` and `auth.users` found:
+
+| Check | Staging | Production |
+|---|---:|---:|
+| Branding rows | 1 | 1 |
+| `updated_by IS NULL` | 1 | 0 |
+| `updated_by IS NOT NULL` | 0 | 1 |
+| Non-null `updated_by` matching an Auth user | 0 | 1 |
+| Non-null orphaned Auth reference | 0 | 0 |
+| FK `branding_settings_updated_by_fkey` | Present | Absent |
+
+Staging FK definition is `FOREIGN KEY (updated_by) REFERENCES auth.users(id)`; PostgreSQL reports `confdeltype='a'` and `confupdtype='a'`, i.e. default NO ACTION behavior for parent delete/update. The Staging row currently has NULL attribution, so it does not exercise the FK. Production's current non-null attribution resolves to an existing `auth.users` row, so there is no present orphan in the one-row table.
+
+**Assessment:** the observed data is compatible with the FK invariant today, but it does not establish the intended lifecycle policy when an Auth user is deleted. Do not add the FK to Production or add an index to Staging yet. Decide whether `updated_by` is a durable audit attribution (in which case NO ACTION may intentionally block user deletion), should be cleared on user deletion (SET NULL), or should be managed by a different audit model. That product/security invariant must be explicit before migration design.
+
+### Source migration vs current database — branding search path
+
+- Git `main` migration `20261014060002_harden_branding_definer_search_path.sql` explicitly sets both branding SECURITY DEFINER functions to `pg_catalog, public`.
+- Current Staging definitions match that setting.
+- Current Production definitions still have `search_path=public`; both functions deny EXECUTE to `anon` and `authenticated` in the effective privilege check.
+- This confirms Production is not converged to the hardening migration's intended configuration despite the relevant historical migration-ledger entry naming the branding feature differently. It is a hardening/configuration drift; no exploit was demonstrated and no change was made.
+
+### Helper EXECUTE grants — source intent vs live effective privileges
+
+Git migration `20261014052752_restrict_public_function_default_execute.sql` explicitly revokes `PUBLIC`, `anon`, and `authenticated` from:
+- `ylp_advisory_key_v1(text,text)`
+- `ylp_is_uuid_v4_v1(uuid)`
+- `ylp_scan_rejection_v1(text,text)`
+
+Fresh `has_function_privilege` checks reconfirmed all three are not executable by `anon`/ `authenticated` in Staging, but are executable by both client roles in Production. Their live definitions are non-SECURITY-DEFINER SQL helpers with empty search paths and do not directly query application tables. The result remains an ACL-policy mismatch and unnecessary public function surface, not an identified table-data bypass. Before remediation, finish the call-path compatibility check and prepare a focused, tracked Production migration with pre/post ACL assertions. Production changes require separate explicit approval.
+
+### Default ACL and scheduler migration candidate reconciliation
+
+- Live Staging `postgres` default function ACL for `public` is restricted to `postgres, service_role`; Production still includes `anon, authenticated`.
+- Both environments show client-role EXECUTE in `supabase_admin`'s `public` default function ACL and in `postgres`'s `storage` default ACL. The current migration explicitly scopes its change to `postgres` in `public`; it does not fix the other owner/schema combinations.
+- Git `20261012120000_secure_session_auto_close_scheduler.sql` and duplicate candidate `20261014120000_secure_session_auto_close_scheduler.sql` both define the same auto-close function logic and grant `service_role`, but neither explicitly grants `postgres` EXECUTE. The later candidate does not improve that grant assertion. Live Staging and Production function ACLs currently grant `postgres` and `service_role` and deny client roles. PR #126's duplicate-file removal remains the appropriate source-history cleanup candidate; do not infer database history equivalence or replay either migration from file similarity alone.
+
+### Updated migration reconciliation matrix (bounded scope)
+
+| Change family | Git/source evidence | Staging live evidence | Production live evidence | Current classification |
+|---|---|---|---|---|
+| Student schema/RPC and Bangkok enrollment date | PR #130 migrations | Three recorded versions present; Bangkok default and RPC behavior verified in prior rollback-only test | Staging-specific versions absent; prior read-only check found 35 Students and `CURRENT_DATE` default | Intentional environment divergence pending release decision |
+| QR access code | Git migration vs differently versioned ledgers | Core columns, index and backend-only functions present | Same reviewed columns/index/functions and ACL behavior present | Reviewed objects semantically equivalent; ledger versions differ |
+| Admin login identity | Git hardening migration vs differently versioned ledgers | Backend-only function ACL verified | Backend-only function ACL verified | Reviewed ACL intent equivalent |
+| Safe session deletion | Current final function vs historical migrations | Closed-session guard and backend-only EXECUTE verified | Same reviewed guard and ACL verified | Reviewed behavior equivalent; compare final definitions |
+| Branding function search path | Git hardening migration requires `pg_catalog, public` | Matches | `public` only | Confirmed hardening drift |
+| Three helper function ACLs | Git migration explicitly revokes client roles | Client EXECUTE denied | Client EXECUTE allowed | Confirmed Production ACL drift |
+| Default function ACL | Git migration scoped to `postgres/public` | `postgres/public` restricted | `postgres/public` includes client roles; other owner/schema defaults remain permissive in both | Partial remediation / residual drift |
+| Branding `updated_by` FK | Original Git branding migration declares FK | FK present, no covering index; current row NULL | FK absent; current non-null value maps to existing Auth user | Invariant/lifecycle decision needed |
+| `updated_at` triggers | Staging has four triggers; Production none | Trigger refreshes manual session-close timestamp | Manual close RPC omits explicit timestamp assignment | Confirmed timestamp consistency defect |
+| Scheduler migration candidates | Two Git candidates; duplicate candidate lacks explicit postgres grant/assertion | Current function has intended backend-only ACL | Current function has intended backend-only ACL | PR #126 cleanup candidate; no replay |
+
+This matrix is intentionally bounded to reviewed families and does not claim a full canonical schema diff.
+
+### Read-only safety statement
+
+This follow-up used catalog reads and migration-ledger reads only. No database writes, migrations, grants, Auth configuration changes, index/trigger changes, deployments, merges, or account changes were performed. The existing Staging-only Bangkok enrollment-date migrations were not reapplied. All Production changes remain on hold pending exact-scope approval.
