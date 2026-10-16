@@ -5,6 +5,9 @@ DECLARE
   v_result jsonb;
   v_data jsonb;
   v_list jsonb;
+  v_signature regprocedure;
+  v_config text[];
+  v_is_definer boolean;
 BEGIN
   IF NOT has_function_privilege('anon', 'public.ylp_students_v1()', 'EXECUTE') THEN
     NULL;
@@ -17,6 +20,30 @@ BEGIN
   IF NOT has_function_privilege('service_role', 'public.ylp_student_create_v1(text,text,date,text)', 'EXECUTE') THEN
     RAISE EXCEPTION 'service_role lacks EXECUTE on student create RPC';
   END IF;
+
+  FOR v_signature IN
+    SELECT p.oid::regprocedure
+    FROM pg_proc p
+    JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public'
+      AND p.proname IN ('ylp_student_create_v1', 'ylp_student_update_v1', 'ylp_students_v1')
+  LOOP
+    IF has_function_privilege('anon', v_signature, 'EXECUTE')
+       OR has_function_privilege('authenticated', v_signature, 'EXECUTE') THEN
+      RAISE EXCEPTION 'client role unexpectedly has EXECUTE on %', v_signature;
+    END IF;
+    IF NOT has_function_privilege('service_role', v_signature, 'EXECUTE')
+       OR NOT has_function_privilege('postgres', v_signature, 'EXECUTE') THEN
+      RAISE EXCEPTION 'backend role lacks EXECUTE on %', v_signature;
+    END IF;
+    SELECT p.prosecdef, p.proconfig
+      INTO v_is_definer, v_config
+    FROM pg_proc p
+    WHERE p.oid = v_signature;
+    IF v_is_definer IS NOT TRUE OR NOT (coalesce(v_config, ARRAY[]::text[]) @> ARRAY['search_path=""']) THEN
+      RAISE EXCEPTION 'SECURITY DEFINER or empty search_path missing on %: %, %', v_signature, v_is_definer, v_config;
+    END IF;
+  END LOOP;
 
   v_result := public.ylp_student_create_v1('TEST-VALID-1', 'Valid Test Student', DATE '2026-10-01', 'valid@example.com');
   IF coalesce((v_result->>'ok')::boolean, false) IS NOT TRUE THEN
