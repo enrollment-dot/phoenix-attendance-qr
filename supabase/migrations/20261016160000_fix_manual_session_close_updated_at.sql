@@ -6,20 +6,61 @@
 DO $preflight$
 DECLARE
   v_definition text;
+  v_proc record;
 BEGIN
-  IF to_regprocedure('public.ylp_close_session_v1(text)') IS NULL THEN
+  SELECT p.proowner,
+         p.prosecdef,
+         p.prorettype,
+         p.prolang,
+         p.proconfig,
+         pg_catalog.pg_get_userbyid(p.proowner) AS owner_name
+    INTO v_proc
+    FROM pg_catalog.pg_proc AS p
+   WHERE p.oid = pg_catalog.to_regprocedure('public.ylp_close_session_v1(text)');
+
+  IF NOT FOUND THEN
     RAISE EXCEPTION 'Preflight failed: public.ylp_close_session_v1(text) is missing';
   END IF;
 
-  SELECT pg_get_functiondef('public.ylp_close_session_v1(text)'::regprocedure)
-    INTO v_definition;
-
-  IF v_definition !~* 'update[[:space:]]+public\.sessions[[:space:]]+set[[:space:]]+status[[:space:]]*=[[:space:]]*''closed''' THEN
-    RAISE EXCEPTION 'Preflight failed: close-session RPC definition differs from the reviewed baseline';
+  IF v_proc.owner_name <> 'postgres'
+     OR v_proc.prosecdef
+     OR v_proc.prorettype <> 'jsonb'::pg_catalog.regtype
+     OR v_proc.prolang <> (
+       SELECT l.oid FROM pg_catalog.pg_language AS l WHERE l.lanname = 'plpgsql'
+     )
+     OR NOT EXISTS (
+       SELECT 1
+         FROM pg_catalog.unnest(v_proc.proconfig) AS cfg(setting)
+        WHERE cfg.setting = 'search_path=""'
+     ) THEN
+    RAISE EXCEPTION 'Preflight failed: close-session RPC owner, security mode, return type, language, or search_path differs from the reviewed baseline';
   END IF;
 
-  IF v_definition ~* 'set[[:space:]]+status[[:space:]]*=[[:space:]]*''closed''[[:space:]]*,[[:space:]]*updated_at' THEN
-    RAISE EXCEPTION 'Preflight stopped: close-session RPC appears to already assign updated_at; review current definition before applying';
+  IF pg_catalog.has_function_privilege('anon', 'public.ylp_close_session_v1(text)', 'EXECUTE')
+     OR pg_catalog.has_function_privilege('authenticated', 'public.ylp_close_session_v1(text)', 'EXECUTE')
+     OR NOT pg_catalog.has_function_privilege('service_role', 'public.ylp_close_session_v1(text)', 'EXECUTE')
+     OR NOT pg_catalog.has_function_privilege('postgres', 'public.ylp_close_session_v1(text)', 'EXECUTE') THEN
+    RAISE EXCEPTION 'Preflight failed: close-session RPC effective EXECUTE privileges differ from the reviewed baseline';
+  END IF;
+
+  SELECT pg_catalog.pg_get_functiondef(
+           'public.ylp_close_session_v1(text)'::pg_catalog.regprocedure
+         )
+    INTO v_definition;
+
+  IF v_definition !~* 'update[[:space:]]+public[.]sessions[[:space:]]+set[[:space:]]+status[[:space:]]*=[[:space:]]*''closed'''
+     OR v_definition !~* 'for[[:space:]]+update'
+     OR v_definition !~* 'if[[:space:]]+not[[:space:]]+found'
+     OR v_definition !~* 'session_not_found'
+     OR v_definition !~* 'v_session[.]status[[:space:]]*<>[[:space:]]*''closed'''
+     OR v_definition !~* '''updated_at'''
+     OR v_definition !~* '''session_id''' THEN
+    RAISE EXCEPTION 'Preflight failed: close-session RPC body differs from the reviewed baseline';
+  END IF;
+
+  -- Reject any existing assignment regardless of SET-column ordering or formatting.
+  IF v_definition ~* 'updated_at[[:space:]]*=' THEN
+    RAISE EXCEPTION 'Preflight stopped: close-session RPC already appears to assign updated_at; review the current definition before applying';
   END IF;
 END
 $preflight$;
