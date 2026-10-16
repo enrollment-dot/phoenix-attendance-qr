@@ -302,3 +302,42 @@ Latest PR #130 head `e38a05733ba75a2ed496c95dfb24995b9d54d294` has these observe
 This is isolated CI evidence only. The follow-up compatibility migration remains unapplied to Staging and Production. PR #130 remains Draft/open/unmerged; Staging application requires separate explicit approval, and Production remains untouched.
 
 **Latest security refinement:** PR #130 head was subsequently advanced to `c3cd75683fd25e3fbe1489d2f5704d2c34003fa2`. The compatibility migration now revokes `PUBLIC`, `anon`, and `authenticated` EXECUTE immediately after each function creation, before the final explicit `service_role` / `postgres` grants. All three workflows passed on that exact head: Student Schema PostgreSQL Regression #17 (run ID `38851005741`), Session Auto-Close PostgreSQL Regression #43 (run ID `38851005737`), and Test #404 (run ID `38851005736`, including `npm test` and `npm run test:browser`). The migration remains unapplied to both live environments.
+
+
+## Follow-up: Helper Function and Default ACL Audit (2026-10-16)
+
+### Helper function EXECUTE ACLs
+
+Read-only PostgreSQL catalog inspection of Staging and Production confirmed the following helper signatures:
+
+- `public.ylp_advisory_key_v1(text,text)`
+- `public.ylp_is_uuid_v4_v1(uuid)`
+- `public.ylp_scan_rejection_v1(text,text)`
+
+Staging grants EXECUTE only to `postgres` and `service_role`. Production's explicit ACLs additionally grant EXECUTE to `PUBLIC`, `anon`, and `authenticated`. These functions are not SECURITY DEFINER and use an empty `search_path`; the observed issue is unnecessary direct client execution surface, not demonstrated privilege escalation.
+
+The live `ylp-api` source in Staging and Production contains no direct references to these helper names. PostgreSQL function-source inspection found references from `ylp_create_session_v1` and `ylp_scan_v1`, both of which are backend-only (EXECUTE restricted to `postgres` and `service_role`). Repository text search was inconclusive and should not be treated as proof that no other callers exist.
+
+Draft PR #137 proposes revoking `PUBLIC`, `anon`, and `authenticated` EXECUTE on these exact signatures and explicitly granting `service_role` / `postgres`. The disposable PostgreSQL regression, `npm test`, and `npm run test:browser` all passed on PR #137 head `f61e644b0a91d2284d2294fac477f9050081cf4c` (Test run `38978566394`; PostgreSQL regression run `38978566395`). No live migration has been applied.
+
+### Function default ACL drift
+
+Read-only inspection of `pg_default_acl` found:
+
+- Staging `postgres` global function defaults: `postgres=X/postgres`.
+- Staging `postgres` `public` function defaults: `postgres=X/postgres,service_role=X/postgres`.
+- Production `postgres` `public` function defaults: `postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres`; no explicit global default ACL row was present in the query output.
+- Both environments have a separate broad `supabase_admin` / `public` function default ACL containing `anon` and `authenticated`.
+
+Draft PR #138 proposes aligning defaults for functions created by `postgres`: revoke default EXECUTE from `PUBLIC`, `anon`, and `authenticated`, while retaining `service_role` EXECUTE for new `public` functions. It adds a postflight check and a disposable PostgreSQL regression that creates a new function after the migration. On PR #138 head `d501c040ed8a9cf1230d948683eda3826a938a17`, Test run `38978905763`, PostgreSQL default ACL regression run `38978905650`, and Session Auto-Close PostgreSQL regression run `38978905730` all completed successfully. This is CI-only evidence; the migration has not been applied to either live environment.
+
+### `supabase_admin` ownership boundary
+
+Catalog inspection found no `public` functions currently owned by `supabase_admin` in either Staging or Production. The role catalog reports `supabase_admin` as superuser, while `postgres` is not a member of `supabase_admin`. Therefore, do not assume a migration running as `postgres` can safely or appropriately alter `supabase_admin` defaults. Keep this as a separate platform/role-authority review; do not include blanket changes to `supabase_admin` in the `postgres` migration.
+
+### Current safety status
+
+- PRs #137 and #138 remain Draft/open/unmerged.
+- No live SQL/DDL, ACL, migration, merge, or deployment action was performed during this follow-up.
+- Default ACL changes affect future functions owned by the target role; they do not automatically remediate existing function ACLs.
+- Production application requires separate explicit approval and post-application catalog verification.
