@@ -12,6 +12,7 @@ on:
     paths:
       - "supabase/migrations/**"
       - "tests/sql/session-auto-close-*.sql"
+      - "tests/sql/helper-function-acl-assertions.sql"
       - ".github/workflows/session-auto-close-db-test.yml"
 
 jobs:
