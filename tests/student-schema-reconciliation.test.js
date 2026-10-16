@@ -53,11 +53,11 @@ test('legacy overloads are removed from the first migration and client RPC execu
 test('compatibility migration preserves old payload semantics without default-argument ambiguity', () => {
   assert.match(compatibilityMigration, /p_enrolled_from date,\s*p_email text\s*\)/i);
   assert.doesNotMatch(compatibilityMigration, /p_enrolled_from date DEFAULT/i);
-  assert.match(compatibilityMigration, /CREATE OR REPLACE FUNCTION public\\.ylp_student_create_v1\\(\s*p_student_id text,\s*p_name text\s*\)/i);
-  assert.match(compatibilityMigration, /CREATE OR REPLACE FUNCTION public\\.ylp_student_create_v1\\(\s*p_student_id text,\s*p_name text,\s*p_enrolled_from date\s*\)/i);
-  assert.match(compatibilityMigration, /CREATE OR REPLACE FUNCTION public\\.ylp_student_update_v1\\(\s*p_student_id text,\s*p_name text\s*\)/i);
-  assert.match(compatibilityMigration, /CREATE OR REPLACE FUNCTION public\\.ylp_student_update_v1\\(\s*p_student_id text,\s*p_name text,\s*p_enrolled_from date\s*\)/i);
+  assert.match(compatibilityMigration, /CREATE OR REPLACE FUNCTION public\.ylp_student_create_v1\(\s*p_student_id text,\s*p_name text\s*\)/i);
+  assert.match(compatibilityMigration, /CREATE OR REPLACE FUNCTION public\.ylp_student_create_v1\(\s*p_student_id text,\s*p_name text,\s*p_enrolled_from date\s*\)/i);
+  assert.match(compatibilityMigration, /CREATE OR REPLACE FUNCTION public\.ylp_student_update_v1\(\s*p_student_id text,\s*p_name text\s*\)/i);
+  assert.match(compatibilityMigration, /CREATE OR REPLACE FUNCTION public\.ylp_student_update_v1\(\s*p_student_id text,\s*p_name text,\s*p_enrolled_from date\s*\)/i);
   assert.match(compatibilityMigration, /Legacy update wrappers intentionally do not update email/i);
-  assert.match(compatibilityMigration, /REVOKE ALL ON FUNCTION public\\.ylp_student_update_v1\\(text, text, date\) FROM PUBLIC, anon, authenticated/i);
-  assert.match(compatibilityMigration, /GRANT EXECUTE ON FUNCTION public\\.ylp_student_update_v1\\(text, text, date\) TO service_role, postgres/i);
+  assert.match(compatibilityMigration, /REVOKE ALL ON FUNCTION public\.ylp_student_update_v1\(text, text, date\) FROM PUBLIC, anon, authenticated/i);
+  assert.match(compatibilityMigration, /GRANT EXECUTE ON FUNCTION public\.ylp_student_update_v1\(text, text, date\) TO service_role, postgres/i);
 });
