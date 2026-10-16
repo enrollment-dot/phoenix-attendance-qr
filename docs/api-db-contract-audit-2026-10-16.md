@@ -1,5 +1,21 @@
 # API ↔ RPC ↔ Database Contract Audit — 2026-10-16
 
+## Current status — updated after Staging application
+
+**Current verified state:** PR #130 remains Draft/open/unmerged. Its latest reviewed head is `82ec0f877d4ed54b232ba66493b59fefeb555af4`, based on main `b2a3a3714a6e856f1bffbb17d7c2c193a0ef48c9`. The Student schema reconciliation migration was applied to Staging project `yvtgwzvjpztvztozcfir` with explicit approval, and the post-apply checks passed. Production project `fsxdsdixxnslismxghfz` was not targeted by the migration.
+
+Latest read-only database checks:
+- Staging: 13 Student rows; `enrolled_from` and `email` exist; no null enrollment dates; valid four-argument create/update RPCs plus `ylp_students_v1()`; all three are `SECURITY DEFINER` with empty `search_path`; `anon` and `authenticated` EXECUTE denied; `service_role` EXECUTE granted. Migration ledger records version `20261016040903`, name `reconcile_student_schema_and_rpcs`.
+- Production: 35 Student rows; `enrolled_from` and `email` exist; no null enrollment dates or invalid existing email values found; both four-argument and legacy three-argument create/update RPC overloads remain; sampled Student RPC ACLs deny `anon` and `authenticated` and grant `service_role`. No `reconcile_student_schema_and_rpcs` ledger entry was found.
+- Staging transaction-wrapped SQL regression checks passed and were rolled back; the row count stayed 13 and no test IDs remained.
+- GitHub Actions on PR #130 head `82ec0f877d4ed54b232ba66493b59fefeb555af4`: Student Schema PostgreSQL Regression #6, Session Auto-Close PostgreSQL Regression #32, and Test #385 all completed successfully; `npm test` and `npm run test:browser` passed.
+- The migration file in PR #130 was renamed to `20261016040903_reconcile_student_schema_and_rpcs.sql` to match Staging's already-recorded migration version. This repository change does not apply any database migration.
+
+**Remaining release gates:** PR #130 still needs final compatibility review for external callers of Production's legacy three-argument RPC overloads and normal PR review. No PR was merged and no deployment was initiated. Do not apply this migration again to Staging. Do not apply it to Production without a separate explicit approval and a fresh schema/ledger review.
+
+## Initial audit snapshot (historical pre-application baseline)
+
+
 ## Purpose and scope
 
 This is a read-only verification snapshot of the SIFer Lab Attendance Web App's Staging and Production Supabase database contracts, compared with the current `main` Edge Function source. It records observed facts and follow-up requirements; it does not authorize a database migration or deployment.
@@ -9,11 +25,11 @@ Main SHA at audit start: `b2a3a3714a6e856f1bffbb17d7c2c193a0ef48c9`
 Edge Function: `ylp-api`  
 Audit date: 2026-10-16
 
-## Executive finding
+### Initial executive finding (before the Staging migration)
 
 **BLOCKED: Student create/update contract is inconsistent in Staging.** The current `main` Edge Function calls the student create/update RPCs with `p_student_id`, `p_name`, `p_enrolled_from`, and `p_email`. Production has matching four-argument overloads and the required columns. Staging has only two-argument RPC signatures and lacks `enrolled_from` and `email` columns. A four-argument call is therefore expected to fail in Staging unless another unobserved path changes the contract. This is a catalog-based finding; no synthetic runtime request was sent.
 
-## Verified facts
+### Initial verified facts (before the Staging migration)
 
 ### Student schema and RPC signatures
 
@@ -60,7 +76,7 @@ Both environments currently have a role check accepting `super_admin`, `admin`, 
 
 The ledgers differ and the repository has historical migration drift. These counts alone do not identify a safe reconciliation sequence. Do not replay, reorder, squash, or apply migrations solely from this report.
 
-## Verification status
+### Initial verification status (before the Staging migration)
 
 | Check | Result | Evidence / limitation |
 |---|---|---|
@@ -72,7 +88,7 @@ The ledgers differ and the repository has historical migration drift. These coun
 | Student create/update runtime behavior | Not tested | No synthetic request was sent |
 | Staging/Production reconciliation | Not approved or performed | Requires separate review and explicit approval |
 
-## Required next actions
+### Initial required actions (historical; update against the current status above)
 
 1. Review the existing student contract reconciliation proposal (PR #130) against the current Staging and Production schemas, including backfill behavior for `enrolled_from`.
 2. Add/confirm executable tests for the four-argument student RPC contract and optional-email handling in an isolated database or explicitly approved Staging test.
@@ -80,9 +96,9 @@ The ledgers differ and the repository has historical migration drift. These coun
 4. Review the `ylp_authorize_admin_v1` search-path difference against both actual function definitions and intended security hardening.
 5. Reconcile Git migrations, each environment's migration ledger, and actual schema before proposing any migration sequence.
 
-## Safety note
+### Initial safety note (historical pre-application snapshot)
 
-This audit performed read-only SQL catalog queries and source inspection only. No database data, schema, grants, secrets, Edge Function deployment, Vercel deployment, or account was changed. Production and Staging must continue to be treated as separate environments.
+The initial audit phase performed read-only SQL catalog queries and source inspection only. The later Staging-only migration application is documented below. Production and Staging must continue to be treated as separate environments.
 
 
 ### Authorization helper definition difference
@@ -163,3 +179,8 @@ Post-apply verification confirmed:
 **Migration-ledger reconciliation follow-up:** after confirming Staging's recorded version `20261016040903`, PR #130's working branch was updated to rename the migration file to `20261016040903_reconcile_student_schema_and_rpcs.sql` and update the regression workflow and Node test path references. This is a repository-branch change only; it does not modify either database. The purpose is to make the repository version match Staging's already-applied ledger entry and avoid an accidental second migration during a future `db push`. The updated branch must pass CI and receive normal review before merge. Production has not received this migration.
 
 CI for PR #130 commit `7b89a990205c638b1540dc8c550753dddd9117da` also passed: Student Schema PostgreSQL Regression #4, Test #380, and Session Auto-Close PostgreSQL Regression #30. These CI runs are separate from the Staging transaction checks described above.
+
+
+### Latest PR #130 review update — 2026-10-16
+
+The latest PR #130 head `82ec0f877d4ed54b232ba66493b59fefeb555af4` has all three observed CI workflows passing: Student Schema PostgreSQL Regression #6, Session Auto-Close PostgreSQL Regression #32, and Test #385. The API's current four-argument Student create/update calls match the new RPC signatures. This is not an approval to merge. A repository source search does not establish whether any external or previously deployed caller still depends on Production's legacy three-argument overloads; treat that as an unresolved compatibility question. PR #130 remains Draft/open/unmerged.
