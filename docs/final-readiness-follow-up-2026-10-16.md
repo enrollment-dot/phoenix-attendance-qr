@@ -402,3 +402,31 @@ Compared `ylp_close_session_v1(text)`, trigger definitions, and effective RPC pe
 - GitHub Actions Test run [#443](https://github.com/enrollment-dot/phoenix-attendance-qr/actions/runs/38920847667) remains `in_progress` at the latest poll: `npm install` passed; Playwright Chromium installation is still running; `npm test` and `npm run test:browser` have not started. CI is not yet green for the latest documentation commit.
 - The latest commit's Vercel Staging and Production preview status checks both report provider build-rate-limit failures. This is not evidence that application tests failed and does not verify live Production.
 - PR [#133](https://github.com/enrollment-dot/phoenix-attendance-qr/pull/133) remains open, Draft, and unmerged. No database writes, migrations, ACL changes, deployments, merges, or destructive actions were performed.
+
+
+### Follow-up: deployed destructive-route parity and full timestamp-trigger inventory — read-only (2026-10-16)
+
+#### Deployed Production/Staging API route parity
+
+Fetched active deployed `ylp-api` source from both Supabase projects and compared `index.ts` against Git `main`:
+
+- Production active version 43, source hash `c201461db172288cb41ba7d654f20a46123dcc6cc922b784da2aa106f71b9e51`.
+- Staging active version 50, source hash `540a4d6db58f4d86b3d92ee6ceb4cea7a34ebecb872aaf0caf31042f062f9e39`.
+- All three fetched `index.ts` contents are exactly equal (67,732 characters); both deployed `types.ts` files are also equal to each other and match the prior parity finding.
+- The deployed Production and Staging `deleteStudent` route exactly matches Git `main`: super-admin authorization, required username/password, global login rate limiting, fresh login, re-check of the re-authenticated super-admin role, and subject equality before the backend calls `ylp_force_delete_student_v1`.
+- Git's `src/main.js` renders the student-delete confirmation only for `super_admin`, requests username/password with a password input, and submits those credentials with the student ID to `deleteStudent`. The existing `tests/super-admin-rbac.test.js` includes source-level regression assertions for destructive student/session authorization. No live delete was performed.
+
+**Assessment:** The deployed API route does not show source drift for the destructive student authorization path. This is source-level parity plus catalog ACL verification, not a live end-to-end deletion test. The separate Production-only RPC presence remains a migration/environment drift item.
+
+#### Complete timestamp-column and public-trigger inventory
+
+Expanded the read-only comparison from four tables to every `public` table with `created_at`, `updated_at`, or `closed_at` columns, and every non-internal trigger in `public`:
+
+- The timestamp-column inventory matched between environments for the reviewed columns on `admin_profiles`, `api_rate_limit_counters`, `attendance`, `branding_settings`, `scan_receipts`, `session_creation_receipts`, `sessions`, `settings`, and `students`.
+- Staging has four public timestamp triggers: `admin_profiles_set_updated_at`, `sessions_set_updated_at`, `settings_set_updated_at`, and `students_set_updated_at`; each calls `set_updated_at()`.
+- Production has **zero non-internal triggers in schema `public`** in this snapshot, not merely zero triggers on the original four tables.
+- Git `main` currently has 25 SQL migrations in `supabase/migrations`; none of their filenames identifies an `updated_at` trigger migration. This alone does not prove trigger creation is absent from all historical baseline/setup paths, and migration-ledger drift means it is not safe to infer the intended trigger set from filenames alone.
+
+**Assessment:** The drift affects timestamp behavior on `admin_profiles`, `sessions`, `settings`, and `students` updates, subject to each table's actual update paths. Do not blindly recreate all four triggers in Production. Next determine where Staging's triggers originated, compare the full migration ledger and initial schema/bootstrap history, then decide table-by-table whether to standardize trigger behavior or explicitly set timestamps in RPCs. Any proposed change must be a separate tracked migration with preflight assertions, postflight catalog checks, and tests; it remains unapplied pending explicit approval.
+
+No database writes, migrations, ACL changes, deployments, merges, account changes, or destructive actions were performed.
