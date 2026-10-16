@@ -157,3 +157,10 @@ Function-by-function review narrowed the trigger drift impact for the inspected 
 - The automated close function does explicitly assign `updated_at = clock_timestamp()` in both environments, so this specific difference does not affect the inspected auto-close path.
 
 **Assessment:** This is a confirmed timestamp-consistency defect in the manual session-close path, not evidence of an authorization bypass. Do not add a Production trigger automatically: a trigger changes behavior for every update to that table, and must be evaluated against intended Production semantics and a tracked migration. Safest focused remediation options are (a) update `ylp_close_session_v1` to set `updated_at` explicitly in both environments through a reviewed migration, or (b) restore the intended trigger consistently after checking all write paths. Choose one approach, test it in Staging, and require explicit Production schema-change approval before Production rollout. No database changes were made.
+
+
+### Production helper-RPC usage check (bounded static inspection, 2026-10-16)
+
+A read-only static search of the current `main` frontend source modules and `supabase/functions/ylp-api` source files inspected during this follow-up found no literal references to `ylp_advisory_key_v1`, `ylp_is_uuid_v4_v1`, or `ylp_scan_rejection_v1`. The inspected frontend modules also showed no direct `.rpc(...)` calls; the architecture uses the Edge Function API boundary. This is bounded source inspection, not a complete runtime call-graph proof, so it supports but does not by itself authorize revoking Production privileges.
+
+The read-only privilege query reconfirmed that all three helpers are executable by `anon` and `authenticated` in Production, but not in Staging; they are not `SECURITY DEFINER` functions and use an empty search path. Keep this as an explicit Production ACL drift item. Any Production grant change still requires explicit approval and a focused migration with regression coverage.
