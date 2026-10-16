@@ -1,0 +1,49 @@
+name: Manual Session Close PostgreSQL Regression
+
+on:
+  pull_request:
+    paths:
+      - "supabase/migrations/**"
+      - "tests/sql/session-close-*.sql"
+      - ".github/workflows/session-close-db-test.yml"
+  push:
+    branches: [main]
+    paths:
+      - "supabase/migrations/**"
+      - "tests/sql/session-close-*.sql"
+      - ".github/workflows/session-close-db-test.yml"
+
+jobs:
+  postgres-regression:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes postgresql-client
+      - name: Prepare disposable test schema
+        run: psql -v ON_ERROR_STOP=1 -f tests/sql/session-close-setup.sql
+      - name: Apply actual manual-close migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261016160000_fix_manual_session_close_updated_at.sql
+      - name: Verify timestamp, response contract, and execution privileges
+        run: psql -v ON_ERROR_STOP=1 -f tests/sql/session-close-assertions.sql
