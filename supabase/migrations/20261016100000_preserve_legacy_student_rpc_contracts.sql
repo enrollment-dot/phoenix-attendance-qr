@@ -2,6 +2,15 @@
 -- The four-argument API contract remains explicit; legacy update wrappers preserve email.
 -- Apply only after reviewing each environment's current schema and migration ledger.
 
+-- PostgreSQL does not allow removing existing input-parameter defaults with CREATE OR REPLACE.
+-- Drop only the reviewed overload set, then recreate all signatures below in this migration transaction.
+DROP FUNCTION IF EXISTS public.ylp_student_create_v1(text, text);
+DROP FUNCTION IF EXISTS public.ylp_student_create_v1(text, text, date);
+DROP FUNCTION IF EXISTS public.ylp_student_create_v1(text, text, date, text);
+DROP FUNCTION IF EXISTS public.ylp_student_update_v1(text, text);
+DROP FUNCTION IF EXISTS public.ylp_student_update_v1(text, text, date);
+DROP FUNCTION IF EXISTS public.ylp_student_update_v1(text, text, date, text);
+
 CREATE OR REPLACE FUNCTION public.ylp_student_create_v1(
   p_student_id text,
   p_name text,
