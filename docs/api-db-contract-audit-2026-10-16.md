@@ -196,3 +196,27 @@ A targeted source review compared the current `main` Edge Function, frontend API
 - No additional direct Student RPC invocation was identified in the files reviewed. This is limited to the tracked source and tests inspected; it cannot rule out older deployed Edge Function versions, external scripts, manual SQL clients, or other callers outside this repository.
 
 **Conclusion:** The current repository's API contract uses four arguments, but Production compatibility is not fully proven for removal of the three-argument overloads. Preserve this as a release gate until deployed callers and external integrations are accounted for. No database change or deployment was made during this review.
+
+### Live deployed caller and historical query-statistics review — 2026-10-16
+
+A read-only check of Supabase's live Edge Function inventory confirmed:
+
+- Production `ylp-api` is ACTIVE at version 43, SHA `c201461db172288cb41ba7d654f20a46123dcc6cc922b784da2aa106f71b9e51`.
+- Staging `ylp-api` is ACTIVE at version 50, SHA `540a4d6db58f4d86b3d92ee6ceb4cea7a34ebecb872aaf0caf31042f062f9e39`.
+- The retrieved deployed `index.ts` code in both projects uses the four-argument `ylp_student_create_v1` and `ylp_student_update_v1` RPC contract (`p_student_id`, `p_name`, `p_enrolled_from`, `p_email`). This confirms the deployed Edge Function source currently inspected, not every historical deployment or external client.
+
+Production's read-only `pg_stat_statements` data adds evidence that legacy callers existed historically:
+
+| Query pattern in PostgreSQL statistics | Calls recorded |
+|---|---:|
+| `ylp_student_create_v1` with two named arguments | 11 |
+| `ylp_student_update_v1` with two named arguments | 2 |
+| `ylp_student_create_v1` with four named arguments | 36 |
+| `ylp_student_update_v1` with four named arguments | 1 |
+| `ylp_students_v1()` | 42 |
+
+The database statistics reset timestamp observed was `2026-08-25 20:33:23+00`; the two-argument create/update query entries report `stats_since` dates of 2026-09-26. These counters do **not** expose the last execution timestamp, so they prove historical two-argument calls were recorded but do not establish whether those callers remain active. The statistics query did not return a runtime call pattern for the three-argument overload; absence from this aggregate is not proof that no such caller exists.
+
+A read-only search of Production's Supabase `edge_logs` for the 24-hour window `2026-10-15T04:00:00Z` through `2026-10-16T04:00:00Z` found no requests whose logged RPC path contained `ylp_student_create_v1`, `ylp_student_update_v1`, or `ylp_students_v1`. This only describes that queried log window and is not proof of no usage outside it. PostgreSQL function-call statistics were unavailable from `pg_stat_user_functions` (no rows returned), so that view could not independently establish overload-specific call counts.
+
+**Updated release decision:** Do **not** remove the legacy two- and three-argument overloads as part of PR #130 until the historical two-argument usage is explained and current/external callers are accounted for. The repository and currently deployed `ylp-api` use four arguments, but historical database statistics demonstrate prior use of the two-argument contract. Consider a compatibility-first migration that retains legacy overloads temporarily (with reviewed, safe behavior and ACLs) or obtain independent evidence that all old callers have been retired before dropping them. Any change to the migration must be tested, reviewed, and must not be applied to Production without separate explicit approval. No database or deployment changes were made during this review.
