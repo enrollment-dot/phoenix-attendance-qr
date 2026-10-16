@@ -1,0 +1,48 @@
+name: PostgreSQL Function Default ACL Regression
+
+on:
+  pull_request:
+    paths:
+      - "supabase/migrations/20261017110000_restrict_postgres_function_default_acl.sql"
+      - "tests/sql/postgres-function-default-acl-assertions.sql"
+      - ".github/workflows/postgres-function-default-acl-db-test.yml"
+  push:
+    branches: [main]
+    paths:
+      - "supabase/migrations/20261017110000_restrict_postgres_function_default_acl.sql"
+      - "tests/sql/postgres-function-default-acl-assertions.sql"
+      - ".github/workflows/postgres-function-default-acl-db-test.yml"
+
+jobs:
+  postgres-default-acl-regression:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare disposable roles
+        run: |
+          psql -v ON_ERROR_STOP=1 -c "CREATE ROLE anon NOLOGIN;"
+          psql -v ON_ERROR_STOP=1 -c "CREATE ROLE authenticated NOLOGIN;"
+          psql -v ON_ERROR_STOP=1 -c "CREATE ROLE service_role NOLOGIN;"
+      - name: Apply default ACL migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261017110000_restrict_postgres_function_default_acl.sql
+      - name: Verify future function ACLs
+        run: psql -v ON_ERROR_STOP=1 -f tests/sql/postgres-function-default-acl-assertions.sql
