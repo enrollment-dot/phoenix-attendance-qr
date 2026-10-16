@@ -452,3 +452,14 @@ Queried `supabase_migrations.schema_migrations` in both live projects and checke
 - Current Git `main` has no migration named for creating the timestamp trigger/function. The trigger/function therefore appears to originate from Staging's legacy baseline or another historical setup path not represented by the current migration filenames. Exact origin is **not yet proven**.
 
 **Next safe action:** Continue comparing the actual baseline function/table definitions and historical migration evidence, then draft a separate reconciliation proposal. Do not add a trigger migration to this documentation-only PR, do not replay legacy baseline migrations, and do not apply any Production schema change without explicit approval.
+
+### Latest CI and preview status checkpoint — 2026-10-16
+
+This checkpoint supersedes the earlier statement that CI for `1c826b56119b972a67bcdd50f666470aa3fa5dc1` had not yet been observed:
+
+- GitHub Actions Test run [#448](https://github.com/enrollment-dot/phoenix-attendance-qr/actions/runs/38922470719) completed with conclusion `success` for commit `1c826b56119b972a67bcdd50f666470aa3fa5dc1`.
+- The commit status snapshot reports the Vercel Production preview as successful (`Deployment has completed`).
+- The Vercel Staging preview status failed with `Deployment rate limited — retry in 24 hours`. This is a provider build-rate-limit issue, not evidence that application tests failed.
+- Because this documentation update creates a new commit, its own CI and preview statuses must be checked separately before claiming those checks passed.
+- PR #133 remains Draft/open/unmerged. No merge, database write, migration, ACL change, or Production change was performed.
+
