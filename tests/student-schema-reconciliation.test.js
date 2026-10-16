@@ -6,6 +6,8 @@ const migrationPath = new URL('../supabase/migrations/20261016040903_reconcile_s
 const migration = await readFile(migrationPath, 'utf8');
 const compatibilityPath = new URL('../supabase/migrations/20261016043513_preserve_legacy_student_rpc_contracts.sql', import.meta.url);
 const compatibilityMigration = await readFile(compatibilityPath, 'utf8');
+const timezonePath = new URL('../supabase/migrations/20261016045000_use_bangkok_enrollment_date_default.sql', import.meta.url);
+const timezoneMigration = await readFile(timezonePath, 'utf8');
 
 test('student reconciliation migration adds optional email and required enrollment date safely', () => {
   assert.match(migration, /ADD COLUMN IF NOT EXISTS enrolled_from date/i);
@@ -60,4 +62,12 @@ test('compatibility migration preserves old payload semantics without default-ar
   assert.match(compatibilityMigration, /Legacy update wrappers intentionally do not update email/i);
   assert.match(compatibilityMigration, /REVOKE ALL ON FUNCTION public\.ylp_student_update_v1\(text, text, date\) FROM PUBLIC, anon, authenticated/i);
   assert.match(compatibilityMigration, /GRANT EXECUTE ON FUNCTION public\.ylp_student_update_v1\(text, text, date\) TO service_role, postgres/i);
+});
+
+test('enrollment date defaults use Asia/Bangkok regardless of PostgreSQL session timezone', () => {
+  assert.match(timezoneMigration, /ALTER COLUMN enrolled_from\s+SET DEFAULT[\s\S]*Asia\/Bangkok/i);
+  assert.match(timezoneMigration, /pg_catalog\.now\(\) AT TIME ZONE 'Asia\/Bangkok'/i);
+  assert.match(timezoneMigration, /CREATE OR REPLACE FUNCTION public\.ylp_student_create_v1\([\s\S]*p_student_id text,\s*p_name text\s*\)/i);
+  assert.match(timezoneMigration, /REVOKE ALL ON FUNCTION public\.ylp_student_create_v1\(text, text\) FROM PUBLIC, anon, authenticated/i);
+  assert.match(timezoneMigration, /GRANT EXECUTE ON FUNCTION public\.ylp_student_create_v1\(text, text\) TO service_role, postgres/i);
 });
