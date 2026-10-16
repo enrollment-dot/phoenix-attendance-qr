@@ -463,3 +463,15 @@ This checkpoint supersedes the earlier statement that CI for `1c826b56119b972a67
 - Because this documentation update creates a new commit, its own CI and preview statuses must be checked separately before claiming those checks passed.
 - PR #133 remains Draft/open/unmerged. No merge, database write, migration, ACL change, or Production change was performed.
 
+### Timestamp parity follow-up — defaults versus update triggers (read-only, 2026-10-16)
+
+A fresh catalog query in both live projects compared timestamp column defaults and attached non-internal triggers for all public tables containing `created_at`, `updated_at`, or `closed_at`.
+
+- For the reviewed timestamp columns, the column-default inventory matched between Staging and Production.
+- Staging alone has the four `BEFORE UPDATE` triggers on `admin_profiles`, `sessions`, `settings`, and `students`; each invokes `set_updated_at()`.
+- Production has no attached non-internal triggers for any of the reviewed timestamp columns.
+- The shared `updated_at DEFAULT now()` values do not replace update-time behavior: a column default applies when a value is omitted on insert, not automatically on later updates. Therefore, unless each update path explicitly sets `updated_at`, Production rows can retain an older timestamp while equivalent Staging updates refresh it.
+- `attendance.updated_at` has no default and no trigger in either environment in this inventory; any intended update-time semantics for attendance need separate confirmation rather than assuming a trigger is expected.
+
+**Decision remains open:** Do not apply blanket triggers or alter production functions yet. The next evidence step is to inventory each relevant update RPC/Edge Function path and confirm whether it explicitly assigns `updated_at`, then agree the intended semantics per table. Only after that should a separate migration proposal include scoped DDL, regression tests, and pre/postflight assertions. This was read-only; no database changes were made.
+
