@@ -116,3 +116,27 @@ The Student Schema PostgreSQL Regression workflow uses a disposable PostgreSQL s
 - The migration has not been applied to either environment. Its synthetic-schema workflow cannot replace the required live-schema and migration-ledger reconciliation.
 
 Status remains: **Staging mismatch verified; remediation PR has promising isolated CI evidence, but live compatibility and deployment are not verified.**
+
+### Follow-up: row profile, overload dependencies, and migration ledger detail
+
+A second read-only pass checked the live Student rows and the exact legacy overload dependencies:
+
+| Check | Staging | Production |
+|---|---:|---:|
+| Existing Student rows | 13 | 35 |
+| Rows with `created_at IS NULL` | 0 | 0 |
+| Rows with blank/null names | 0 | 0 |
+| Non-null emails failing the proposed format check | Not applicable; column absent | 0 |
+
+Production already has the `students_email_format_check` constraint with the same basic expression used by PR #130. These checks reduce known data-shape concerns, but do not establish that `created_at` is the approved business source for every historical enrollment date.
+
+The exact latest migration ledger entries at this check were:
+
+- Staging: `20261015094240` (`harden_global_function_default_execute`)
+- Production: `20261013174134` (`secure_session_auto_close_scheduler`)
+
+The proposed PR #130 migration version `20261015120000` is later than both current ledger maxima, but this ordering alone does not resolve the broader historical drift or prove the migration should be applied to Production.
+
+A read-only `pg_depend` query found no catalog-tracked dependent objects referencing the Student create/update overloads in either database. This is not a complete application-caller audit: dynamic SQL, deployed application versions, and callers outside the current `main` Edge Function source are not covered. Production currently has both three-argument and four-argument create/update overloads; PR #130 intentionally drops the three-argument overloads. Keep that as a compatibility review item before any application.
+
+The PR #130 workflow's preliminary anon privilege assertion was corrected in commit `7b89a990205c638b1540dc8c550753dddd9117da` to raise only when anon actually has EXECUTE. New CI runs for that commit had not yet appeared at the time of this update, so the correction is **not yet CI-verified**.
