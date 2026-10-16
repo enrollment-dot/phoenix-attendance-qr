@@ -67,6 +67,7 @@ test('compatibility migration preserves old payload semantics without default-ar
 test('enrollment date defaults use Asia/Bangkok regardless of PostgreSQL session timezone', () => {
   assert.match(timezoneMigration, /ALTER COLUMN enrolled_from\s+SET DEFAULT[\s\S]*Asia\/Bangkok/i);
   assert.match(timezoneMigration, /pg_catalog\.now\(\) AT TIME ZONE 'Asia\/Bangkok'/i);
+  assert.match(timezoneMigration, /v_date date := coalesce\(p_enrolled_from, \(pg_catalog\.now\(\) AT TIME ZONE 'Asia\/Bangkok'\)::date\)/i);
   assert.match(timezoneMigration, /CREATE OR REPLACE FUNCTION public\.ylp_student_create_v1\([\s\S]*p_student_id text,\s*p_name text\s*\)/i);
   assert.match(timezoneMigration, /REVOKE ALL ON FUNCTION public\.ylp_student_create_v1\(text, text\) FROM PUBLIC, anon, authenticated/i);
   assert.match(timezoneMigration, /GRANT EXECUTE ON FUNCTION public\.ylp_student_create_v1\(text, text\) TO service_role, postgres/i);
