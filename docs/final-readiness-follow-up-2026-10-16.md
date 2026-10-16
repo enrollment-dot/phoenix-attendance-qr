@@ -91,3 +91,21 @@ For the eight application tables checked — `admin_profiles`, `api_rate_limit_c
 3. Separately plan owner-specific default-privilege remediation for `postgres` and, if authorized/possible, `supabase_admin`; do not claim the latter is fixed by the current migration.
 4. Apply the branding search-path hardening to Production only after explicit Production security-change approval and pre/post verification.
 5. Do not make any of these changes automatically: this audit only recorded findings and did not alter Production or Staging.
+
+
+## Additional migration equivalence checks (read-only)
+
+### QR access-code migration and admin-login hardening
+
+Both environments have `sessions.qr_access_code_hash`, `sessions.qr_access_code_ciphertext`, the partial unique index `sessions_qr_access_code_hash_uidx`, and the backend-only `ylp_set_session_access_code_v1`, `ylp_resolve_session_access_code_v1`, and `ylp_get_session_access_code_v1` functions. The checked functions are `SECURITY DEFINER`, use an empty search path, deny `anon`/`authenticated` EXECUTE, and permit `service_role`/`postgres`. This supports semantic equivalence for the reviewed QR objects despite differing migration-ledger versions.
+
+Both environments also have `ylp_admin_login_identity_v1(text)` restricted to `service_role` and `postgres`, with `anon` and `authenticated` denied. Thus the admin-login hardening's intended ACL state is present in both environments even though the ledger versions differ.
+
+### Safe session deletion
+
+The current `ylp_force_delete_session_v1(text)` definition in both environments checks that the target session status is `closed` and returns the `session_must_be_closed` guard otherwise. Both environments deny client-role EXECUTE and grant it to `service_role` and `postgres`. The unsafe earlier implementation in Git migration `20260928200000_admin_secured_force_delete_session.sql` is superseded by the later closed-session-only implementation; compare the final function definition, not that historical file alone.
+
+### Scan-receipt index difference
+
+- Production has `idx_scan_receipts_session_id` on `scan_receipts(session_id)`, matching Git migration `20260926140000_add_scan_receipts_session_id_index.sql`.
+- Staging does not have that exact index, but it does have `scan_receipts_session_student_idx` on `(session_id, student_id)`. Because `session_id` is the leading column, that composite index can support lookups by `session_id`; the intended access path may therefore already be covered. Staging also has `scan_receipts_created_at_idx`, while Production's current index list does not show that index. This is index-definition drift, not by itself proof of a functional or security defect. Check representative query plans and workload before proposing an extra index; no index was created or dropped during this audit.
