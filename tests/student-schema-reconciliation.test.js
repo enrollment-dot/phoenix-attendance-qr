@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 
 const migrationPath = new URL('../supabase/migrations/20261016040903_reconcile_student_schema_and_rpcs.sql', import.meta.url);
 const migration = await readFile(migrationPath, 'utf8');
-const compatibilityPath = new URL('../supabase/migrations/20261016100000_preserve_legacy_student_rpc_contracts.sql', import.meta.url);
+const compatibilityPath = new URL('../supabase/migrations/20261016043513_preserve_legacy_student_rpc_contracts.sql', import.meta.url);
 const compatibilityMigration = await readFile(compatibilityPath, 'utf8');
 
 test('student reconciliation migration adds optional email and required enrollment date safely', () => {
