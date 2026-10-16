@@ -6,6 +6,7 @@ ALTER TABLE public.students
   SET DEFAULT ((pg_catalog.now() AT TIME ZONE 'Asia/Bangkok')::date);
 
 -- The four-argument API must also use Bangkok's date when a caller explicitly sends NULL.
+-- This function inserts enrolled_from directly, so the table default alone is insufficient.
 CREATE OR REPLACE FUNCTION public.ylp_student_create_v1(
   p_student_id text,
   p_name text,
@@ -25,28 +26,7 @@ DECLARE
   v_now timestamptz := pg_catalog.clock_timestamp();
   v_row public.students%rowtype;
 BEGIN
-  IF v_id = '' OR pg_catalog.length(v_id) > 40 OR v_id !~ '^[A-Za-z0-9_-]+
-CREATE OR REPLACE FUNCTION public.ylp_student_create_v1(
-  p_student_id text,
-  p_name text
-)
-RETURNS jsonb
-LANGUAGE sql
-SECURITY DEFINER
-SET search_path TO ''
-AS $function$
-  SELECT public.ylp_student_create_v1(
-    p_student_id,
-    p_name,
-    (pg_catalog.now() AT TIME ZONE 'Asia/Bangkok')::date,
-    NULL::text
-  );
-$function$;
-
--- Reassert the intended least-privilege ACL after replacing the wrapper.
-REVOKE ALL ON FUNCTION public.ylp_student_create_v1(text, text) FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.ylp_student_create_v1(text, text) TO service_role, postgres;
- THEN
+  IF v_id = '' OR pg_catalog.length(v_id) > 40 OR v_id !~ '^[A-Za-z0-9_-]+$' THEN
     RETURN jsonb_build_object('ok', false, 'error', 'Student ID may contain letters, numbers, _ and -.');
   END IF;
   IF v_name = '' OR pg_catalog.length(v_name) > 100 OR v_name ~ '[[:cntrl:]\x7f]' THEN
@@ -54,28 +34,7 @@ GRANT EXECUTE ON FUNCTION public.ylp_student_create_v1(text, text) TO service_ro
   END IF;
   IF v_email IS NOT NULL AND (
     pg_catalog.length(v_email) > 254
-    OR v_email !~* '^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+
-CREATE OR REPLACE FUNCTION public.ylp_student_create_v1(
-  p_student_id text,
-  p_name text
-)
-RETURNS jsonb
-LANGUAGE sql
-SECURITY DEFINER
-SET search_path TO ''
-AS $function$
-  SELECT public.ylp_student_create_v1(
-    p_student_id,
-    p_name,
-    (pg_catalog.now() AT TIME ZONE 'Asia/Bangkok')::date,
-    NULL::text
-  );
-$function$;
-
--- Reassert the intended least-privilege ACL after replacing the wrapper.
-REVOKE ALL ON FUNCTION public.ylp_student_create_v1(text, text) FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.ylp_student_create_v1(text, text) TO service_role, postgres;
-
+    OR v_email !~* '^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$'
   ) THEN
     RETURN jsonb_build_object('ok', false, 'error', 'Invalid student email.');
   END IF;
