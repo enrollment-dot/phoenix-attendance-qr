@@ -430,3 +430,13 @@ Expanded the read-only comparison from four tables to every `public` table with 
 **Assessment:** The drift affects timestamp behavior on `admin_profiles`, `sessions`, `settings`, and `students` updates, subject to each table's actual update paths. Do not blindly recreate all four triggers in Production. Next determine where Staging's triggers originated, compare the full migration ledger and initial schema/bootstrap history, then decide table-by-table whether to standardize trigger behavior or explicitly set timestamps in RPCs. Any proposed change must be a separate tracked migration with preflight assertions, postflight catalog checks, and tests; it remains unapplied pending explicit approval.
 
 No database writes, migrations, ACL changes, deployments, merges, account changes, or destructive actions were performed.
+
+
+### CI status correction — verified after prior checkpoint (2026-10-16)
+
+The earlier statement that Test run #443 was still in progress is superseded by a later poll:
+
+- GitHub Actions Test run [#443](https://github.com/enrollment-dot/phoenix-attendance-qr/actions/runs/38920847667) completed successfully, including `npm test` and `npm run test:browser`.
+- Test run [#445](https://github.com/enrollment-dot/phoenix-attendance-qr/actions/runs/38921557305) also completed successfully for commit `cb430a92484b1440e668dc67e55f6e46bf8f1fb9`, including dependency installation, Playwright Chromium installation, `npm test`, and `npm run test:browser`.
+- The newest documentation commit is `3c4add6cbd1ac17d8fdc254b62382381dadad902`. No GitHub Actions run associated with this exact commit was returned at the latest check; therefore its own CI status is not yet verified.
+- Vercel Staging and Production preview status checks for the newest commit still report provider build-rate-limit failures. These failures do not negate the successful GitHub Actions test runs and do not establish live Production verification.
