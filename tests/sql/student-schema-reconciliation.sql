@@ -48,6 +48,44 @@ BEGIN
     RAISE EXCEPTION 'control character in name was accepted: %', v_result;
   END IF;
 
+  -- Legacy create payloads still resolve after the 4-argument RPC defaults are removed.
+  v_result := public.ylp_student_create_v1(p_student_id := 'TEST-LEGACY-2', p_name := 'Legacy Two-Argument Create');
+  IF coalesce((v_result->>'ok')::boolean, false) IS NOT TRUE
+     OR v_result#>>'{data,enrolled_from}' IS NULL
+     OR v_result#>>'{data,email}' IS NOT NULL THEN
+    RAISE EXCEPTION 'two-argument create compatibility failed: %', v_result;
+  END IF;
+
+  v_result := public.ylp_student_create_v1(
+    p_student_id := 'TEST-LEGACY-3',
+    p_name := 'Legacy Three-Argument Create',
+    p_enrolled_from := DATE '2026-10-03'
+  );
+  IF coalesce((v_result->>'ok')::boolean, false) IS NOT TRUE
+     OR v_result#>>'{data,enrolled_from}' <> '2026-10-03'
+     OR v_result#>>'{data,email}' IS NOT NULL THEN
+    RAISE EXCEPTION 'three-argument create compatibility failed: %', v_result;
+  END IF;
+
+  -- Legacy update payloads must preserve email because those clients cannot submit it.
+  v_result := public.ylp_student_update_v1(p_student_id := 'TEST-VALID-1', p_name := 'Legacy Two-Argument Update');
+  IF coalesce((v_result->>'ok')::boolean, false) IS NOT TRUE
+     OR v_result#>>'{data,email}' <> 'valid@example.com'
+     OR v_result#>>'{data,enrolled_from}' <> '2026-10-01' THEN
+    RAISE EXCEPTION 'two-argument update changed email or enrollment date: %', v_result;
+  END IF;
+
+  v_result := public.ylp_student_update_v1(
+    p_student_id := 'TEST-VALID-1',
+    p_name := 'Legacy Three-Argument Update',
+    p_enrolled_from := DATE '2026-10-04'
+  );
+  IF coalesce((v_result->>'ok')::boolean, false) IS NOT TRUE
+     OR v_result#>>'{data,email}' <> 'valid@example.com'
+     OR v_result#>>'{data,enrolled_from}' <> '2026-10-04' THEN
+    RAISE EXCEPTION 'three-argument update changed email or failed to update enrollment date: %', v_result;
+  END IF;
+
   v_result := public.ylp_student_update_v1('TEST-VALID-1', 'Updated Test Student', NULL, '   ');
   IF coalesce((v_result->>'ok')::boolean, false) IS NOT TRUE OR v_result#>>'{data,email}' IS NOT NULL THEN
     RAISE EXCEPTION 'update did not normalize blank email to NULL: %', v_result;
