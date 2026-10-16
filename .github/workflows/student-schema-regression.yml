@@ -3,7 +3,7 @@ name: Student Schema PostgreSQL Regression
 on:
   pull_request:
     paths:
-      - "supabase/migrations/20261015120000_reconcile_student_schema_and_rpcs.sql"
+      - "supabase/migrations/20261016040903_reconcile_student_schema_and_rpcs.sql"
       - "tests/sql/student-schema-reconciliation.sql"
       - ".github/workflows/student-schema-regression.yml"
   workflow_dispatch:
@@ -51,7 +51,7 @@ jobs:
                   '2026-10-01 18:00:00+00', '2026-10-01 18:00:00+00');
           SQL
       - name: Apply Student reconciliation migration
-        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261015120000_reconcile_student_schema_and_rpcs.sql
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261016040903_reconcile_student_schema_and_rpcs.sql
       - name: Verify backfill, RPC behavior, and privileges
         run: |
           psql -v ON_ERROR_STOP=1 <<'SQL'
