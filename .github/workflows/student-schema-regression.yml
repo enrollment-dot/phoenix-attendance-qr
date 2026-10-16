@@ -62,7 +62,7 @@ jobs:
             IF v_date IS DISTINCT FROM DATE '2026-10-02' THEN
               RAISE EXCEPTION 'Asia/Bangkok backfill incorrect: %', v_date;
             END IF;
-            IF NOT has_function_privilege('anon', 'public.ylp_students_v1()', 'EXECUTE') = false THEN
+            IF has_function_privilege('anon', 'public.ylp_students_v1()', 'EXECUTE') THEN
               RAISE EXCEPTION 'anon unexpectedly has EXECUTE on list RPC';
             END IF;
           END;
