@@ -104,6 +104,18 @@ BEGIN
   PERFORM pg_catalog.set_config('TimeZone', 'Pacific/Honolulu', true);
   v_expected_bangkok_date := (pg_catalog.now() AT TIME ZONE 'Asia/Bangkok')::date;
 
+  -- Explicit NULL from the current four-argument API must also use Bangkok's business date.
+  v_result := public.ylp_student_create_v1(
+    p_student_id := 'TEST-NULL-4',
+    p_name := 'Four-Argument NULL Date Create',
+    p_enrolled_from := NULL,
+    p_email := NULL
+  );
+  IF coalesce((v_result->>'ok')::boolean, false) IS NOT TRUE
+     OR v_result#>>'{data,enrolled_from}' IS DISTINCT FROM v_expected_bangkok_date::text THEN
+    RAISE EXCEPTION 'four-argument NULL date did not use Bangkok business date: expected %, got %', v_expected_bangkok_date, v_result;
+  END IF;
+
   -- Legacy create payloads still resolve and use the business timezone after defaults are removed.
   v_result := public.ylp_student_create_v1(p_student_id := 'TEST-LEGACY-2', p_name := 'Legacy Two-Argument Create');
   IF coalesce((v_result->>'ok')::boolean, false) IS NOT TRUE
