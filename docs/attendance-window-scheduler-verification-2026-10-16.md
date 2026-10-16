@@ -10,13 +10,13 @@ Read-only verification of Supabase Staging (`yvtgwzvjpztvztozcfir`) and Producti
 |---|---:|---:|---|
 | `timezone_offset` | `+07:00` | `+07:00` | Matches |
 | `open_minutes` | `30` | `30` | Matches |
-| `close_minutes` | `120` | `15` | Confirmed drift; product intent needs review before any change |
+| `close_minutes` | `120` | `15` | Confirmed environment-specific configuration; retain both values for now |
 
-The values are read from `public.settings`. Staging's values had `updated_at = 2026-09-19T10:20:00.628453+00:00`; Production's values had `updated_at = 2026-09-22T16:31:20.906644+00:00`. Those timestamps show when the settings rows were last updated, but do not establish why the values differ.
+The values are read from `public.settings`. Staging's values had `updated_at = 2026-09-19T10:20:00.628453+00:00`; Production's values had `updated_at = 2026-09-22T16:31:20.906644+00:00`. Those timestamps show when the settings rows were last updated, but do not establish why the values originally differed.
 
-The live `public.ylp_scan_v1(...)` definition in both environments reads `open_minutes`, `close_minutes`, and `timezone_offset` and enforces the scan window using those values. Thus, the configured post-session scan allowance differs. However, scans also require the session to remain `active`; the auto-close scheduler closes eligible active sessions after the end time plus 15 minutes, so the effective window also depends on scheduler timing and session state.
+**Product decision confirmed 2026-10-17:** Keep Staging `close_minutes=120` for testing and Production `close_minutes=15` for live attendance. Do not change either value as part of this audit without a new explicit product decision. This records the current approved operating choice; it does not prove the historical reason the values diverged.
 
-Do not change Staging's `close_minutes` without explicit product approval. The approved Production target currently documented for YLP is 15 minutes after session end; first confirm whether Staging's 120-minute setting is an intentional testing override or drift.
+The live `public.ylp_scan_v1(...)` definition in both environments reads `open_minutes`, `close_minutes`, and `timezone_offset` and enforces the scan window using those values. Thus, the configured post-session scan allowance differs. However, scans also require the session to remain `active`; the auto-close scheduler closes eligible active sessions after the end time plus 15 minutes, so the effective window also depends on scheduler timing and session state. The 120-minute setting alone does not guarantee that scanning remains possible for two hours after the session ends.
 
 ## RPC execution/security comparison
 
@@ -35,8 +35,7 @@ The read-only status count returned only closed sessions at the time of inspecti
 
 ## Disposition / next steps
 
-1. Record `close_minutes` as an environment configuration drift, not automatically as a security incident.
-2. Confirm whether Staging's 120-minute value is intentional before deciding on remediation.
-3. If the intended Staging value is 15, obtain explicit approval before changing the setting and then verify the row, dashboard response, and scan-window behavior.
-4. Continue to verify scheduled GitHub Actions runs and the session-close timestamp fix separately. CI success on a disposable PostgreSQL database does not prove live database behavior.
-5. No live changes were performed or authorized by this audit note.
+1. Retain Staging `close_minutes=120` as the approved testing configuration and Production `close_minutes=15` as the approved live configuration for now.
+2. Do not modify either live setting as part of this audit; any future change requires a separate explicit product decision.
+3. Continue to verify scheduled GitHub Actions runs and the session-close timestamp fix separately. CI success on a disposable PostgreSQL database does not prove live database behavior.
+4. No live changes were performed or authorized by this audit note.
