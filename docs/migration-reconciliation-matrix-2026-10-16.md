@@ -59,3 +59,25 @@ Do not execute these against live databases until the migration has been separat
 - Do not force-align or edit migration ledgers.
 - Prioritize exact object/effect reconciliation for confirmed functional/security drift; do not remediate based on migration counts or filenames alone.
 - Step 3 remains in progress. Step 4 (scheduler/attendance verification) and Step 5 (final audit/documentation) remain pending.
+
+## Student RPC signature reconciliation — live catalog recheck 2026-10-17
+
+This section records a fresh read-only comparison of `pg_proc` in Staging and Production. No Student RPC was invoked and no database changes were made during this check.
+
+| Contract | Staging | Production | Assessment |
+|---|---|---|---|
+| `ylp_student_create_v1` signatures | 2-, 3-, and 4-argument overloads; no argument defaults | 3- and 4-argument overloads; 3-argument enrollment date defaults to `CURRENT_DATE`, 4-argument date/email defaults are present | Confirmed contract drift. The older 2-argument wrapper is absent in Production. |
+| `ylp_student_update_v1` signatures | 2-, 3-, and 4-argument overloads; no argument defaults | 3- and 4-argument overloads; the 3-argument enrollment date and 4-argument enrollment date/email have defaults | Confirmed contract drift. Defaulted overloads can overlap for legacy call shapes; verify PostgREST resolution in disposable tests, not by invoking Production. |
+| Legacy update email semantics | The 2- and 3-argument wrappers do not write `email` | The 4-argument update has `p_email DEFAULT NULL` and writes `email = v_email`; the 3-argument update does not write email | Potential data-loss path if a legacy request resolves to the 4-argument overload with omitted email. This is a contract risk, not proof that a Production row was changed. |
+| Security configuration | All six overloads are `SECURITY DEFINER`, empty `search_path`, ACL only `postgres` and `service_role` | All four overloads are `SECURITY DEFINER`, empty `search_path`, ACL only `postgres` and `service_role` | The sampled RPC execution boundary is consistent; signature/default semantics are not. |
+| `ylp_students_v1()` | Present, `SECURITY DEFINER`, empty `search_path`, backend-only ACL | Present, `SECURITY DEFINER`, empty `search_path`, backend-only ACL | No drift observed in the sampled catalog properties. |
+| `students.enrolled_from` default | `(now() AT TIME ZONE 'Asia/Bangkok')::date` | `CURRENT_DATE` | Confirmed business-timezone default drift. Staging behavior was explicitly approved and verified; Production promotion is a separate release decision. |
+
+### Student reconciliation disposition
+
+- Staging has already received the three Student migrations recorded in its ledger: `20261016040903`, `20261016043513`, and `20261016072742`. Do not reapply them.
+- The corresponding migration implementation remains on Draft/open/unmerged PR #130, not on `main`. Treat this as intentional Staging-only rollout state pending review/approval, not as evidence that Production has been upgraded.
+- PR #130's compatibility migration removes defaults from the 4-argument create/update signatures and recreates explicit 2-/3-argument wrappers. The legacy update wrappers intentionally preserve email. Its disposable PostgreSQL regressions passed on the recorded PR head.
+- Do not apply these migrations to Production as part of this audit. Before a future Production promotion, review the complete current PR #130 diff, re-check current Production schema/ledger, confirm API callers and overload resolution, obtain explicit approval, and then verify postflight catalog/behavior.
+- No Production or Staging data was changed during this recheck. The findings are catalog evidence; no live Student create/update RPC was executed.
+
