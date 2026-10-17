@@ -28,12 +28,12 @@ Both workflows declare `*/15 * * * *`, use separate concurrency groups and GitHu
 Job logs were read directly. The returned response envelopes passed validation. These runs establish successful scheduled invocation and response validation, **not** that an eligible session was closed. Earlier manual runs that closed 12 Staging and 2 Production sessions remain historical positive-path evidence, but are not a substitute for a scheduled eligible-session close.
 
 ### Live database catalog
-Read-only checks at approximately 2026-10-17 07:19 UTC in both environments found:
+Read-only catalog checks at approximately 2026-10-17 07:19 UTC in both environments found:
 - `public.ylp_auto_close_sessions_v1()`: `SECURITY DEFINER`, `search_path=pg_catalog, public`, EXECUTE ACL only `postgres` and `service_role`.
 - `public.ylp_close_session_v1(text)`: not `SECURITY DEFINER`, empty `search_path`, EXECUTE ACL only `postgres` and `service_role`.
 - Function definitions use Bangkok-local `scheduled_date + end_time_local`, the approved 15-minute post-end grace period, `LIMIT 100`, `FOR UPDATE SKIP LOCKED`, status transition to `closed`, and update `updated_at`.
 - `cron.job` is absent; GitHub Actions is the scheduler, not `pg_cron`.
-- Read-only counts showed 0 active sessions and 0 active sessions past the close cutoff in both Staging and Production at query time. This current snapshot cannot prove the scheduler closed any particular session.
+- A fresh read-only count query at 2026-10-17 07:33 UTC again showed 0 active sessions and 0 active sessions past the close cutoff in both Staging and Production. This current snapshot cannot prove the scheduler closed any particular session.
 
 **Step 4 assessment: PARTIAL PASS.** Scheduled invocations and their API response envelopes are verified. Reliable scheduled closure of an eligible session remains unproven without a naturally occurring eligible session and corresponding safe post-run evidence. Do not manufacture a test by creating/closing live sessions.
 
@@ -42,10 +42,10 @@ Read-only checks at approximately 2026-10-17 07:19 UTC in both environments foun
 ### Main and Vercel
 - GitHub `main`: `b2a3a3714a6e856f1bffbb17d7c2c193a0ef48c9`.
 - Vercel Production deployment is `READY`, points to the same main SHA, and lists `ylp.siferlab.space` as an alias. This verifies deployment metadata, not all live application/API/DB behavior.
-- Vercel Staging has a `READY` preview for PR #133 head `59944d5bb1a06050c269b6821dea449a0c558c58`, plus previews for other open PRs.
+- Vercel Staging previously showed a `READY` preview for PR #133 head `59944d5bb1a06050c269b6821dea449a0c558c58`; this is an older preview snapshot and is not evidence that the latest documentation commit was deployed to Preview.
 
 ### Relevant PRs — still proposals
-- [#133 audit documentation](https://github.com/enrollment-dot/phoenix-attendance-qr/pull/133): open, Draft, unmerged; latest recorded head `59944d5bb1a06050c269b6821dea449a0c558c58`. Test #469 / run `39011458512` passed, including `npm test` and `npm run test:browser`; reported Vercel preview checks succeeded.
+- [#133 audit documentation](https://github.com/enrollment-dot/phoenix-attendance-qr/pull/133): open, Draft, unmerged; latest checked head `8583a3d38a24615d2c55f42c4ed49d725f03b7ca`. Test run [#39013263621](https://github.com/enrollment-dot/phoenix-attendance-qr/actions/runs/39013263621) completed successfully for this head, and its Vercel Preview Comments check also succeeded. Earlier run `39011458512` passed `npm test` and `npm run test:browser`; the latest run’s successful Test workflow is verified, but the full step-by-step logs were not re-inspected in this follow-up.
 - [#139 manual-close preflight regression tests](https://github.com/enrollment-dot/phoenix-attendance-qr/pull/139): open, Draft, unmerged; PostgreSQL Regression #70 and Test #468 passed on its recorded head.
 - [#130 Student schema/RPC reconciliation](https://github.com/enrollment-dot/phoenix-attendance-qr/pull/130): open, Draft, unmerged. Its three approved migrations are Staging-only; do not promote to Production without separate approval.
 - [#137 helper-function ACL remediation](https://github.com/enrollment-dot/phoenix-attendance-qr/pull/137): open, Draft, unmerged; Production ACL issue remains.
@@ -87,7 +87,7 @@ Passed:
 - Scheduler response validation and exact environment endpoint checks passed in the cited jobs.
 - Live scheduler function definitions and EXECUTE ACLs were directly inspected in both Supabase environments.
 - Vercel Production deployment metadata is READY and points to the current GitHub main SHA.
-- Current audit PR CI evidence records `npm test` and `npm run test:browser` passing.
+- Current audit PR CI evidence: Test run `39013263621` passed on the latest documentation commit; an earlier run `39011458512` explicitly passed `npm test` and `npm run test:browser`.
 
 Open:
 - No recent scheduled run closed an eligible session; both latest inspected runs returned zero.
