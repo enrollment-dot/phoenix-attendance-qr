@@ -56,8 +56,21 @@ BEGIN
           AND d.defaclobjtype = 'f'
           AND acl.grantee = 0
           AND acl.privilege_type = 'EXECUTE'
+     )
+     OR EXISTS (
+       SELECT 1
+         FROM pg_catalog.pg_default_acl AS d
+         CROSS JOIN LATERAL pg_catalog.aclexplode(d.defaclacl) AS acl
+        WHERE d.defaclrole = 'postgres'::pg_catalog.regrole
+          AND d.defaclnamespace = 0
+          AND d.defaclobjtype = 'f'
+          AND acl.grantee IN (
+            'anon'::pg_catalog.regrole::oid,
+            'authenticated'::pg_catalog.regrole::oid
+          )
+          AND acl.privilege_type = 'EXECUTE'
      ) THEN
-    RAISE EXCEPTION 'Postflight failed: postgres global function defaults still grant PUBLIC EXECUTE';
+    RAISE EXCEPTION 'Postflight failed: postgres global function defaults still grant PUBLIC/anon/authenticated EXECUTE';
   END IF;
 
   SELECT coalesce(array_to_string(d.defaclacl, ','), '(none)')
