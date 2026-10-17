@@ -52,7 +52,7 @@ Read-only catalog checks at approximately 2026-10-17 07:19 UTC in both environme
 - [#138 postgres default-function-ACL remediation](https://github.com/enrollment-dot/phoenix-attendance-qr/pull/138): open, Draft, unmerged; Production default-ACL issue remains. Does not address `supabase_admin` defaults.
 - [#126 duplicate scheduler migration cleanup](https://github.com/enrollment-dot/phoenix-attendance-qr/pull/126): open, Draft, unmerged; repository-only proposal. Do not use `supabase db push` to reconcile historical drift.
 
-No PR was merged and no deployment was triggered as part of this audit.
+No PR was merged and no Production deployment was triggered as part of this audit. A Vercel deployment was automatically created for the audit branch; direct deployment metadata shows `target=null` and only a branch-specific alias, not `ylp.siferlab.space`. The current Production deployment remains the separate READY deployment for `main` SHA `b2a3a3714a6e856f1bffbb17d7c2c193a0ef48c9`.
 
 ## 4. Open findings register
 
