@@ -45,7 +45,7 @@ Read-only catalog checks at approximately 2026-10-17 07:19 UTC in both environme
 - Vercel Staging previously showed a `READY` preview for PR #133 head `59944d5bb1a06050c269b6821dea449a0c558c58`; this is an older preview snapshot and is not evidence that the latest documentation commit was deployed to Preview.
 
 ### Relevant PRs — still proposals
-- [#133 audit documentation](https://github.com/enrollment-dot/phoenix-attendance-qr/pull/133): open, Draft, unmerged; latest checked head `8583a3d38a24615d2c55f42c4ed49d725f03b7ca`. Test run [#39013263621](https://github.com/enrollment-dot/phoenix-attendance-qr/actions/runs/39013263621) completed successfully for this head, and its Vercel Preview Comments check also succeeded. Earlier run `39011458512` passed `npm test` and `npm run test:browser`; the latest run’s successful Test workflow is verified, but the full step-by-step logs were not re-inspected in this follow-up.
+- [#133 audit documentation](https://github.com/enrollment-dot/phoenix-attendance-qr/pull/133): open, Draft, unmerged; latest checked head `80fac4572a39cc9ad42fdd2ec3a36825392763fe`. Test run [#39014160321](https://github.com/enrollment-dot/phoenix-attendance-qr/actions/runs/39014160321) completed successfully for this head. Direct job-step records show `npm install`, Playwright Chromium setup, `npm test`, and `npm run test:browser` all passed; Vercel Preview Comments also succeeded.
 - [#139 manual-close preflight regression tests](https://github.com/enrollment-dot/phoenix-attendance-qr/pull/139): open, Draft, unmerged; PostgreSQL Regression #70 and Test #468 passed on its recorded head.
 - [#130 Student schema/RPC reconciliation](https://github.com/enrollment-dot/phoenix-attendance-qr/pull/130): open, Draft, unmerged. Its three approved migrations are Staging-only; do not promote to Production without separate approval.
 - [#137 helper-function ACL remediation](https://github.com/enrollment-dot/phoenix-attendance-qr/pull/137): open, Draft, unmerged; Production ACL issue remains.
@@ -87,7 +87,7 @@ Passed:
 - Scheduler response validation and exact environment endpoint checks passed in the cited jobs.
 - Live scheduler function definitions and EXECUTE ACLs were directly inspected in both Supabase environments.
 - Vercel Production deployment metadata is READY and points to the current GitHub main SHA.
-- Current audit PR CI evidence: Test run `39013263621` passed on the latest documentation commit; an earlier run `39011458512` explicitly passed `npm test` and `npm run test:browser`.
+- Current audit PR CI evidence: Test run `39014160321` passed on head `80fac4572a39cc9ad42fdd2ec3a36825392763fe`; direct job-step records confirm `npm install`, Playwright Chromium setup, `npm test`, and `npm run test:browser` all passed.
 
 Open:
 - No recent scheduled run closed an eligible session; both latest inspected runs returned zero.
