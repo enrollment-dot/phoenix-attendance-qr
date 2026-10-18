@@ -1,0 +1,47 @@
+name: Last Active Super Admin PostgreSQL Regression
+
+on:
+  pull_request:
+    paths:
+      - "supabase/migrations/20261018181410_preserve_last_active_super_admin.sql"
+      - "tests/sql/admin-account-safety-setup.sql"
+      - "tests/sql/admin-account-safety-assertions.sql"
+      - ".github/workflows/admin-account-safety-db-test.yml"
+  push:
+    branches: [main]
+    paths:
+      - "supabase/migrations/20261018181410_preserve_last_active_super_admin.sql"
+      - "tests/sql/admin-account-safety-setup.sql"
+      - "tests/sql/admin-account-safety-assertions.sql"
+      - ".github/workflows/admin-account-safety-db-test.yml"
+
+jobs:
+  admin-account-safety-regression:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare disposable admin profile fixture
+        run: psql -v ON_ERROR_STOP=1 -f tests/sql/admin-account-safety-setup.sql
+      - name: Apply actual last-super-admin migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261018181410_preserve_last_active_super_admin.sql
+      - name: Verify lifecycle guards and effective RPC privileges
+        run: psql -v ON_ERROR_STOP=1 -f tests/sql/admin-account-safety-assertions.sql
