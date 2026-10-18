@@ -74,6 +74,12 @@ BEGIN
   );
 
   -- RPCs must be inaccessible to client roles and executable by service_role.
+  IF pg_catalog.has_function_privilege('anon', 'public.ylp_admin_account_create_profile_v1(uuid,text,text)', 'EXECUTE')
+     OR pg_catalog.has_function_privilege('authenticated', 'public.ylp_admin_account_create_profile_v1(uuid,text,text)', 'EXECUTE')
+     OR NOT pg_catalog.has_function_privilege('service_role', 'public.ylp_admin_account_create_profile_v1(uuid,text,text)', 'EXECUTE') THEN
+    RAISE EXCEPTION 'Account create RPC effective privileges are incorrect';
+  END IF;
+
   IF pg_catalog.has_function_privilege('anon', 'public.ylp_admin_account_update_v1(uuid,text,text,boolean)', 'EXECUTE')
      OR pg_catalog.has_function_privilege('authenticated', 'public.ylp_admin_account_update_v1(uuid,text,text,boolean)', 'EXECUTE')
      OR NOT pg_catalog.has_function_privilege('service_role', 'public.ylp_admin_account_update_v1(uuid,text,text,boolean)', 'EXECUTE') THEN
