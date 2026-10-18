@@ -56,6 +56,15 @@ BEGIN
       AND role = 'super_admin' AND active = true
   ) THEN RAISE EXCEPTION 'Demotion with another active super_admin should succeed'; END IF;
 
+  -- Removing one active super_admin is also allowed when another remains.
+  INSERT INTO public.admin_profiles(admin_id, username, role, active)
+  VALUES ('10000000-0000-4000-8000-000000000007', 'third_super_admin', 'super_admin', true);
+  PERFORM public.ylp_admin_account_remove_profile_v1('10000000-0000-4000-8000-000000000007');
+  IF EXISTS (
+    SELECT 1 FROM public.admin_profiles
+    WHERE admin_id = '10000000-0000-4000-8000-000000000007'
+  ) THEN RAISE EXCEPTION 'Removal with another active super_admin should succeed'; END IF;
+
   -- All supported roles can be created (role parity across environments).
   PERFORM public.ylp_admin_account_create_profile_v1(
     '10000000-0000-4000-8000-000000000005', 'new_super_admin', 'super_admin'
