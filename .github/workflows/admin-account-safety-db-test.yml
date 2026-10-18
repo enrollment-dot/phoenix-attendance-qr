@@ -3,14 +3,14 @@ name: Last Active Super Admin PostgreSQL Regression
 on:
   pull_request:
     paths:
-      - "supabase/migrations/20261019010000_preserve_last_active_super_admin.sql"
+      - "supabase/migrations/20261018181410_preserve_last_active_super_admin.sql"
       - "tests/sql/admin-account-safety-setup.sql"
       - "tests/sql/admin-account-safety-assertions.sql"
       - ".github/workflows/admin-account-safety-db-test.yml"
   push:
     branches: [main]
     paths:
-      - "supabase/migrations/20261019010000_preserve_last_active_super_admin.sql"
+      - "supabase/migrations/20261018181410_preserve_last_active_super_admin.sql"
       - "tests/sql/admin-account-safety-setup.sql"
       - "tests/sql/admin-account-safety-assertions.sql"
       - ".github/workflows/admin-account-safety-db-test.yml"
@@ -42,6 +42,6 @@ jobs:
       - name: Prepare disposable admin profile fixture
         run: psql -v ON_ERROR_STOP=1 -f tests/sql/admin-account-safety-setup.sql
       - name: Apply actual last-super-admin migration
-        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261019010000_preserve_last_active_super_admin.sql
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261018181410_preserve_last_active_super_admin.sql
       - name: Verify lifecycle guards and effective RPC privileges
         run: psql -v ON_ERROR_STOP=1 -f tests/sql/admin-account-safety-assertions.sql
