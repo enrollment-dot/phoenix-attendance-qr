@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { withFreshSuperAdminAuth } from '../supabase/functions/ylp-api/account-action-auth.js';
 import { readFileSync } from 'node:fs';
 
 const frontend = readFileSync(new URL('../src/main.js', import.meta.url), 'utf8');
@@ -59,11 +60,19 @@ test('backend restricts account management to super_admin', () => {
     assert.notEqual(start, -1, `missing action: ${action}`);
     const end = backend.indexOf('\n      case ', start + 1);
     const block = backend.slice(start, end === -1 ? backend.length : end);
-    assert.match(
-      block,
-      /requireAdminRole\(token, config, backend, \['super_admin'\]\)/,
-      `missing super_admin authorization for ${action}`,
-    );
+    if (action === 'updateAdminAccount' || action === 'removeAdminAccount') {
+      assert.match(
+        block,
+        /withFreshSuperAdminAuth\(\{/ ,
+        `missing fresh Super Admin authentication for ${action}`,
+      );
+    } else {
+      assert.match(
+        block,
+        /requireAdminRole\(token, config, backend, \['super_admin'\]\)/,
+        `missing super_admin authorization for ${action}`,
+      );
+    }
   }
 });
 
@@ -127,7 +136,7 @@ test('backend account email updates stay server-side and preserve email confirma
   const actionStart = backend.indexOf("case 'updateAdminAccount'");
   const actionEnd = backend.indexOf("\n      case ", actionStart + 1);
   const action = backend.slice(actionStart, actionEnd === -1 ? backend.length : actionEnd);
-  assert.match(action, /requireAdminRole\(token, config, backend, \['super_admin'\]\)/);
+  assert.match(action, /result = await withFreshSuperAdminAuth\(\{/);
   assert.match(action, /payload\.email/);
   assert.match(action, /Invalid account email/);
 });
@@ -259,4 +268,96 @@ test('scheduler auto-close is secret-gated and does not accept caller-selected s
   assert.match(migration, /for update skip locked/i);
   assert.match(migration, /revoke all on function public\.ylp_auto_close_sessions_v1\(\) from anon/i);
   assert.match(migration, /revoke all on function public\.ylp_auto_close_sessions_v1\(\) from authenticated/i);
+});
+
+test('account update and removal call the shared fresh-auth guard before mutation', () => {
+  assert.match(backend, /withFreshSuperAdminAuth\(\{/);
+  assert.match(backend, /import \{ withFreshSuperAdminAuth \} from '\.\/account-action-auth\.js'/);
+  for (const action of ['updateAdminAccount', 'removeAdminAccount']) {
+    const actionStart = backend.indexOf(`case '${action}'`);
+    const actionEnd = backend.indexOf('\\n      case ', actionStart + 1);
+    const block = backend.slice(actionStart, actionEnd === -1 ? backend.length : actionEnd);
+    assert.match(block, /result = await withFreshSuperAdminAuth/);
+    assert.match(block, /return backend\.(updateAdminAccount|removeAdminAccount)/);
+  }
+});
+
+test('account UI collects masked current credentials and sends reauth separately from target password', () => {
+  assert.match(frontend, /function requestAccountReauth\(title\)/);
+  assert.match(frontend, /type="password" autocomplete="current-password"/);
+  assert.match(frontend, /reauth = await requestAccountReauth/);
+  assert.match(frontend, /active: account\.active, reauth/);
+  assert.match(frontend, /admin_id: account\.admin_id, reauth/);
+  assert.match(frontend, /payload\.password = v\.password/);
+});
+
+
+class TestAuthenticationError extends Error {}
+
+function freshAuthHarness({
+  currentSub = 'admin-1',
+  freshSub = currentSub,
+  login = async () => ({ ok: true, data: { token: 'fresh-token' } }),
+  rateLimit = async () => {},
+  currentRole = 'super_admin',
+  freshRole = 'super_admin',
+} = {}) {
+  const calls = [];
+  const backend = {
+    login: async (...args) => { calls.push({ type: 'login', args }); return login(...args); },
+  };
+  const requireAdminRole = async (token, config, suppliedBackend, roles) => {
+    calls.push({ type: 'authorize', token, roles });
+    if (token === 'current-token' && currentRole !== 'super_admin') throw new TestAuthenticationError();
+    if (token === 'fresh-token' && freshRole !== 'super_admin') throw new TestAuthenticationError();
+    return { sub: token === 'current-token' ? currentSub : freshSub };
+  };
+  const enforceRateLimit = async (...args) => { calls.push({ type: 'rate-limit', args }); return rateLimit(...args); };
+  let mutations = 0;
+  const run = (payload = { reauth: { username: 'root', password: 'correct-test-password' } }) =>
+    withFreshSuperAdminAuth({
+      token: 'current-token',
+      config: {},
+      backend,
+      payload,
+      requireAdminRole,
+      enforceRateLimit,
+      AuthenticationError: TestAuthenticationError,
+    }, async () => { mutations += 1; return { ok: true }; });
+  return { calls, run, mutations: () => mutations };
+}
+
+test('runtime guard: missing re-auth credentials never invokes mutation', async () => {
+  const h = freshAuthHarness();
+  await assert.rejects(h.run({}), TestAuthenticationError);
+  assert.equal(h.mutations(), 0);
+  assert.equal(h.calls.some((call) => call.type === 'login'), false);
+});
+
+test('runtime guard: invalid password never invokes mutation', async () => {
+  const h = freshAuthHarness({ login: async () => { throw new TestAuthenticationError(); } });
+  await assert.rejects(h.run(), TestAuthenticationError);
+  assert.equal(h.mutations(), 0);
+});
+
+test('runtime guard: rate-limit denial never invokes login or mutation', async () => {
+  const h = freshAuthHarness({ rateLimit: async () => { throw new Error('rate limited'); } });
+  await assert.rejects(h.run(), /rate limited/);
+  assert.equal(h.mutations(), 0);
+  assert.equal(h.calls.some((call) => call.type === 'login'), false);
+});
+
+test('runtime guard: fresh token from another account never invokes mutation', async () => {
+  const h = freshAuthHarness({ currentSub: 'admin-1', freshSub: 'admin-2' });
+  await assert.rejects(h.run(), TestAuthenticationError);
+  assert.equal(h.mutations(), 0);
+});
+
+test('runtime guard: valid same-account fresh authentication invokes mutation once', async () => {
+  const h = freshAuthHarness();
+  assert.deepEqual(await h.run(), { ok: true });
+  assert.equal(h.mutations(), 1);
+  const rateLimitIndex = h.calls.findIndex((call) => call.type === 'rate-limit');
+  const loginIndex = h.calls.findIndex((call) => call.type === 'login');
+  assert.ok(rateLimitIndex >= 0 && loginIndex > rateLimitIndex);
 });

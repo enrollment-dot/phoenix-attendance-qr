@@ -17,6 +17,7 @@ import type {
 } from './types.ts';
 import { UnknownBehaviorError } from './types.ts';
 import { isAllowedOrigin, resolveCorsOrigin } from './cors.js';
+import { withFreshSuperAdminAuth } from './account-action-auth.js';
 
 const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const STUDENT_ID = /^[a-zA-Z0-9_-]+$/;
@@ -1139,20 +1140,28 @@ export async function handleRequest(request: Request, backend: BackendAdapter, c
         if (!/^[A-Za-z0-9._-]{3,40}$/.test(payload.username.trim())) throw new ValidationError('Username is invalid.');
         result = await backend.createAdminAccount(payload.email.trim(), payload.password, payload.username.trim(), payload.role);
         break;
-      case 'updateAdminAccount':
-        await requireAdminRole(token, config, backend, ['super_admin']);
-        if (typeof payload.admin_id !== 'string' || typeof payload.email !== 'string' || typeof payload.username !== 'string' || typeof payload.role !== 'string' || typeof payload.active !== 'boolean' || !['super_admin', 'admin', 'operator'].includes(payload.role)) throw new ValidationError('Account ID, email, username, role, and active status are required.');
-        const accountEmail = payload.email.trim();
-        if (!accountEmail || accountEmail.length > 254 || !EMAIL.test(accountEmail)) throw new ValidationError('Invalid account email.');
-        if (!/^[A-Za-z0-9._-]{3,40}$/.test(payload.username.trim())) throw new ValidationError('Username is invalid.');
-        if (payload.password !== undefined && (typeof payload.password !== 'string' || payload.password.length < 16)) throw new ValidationError('Password must be at least 16 characters.');
-        result = await backend.updateAdminAccount(payload.admin_id, accountEmail, payload.username.trim(), payload.role, payload.active, typeof payload.password === 'string' && payload.password ? payload.password : undefined);
+      case 'updateAdminAccount': {
+        result = await withFreshSuperAdminAuth({
+          token, config, backend, payload, requireAdminRole, enforceRateLimit, AuthenticationError,
+        }, async () => {
+          if (typeof payload.admin_id !== 'string' || typeof payload.email !== 'string' || typeof payload.username !== 'string' || typeof payload.role !== 'string' || typeof payload.active !== 'boolean' || !['super_admin', 'admin', 'operator'].includes(payload.role)) throw new ValidationError('Account ID, email, username, role, and active status are required.');
+          const accountEmail = payload.email.trim();
+          if (!accountEmail || accountEmail.length > 254 || !EMAIL.test(accountEmail)) throw new ValidationError('Invalid account email.');
+          if (!/^[A-Za-z0-9._-]{3,40}$/.test(payload.username.trim())) throw new ValidationError('Username is invalid.');
+          if (payload.password !== undefined && (typeof payload.password !== 'string' || payload.password.length < 16)) throw new ValidationError('Password must be at least 16 characters.');
+          return backend.updateAdminAccount(payload.admin_id, accountEmail, payload.username.trim(), payload.role, payload.active, typeof payload.password === 'string' && payload.password ? payload.password : undefined);
+        });
         break;
-      case 'removeAdminAccount':
-        await requireAdminRole(token, config, backend, ['super_admin']);
-        if (typeof payload.admin_id !== 'string' || !payload.admin_id) throw new ValidationError('Account ID is required.');
-        result = await backend.removeAdminAccount(payload.admin_id);
+      }
+      case 'removeAdminAccount': {
+        result = await withFreshSuperAdminAuth({
+          token, config, backend, payload, requireAdminRole, enforceRateLimit, AuthenticationError,
+        }, async () => {
+          if (typeof payload.admin_id !== 'string' || !payload.admin_id) throw new ValidationError('Account ID is required.');
+          return backend.removeAdminAccount(payload.admin_id);
+        });
         break;
+      }
       case 'closeSession':
         await requireAdmin(token, config, backend);
         if (typeof payload.session_id !== 'string' || !payload.session_id) throw new ValidationError('Session not found.');
