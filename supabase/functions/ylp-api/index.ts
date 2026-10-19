@@ -17,6 +17,7 @@ import type {
 } from './types.ts';
 import { UnknownBehaviorError } from './types.ts';
 import { isAllowedOrigin, resolveCorsOrigin } from './cors.js';
+import { createAdminAccountLifecycle, updateAdminAccountLifecycle, removeAdminAccountLifecycle } from './account-lifecycle.js';
 
 const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const STUDENT_ID = /^[a-zA-Z0-9_-]+$/;
@@ -870,57 +871,39 @@ export class SupabaseRpcBackend implements BackendAdapter {
   }
 
   async createAdminAccount(email: string, password: string, username: string | null, role: string): Promise<unknown> {
-    const response = await fetch(this.config.supabaseUrl + '/auth/v1/admin/users', {
-      method: 'POST',
-      headers: {
-        apikey: this.config.supabaseServiceRoleKey,
-        authorization: 'Bearer ' + this.config.supabaseServiceRoleKey,
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({ email, password, email_confirm: true }),
-    });
-    if (!response.ok) throw new Error('auth user creation failed');
-    const created = await response.json() as Record<string, unknown>;
-    const nestedUser = created.user && typeof created.user === 'object' ? created.user as Record<string, unknown> : null;
-    const adminId = typeof created.id === 'string' ? created.id : nestedUser && typeof nestedUser.id === 'string' ? nestedUser.id : null;
-    if (!adminId) throw new Error('auth user creation returned no user id');
-    try {
-      const profile = await this.rpc('ylp_admin_account_create_profile_v1', { p_admin_id: adminId, p_username: username, p_role: role });
-      return { ok: true, data: profile };
-    } catch (error) {
-      await fetch(this.config.supabaseUrl + '/auth/v1/admin/users/' + encodeURIComponent(adminId), {
-        method: 'DELETE',
-        headers: { apikey: this.config.supabaseServiceRoleKey, authorization: 'Bearer ' + this.config.supabaseServiceRoleKey },
-      });
-      throw error;
-    }
+    return createAdminAccountLifecycle({
+      config: this.config,
+      rpc: (name, body) => this.rpc(name, body),
+      request: (input, init) => fetch(input, init),
+      onPartialFailure: (event) => this.reportAccountLifecycleFailure(event),
+    }, { email, password, username, role });
   }
 
   async updateAdminAccount(adminId: string, email: string, username: string | null, role: string, active: boolean, password?: string): Promise<unknown> {
-    const authUpdates: Record<string, unknown> = { email, email_confirm: true };
-    if (password) authUpdates.password = password;
-    const response = await fetch(this.config.supabaseUrl + '/auth/v1/admin/users/' + encodeURIComponent(adminId), {
-      method: 'PUT',
-      headers: {
-        apikey: this.config.supabaseServiceRoleKey,
-        authorization: 'Bearer ' + this.config.supabaseServiceRoleKey,
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify(authUpdates),
-    });
-    if (!response.ok) throw new Error('auth user update failed');
-    const profile = await this.rpc('ylp_admin_account_update_v1', { p_admin_id: adminId, p_username: username, p_role: role, p_active: active });
-    return { ok: true, data: profile };
+    return updateAdminAccountLifecycle({
+      config: this.config,
+      rpc: (name, body) => this.rpc(name, body),
+      request: (input, init) => fetch(input, init),
+      onPartialFailure: (event) => this.reportAccountLifecycleFailure(event),
+    }, { adminId, email, username, role, active, password });
   }
 
   async removeAdminAccount(adminId: string): Promise<unknown> {
-    const removed = await this.rpc('ylp_admin_account_remove_profile_v1', { p_admin_id: adminId });
-    const deleted = await fetch(this.config.supabaseUrl + '/auth/v1/admin/users/' + encodeURIComponent(adminId), {
-      method: 'DELETE',
-      headers: { apikey: this.config.supabaseServiceRoleKey, authorization: 'Bearer ' + this.config.supabaseServiceRoleKey },
+    return removeAdminAccountLifecycle({
+      config: this.config,
+      rpc: (name, body) => this.rpc(name, body),
+      request: (input, init) => fetch(input, init),
+      onPartialFailure: (event) => this.reportAccountLifecycleFailure(event),
+    }, { adminId });
+  }
+
+  private reportAccountLifecycleFailure(event: string): void {
+    // Emit only a fixed event name and existing diagnostic context; never identifiers, payloads, or credentials.
+    console.error('[ylp-api] account lifecycle requires reconciliation', {
+      diagnostic_id: this.diagnosticId,
+      action: this.diagnosticAction,
+      event,
     });
-    if (!deleted.ok) throw new Error('auth user removal failed');
-    return { ok: true, data: removed };
   }
 
   async branding(): Promise<unknown> {
