@@ -731,6 +731,39 @@ function students() {
   };
   renderRows();
 }
+function requestAccountReauth(title) {
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.setAttribute('role', 'presentation');
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:10000;background:rgba(8,12,24,.72);display:flex;align-items:center;justify-content:center;padding:20px;';
+    overlay.innerHTML = `<section role="dialog" aria-modal="true" aria-labelledby="account-reauth-title" style="width:min(100%,420px);background:var(--card,#fff);color:var(--text,#111827);border:1px solid var(--border,#d1d5db);border-radius:16px;padding:24px;box-shadow:0 24px 80px rgba(0,0,0,.3);"><h2 id="account-reauth-title" style="margin:0 0 8px;font-size:1.15rem;"></h2><p style="margin:0 0 18px;color:var(--muted,#6b7280);">Enter your current Super Admin credentials to continue. This does not change the target account's password.</p><form id="account-reauth-form"><label style="display:block;margin:12px 0 6px;">Your username<input name="reauth_username" autocomplete="username" required maxlength="40" style="display:block;width:100%;margin-top:6px;"></label><label style="display:block;margin:12px 0 6px;">Your current password<input name="reauth_password" type="password" autocomplete="current-password" required style="display:block;width:100%;margin-top:6px;"></label><div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px;"><button type="button" class="secondary" data-reauth-cancel>Cancel</button><button type="submit" class="primary">Verify and continue</button></div></form></section>`;
+    overlay.querySelector('#account-reauth-title').textContent = title;
+    const form = overlay.querySelector('#account-reauth-form');
+    const username = form.elements.namedItem('reauth_username');
+    const password = form.elements.namedItem('reauth_password');
+    let settled = false;
+    const onKeydown = (event) => { if (event.key === 'Escape') finish(null); };
+    const finish = (value) => {
+      if (settled) return;
+      settled = true;
+      document.removeEventListener('keydown', onKeydown);
+      overlay.remove();
+      resolve(value);
+    };
+    overlay.querySelector('[data-reauth-cancel]').addEventListener('click', () => finish(null));
+    overlay.addEventListener('click', (event) => { if (event.target === overlay) finish(null); });
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const credentials = { username: username.value.trim(), password: password.value };
+      if (!credentials.username || !credentials.password) return;
+      finish(credentials);
+    });
+    document.addEventListener('keydown', onKeydown);
+    document.body.append(overlay);
+    username.focus();
+  });
+}
+
 function accounts() {
   if (role !== 'super_admin') { view = 'dashboard'; return dashboard(); }
   let rows = [];
@@ -747,10 +780,10 @@ function accounts() {
   const openEditor = (account = null) => {
     editor.innerHTML = `<div class="card inline-editor"><h3>${account ? 'Edit account' : 'Add account'}</h3><form id="account-form"><div class="form-grid">${account ? `<label>Email<input name="email" type="email" autocomplete="email" value="${esc(account?.email || '')}" required placeholder="operator@example.com"></label>` : `<label>Email<input name="email" type="email" autocomplete="email" required placeholder="operator@example.com"></label>`}<label>Username<input name="username" maxlength="40" pattern="[A-Za-z0-9._\-]{3,40}" value="${esc(account?.username || '')}" required placeholder="academy.operator"></label></div><div class="form-grid"><label>Role<select name="role"><option value="operator" ${account?.role === 'operator' ? 'selected' : ''}>Operator</option><option value="admin" ${account?.role === 'admin' ? 'selected' : ''}>Admin</option><option value="super_admin" ${account?.role === 'super_admin' ? 'selected' : ''}>Super Admin</option></select></label><label>${account ? 'New password (optional)' : 'Password'}<input name="password" type="password" autocomplete="new-password" minlength="16" ${account ? '' : 'required'} placeholder="Minimum 16 characters"></label></div><div class="actions"><button type="button" class="secondary" id="cancel-account">Cancel</button><button class="primary">${account ? 'Save account' : 'Create account'}</button></div></form></div>`;
     document.querySelector('#cancel-account').onclick = () => editor.innerHTML = '';
-    document.querySelector('#account-form').onsubmit = (e) => { e.preventDefault(); busy(e.submitter, async () => { const v = Object.fromEntries(new FormData(e.target)); if (account) { const payload = { admin_id: account.admin_id, email: v.email, username: v.username, role: v.role, active: account.active }; if (v.password) payload.password = v.password; await api('updateAdminAccount', payload, token); notice('Account updated.', false); } else { await api('createAdminAccount', { email: v.email, password: v.password, username: v.username, role: v.role }, token); notice('Account created.', false); } editor.innerHTML = ''; await load(); }); };
+    document.querySelector('#account-form').onsubmit = (e) => { e.preventDefault(); busy(e.submitter, async () => { const v = Object.fromEntries(new FormData(e.target)); if (account) { const reauth = await requestAccountReauth('Confirm account update'); if (!reauth) return; const payload = { admin_id: account.admin_id, email: v.email, username: v.username, role: v.role, active: account.active, reauth }; if (v.password) payload.password = v.password; await api('updateAdminAccount', payload, token); notice('Account updated.', false); } else { await api('createAdminAccount', { email: v.email, password: v.password, username: v.username, role: v.role }, token); notice('Account created.', false); } editor.innerHTML = ''; await load(); }); };
   };
-  const toggleAccount = (account) => { if (!account) return; const button = document.querySelector(`[data-toggle="${CSS.escape(account.admin_id)}"]`); busy(button, async () => { await api('updateAdminAccount', { admin_id: account.admin_id, email: account.email, username: account.username, role: account.role, active: !account.active }, token); await load(); notice(account.active ? 'Account deactivated.' : 'Account activated.', false); }); };
-  const removeAccount = (account) => { if (!account) return; if (!confirm(`Remove ${account.email}? This permanently removes the authentication account.`)) return; const button = document.querySelector(`[data-remove="${CSS.escape(account.admin_id)}"]`); busy(button, async () => { await api('removeAdminAccount', { admin_id: account.admin_id }, token); await load(); notice('Account removed.', false); }); };
+  const toggleAccount = (account) => { if (!account) return; const button = document.querySelector(`[data-toggle="${CSS.escape(account.admin_id)}"]`); busy(button, async () => { const reauth = await requestAccountReauth(account.active ? 'Confirm account deactivation' : 'Confirm account activation'); if (!reauth) return; await api('updateAdminAccount', { admin_id: account.admin_id, email: account.email, username: account.username, role: account.role, active: !account.active, reauth }, token); await load(); notice(account.active ? 'Account deactivated.' : 'Account activated.', false); }); };
+  const removeAccount = (account) => { if (!account) return; if (!confirm(`Remove ${account.email}? This permanently removes the authentication account.`)) return; const button = document.querySelector(`[data-remove="${CSS.escape(account.admin_id)}"]`); busy(button, async () => { const reauth = await requestAccountReauth('Confirm permanent account removal'); if (!reauth) return; await api('removeAdminAccount', { admin_id: account.admin_id, reauth }, token); await load(); notice('Account removed.', false); }); };
   document.querySelector('#add-account').onclick = () => openEditor();
   load().catch((e) => notice(e.message));
 }
