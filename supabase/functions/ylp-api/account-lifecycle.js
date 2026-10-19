@@ -35,6 +35,10 @@ export async function createAdminAccountLifecycle(deps, input) {
     notifyPartialFailure(deps, 'create_response_unparseable');
     throw new Error('auth user creation returned an unusable response');
   }
+  if (!created || typeof created !== 'object' || Array.isArray(created)) {
+    notifyPartialFailure(deps, 'create_response_unparseable');
+    throw new Error('auth user creation returned an unusable response');
+  }
   const nestedUser = created.user && typeof created.user === 'object' ? created.user : null;
   const adminId = typeof created.id === 'string' ? created.id : nestedUser && typeof nestedUser.id === 'string' ? nestedUser.id : null;
   if (!adminId) {
