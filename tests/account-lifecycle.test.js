@@ -10,9 +10,10 @@ const config = { supabaseUrl: 'https://example.supabase.co', supabaseServiceRole
 const okResponse = (body = {}) => ({ ok: true, status: 200, json: async () => body });
 const failedResponse = (status = 500) => ({ ok: false, status, json: async () => ({}) });
 
-function deps({ rpc = async () => ({ id: 'profile-1' }), request = async () => okResponse({ id: 'auth-1' }), onPartialFailure = (event) => events.push(event) } = {}) {
+function deps({ rpc = async () => ({ id: 'profile-1' }), request = async () => okResponse({ id: 'auth-1' }), onPartialFailure } = {}) {
   const events = [];
   const calls = [];
+  onPartialFailure = onPartialFailure ?? ((event) => events.push(event));
   return {
     events,
     calls,
