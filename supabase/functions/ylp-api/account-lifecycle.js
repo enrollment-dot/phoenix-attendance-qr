@@ -1,12 +1,4 @@
-type LifecycleConfig = { supabaseUrl: string; supabaseServiceRoleKey: string };
-type LifecycleDeps = {
-  config: LifecycleConfig;
-  rpc: (name: string, body: Record<string, unknown>) => Promise<unknown>;
-  request?: (input: string, init?: RequestInit) => Promise<Response>;
-  onPartialFailure?: (event: string) => void;
-};
-
-function notifyPartialFailure(deps: LifecycleDeps, event: string): void {
+function notifyPartialFailure(deps, event) {
   try {
     deps.onPartialFailure?.(event);
   } catch {
@@ -14,7 +6,7 @@ function notifyPartialFailure(deps: LifecycleDeps, event: string): void {
   }
 }
 
-function authHeaders(config: LifecycleConfig, includeContentType = false): Record<string, string> {
+function authHeaders(config, includeContentType = false) {
   return {
     apikey: config.supabaseServiceRoleKey,
     authorization: 'Bearer ' + config.supabaseServiceRoleKey,
@@ -22,15 +14,12 @@ function authHeaders(config: LifecycleConfig, includeContentType = false): Recor
   };
 }
 
-function authUserUrl(config: LifecycleConfig, adminId?: string): string {
+function authUserUrl(config, adminId) {
   const base = config.supabaseUrl + '/auth/v1/admin/users';
   return adminId ? base + '/' + encodeURIComponent(adminId) : base;
 }
 
-export async function createAdminAccountLifecycle(
-  deps: LifecycleDeps,
-  input: { email: string; password: string; username: string | null; role: string },
-): Promise<unknown> {
+export async function createAdminAccountLifecycle(deps, input) {
   const request = deps.request ?? ((url, init) => fetch(url, init));
   const response = await request(authUserUrl(deps.config), {
     method: 'POST',
@@ -39,7 +28,7 @@ export async function createAdminAccountLifecycle(
   });
   if (!response.ok) throw new Error('auth user creation failed');
 
-  let created: Record<string, unknown>;
+  let created;
   try {
     created = await response.json() as Record<string, unknown>;
   } catch {
@@ -74,12 +63,9 @@ export async function createAdminAccountLifecycle(
   }
 }
 
-export async function updateAdminAccountLifecycle(
-  deps: LifecycleDeps,
-  input: { adminId: string; email: string; username: string | null; role: string; active: boolean; password?: string },
-): Promise<unknown> {
+export async function updateAdminAccountLifecycle(deps, input) {
   const request = deps.request ?? ((url, init) => fetch(url, init));
-  const authUpdates: Record<string, unknown> = { email: input.email, email_confirm: true };
+  const authUpdates = { email: input.email, email_confirm: true };
   if (input.password) authUpdates.password = input.password;
   const response = await request(authUserUrl(deps.config, input.adminId), {
     method: 'PUT',
@@ -102,14 +88,11 @@ export async function updateAdminAccountLifecycle(
   }
 }
 
-export async function removeAdminAccountLifecycle(
-  deps: LifecycleDeps,
-  input: { adminId: string },
-): Promise<unknown> {
+export async function removeAdminAccountLifecycle(deps, input) {
   const request = deps.request ?? ((url, init) => fetch(url, init));
   // Keep profile-first ordering: the database safety guard must reject removal before Auth deletion.
   const removed = await deps.rpc('ylp_admin_account_remove_profile_v1', { p_admin_id: input.adminId });
-  let deleted: Response;
+  let deleted;
   try {
     deleted = await request(authUserUrl(deps.config, input.adminId), {
       method: 'DELETE',
