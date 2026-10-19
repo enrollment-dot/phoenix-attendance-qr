@@ -8,6 +8,10 @@ const backend = readFileSync(
   new URL('../supabase/functions/ylp-api/index.ts', import.meta.url),
   'utf8',
 );
+const accountLifecycle = readFileSync(
+  new URL('../supabase/functions/ylp-api/account-lifecycle.js', import.meta.url),
+  'utf8',
+);
 
 test('frontend allows super_admin to access the students view', () => {
   assert.match(
@@ -116,13 +120,11 @@ test('super_admin account editor allows changing email and sends it to the backe
 });
 
 test('backend account email updates stay server-side and preserve email confirmation', () => {
-  const start = backend.indexOf("async updateAdminAccount(");
-  const end = backend.indexOf("\n  async removeAdminAccount", start);
-  const method = backend.slice(start, end);
-  assert.match(method, /auth\/v1\/admin\/users/);
-  assert.match(method, /body: JSON\.stringify\(authUpdates\)/);
-  assert.match(method, /email_confirm: true/);
-  assert.match(method, /this\.config\.supabaseServiceRoleKey/);
+  assert.match(accountLifecycle, /auth\/v1\/admin\/users/);
+  assert.match(accountLifecycle, /body: JSON\.stringify\(authUpdates\)/);
+  assert.match(accountLifecycle, /email_confirm: true/);
+  assert.match(accountLifecycle, /config\.supabaseServiceRoleKey/);
+  assert.match(backend, /updateAdminAccountLifecycle/);
 
   const actionStart = backend.indexOf("case 'updateAdminAccount'");
   const actionEnd = backend.indexOf("\n      case ", actionStart + 1);
