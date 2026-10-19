@@ -34,6 +34,21 @@ test('create: Auth failure does not call profile RPC', async () => {
   assert.equal(d.events.length, 0);
 });
 
+test('create: successful Auth and profile creation returns success', async () => {
+  const d = deps({ request: async () => okResponse({ id: 'auth-1' }), rpc: async (name, body) => ({ name, body }) });
+  const result = await createAdminAccountLifecycle(d.deps, { email: 'x@example.com', password: 'very-long-test-password', username: 'tester', role: 'operator' });
+  assert.equal(result.ok, true);
+  assert.equal(d.calls[1].name, 'ylp_admin_account_create_profile_v1');
+  assert.equal(d.calls[1].body.p_admin_id, 'auth-1');
+});
+
+test('create: malformed Auth response reports reconciliation', async () => {
+  const d = deps({ request: async () => okResponse(null) });
+  await assert.rejects(createAdminAccountLifecycle(d.deps, { email: 'x@example.com', password: 'very-long-test-password', username: 'tester', role: 'operator' }));
+  assert.deepEqual(d.events, ['create_response_unparseable']);
+  assert.equal(d.calls.length, 1);
+});
+
 test('create: missing Auth user ID reports reconciliation and never creates a profile', async () => {
   const d = deps({ request: async () => okResponse({ user: {} }) });
   await assert.rejects(createAdminAccountLifecycle(d.deps, { email: 'x@example.com', password: 'very-long-test-password', username: 'tester', role: 'operator' }));
@@ -60,6 +75,15 @@ test('create: rollback network failure is reported safely', async () => {
   assert.deepEqual(d.events, ['create_rollback_failed']);
 });
 
+test('update: successful Auth and profile update returns success', async () => {
+  const d = deps({ request: async () => okResponse({}), rpc: async (name, body) => ({ name, body }) });
+  const result = await updateAdminAccountLifecycle(d.deps, { adminId: 'auth-1', email: 'x@example.com', username: 'tester', role: 'operator', active: true });
+  assert.equal(result.ok, true);
+  assert.equal(d.calls[0].init.method, 'PUT');
+  assert.equal(d.calls[1].name, 'ylp_admin_account_update_v1');
+  assert.equal(d.events.length, 0);
+});
+
 test('update: Auth failure does not call profile RPC', async () => {
   const d = deps({ request: async () => failedResponse(401) });
   await assert.rejects(updateAdminAccountLifecycle(d.deps, { adminId: 'auth-1', email: 'x@example.com', username: 'tester', role: 'operator', active: true }));
@@ -74,6 +98,14 @@ test('update: profile failure after Auth success emits reconciliation event', as
   assert.equal(d.calls[0].init.method, 'PUT');
   assert.equal(d.calls[1].type, 'rpc');
   assert.equal(JSON.stringify(d.events).includes('never-log-this-password'), false);
+});
+
+test('remove: successful profile and Auth removal returns success', async () => {
+  const d = deps({ request: async () => okResponse({}), rpc: async () => ({ removed: true }) });
+  const result = await removeAdminAccountLifecycle(d.deps, { adminId: 'auth-1' });
+  assert.equal(result.ok, true);
+  assert.deepEqual(d.calls.map((call) => call.type === 'auth' ? call.init.method : call.name), ['ylp_admin_account_remove_profile_v1', 'DELETE']);
+  assert.equal(d.events.length, 0);
 });
 
 test('remove: profile safety guard failure prevents Auth DELETE', async () => {
