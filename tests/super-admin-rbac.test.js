@@ -59,11 +59,19 @@ test('backend restricts account management to super_admin', () => {
     assert.notEqual(start, -1, `missing action: ${action}`);
     const end = backend.indexOf('\n      case ', start + 1);
     const block = backend.slice(start, end === -1 ? backend.length : end);
-    assert.match(
-      block,
-      /requireAdminRole\(token, config, backend, \['super_admin'\]\)/,
-      `missing super_admin authorization for ${action}`,
-    );
+    if (action === 'updateAdminAccount' || action === 'removeAdminAccount') {
+      assert.match(
+        block,
+        /requireFreshSuperAdmin\(token, config, backend, payload\)/,
+        `missing fresh Super Admin authentication for ${action}`,
+      );
+    } else {
+      assert.match(
+        block,
+        /requireAdminRole\(token, config, backend, \['super_admin'\]\)/,
+        `missing super_admin authorization for ${action}`,
+      );
+    }
   }
 });
 
@@ -127,7 +135,7 @@ test('backend account email updates stay server-side and preserve email confirma
   const actionStart = backend.indexOf("case 'updateAdminAccount'");
   const actionEnd = backend.indexOf("\n      case ", actionStart + 1);
   const action = backend.slice(actionStart, actionEnd === -1 ? backend.length : actionEnd);
-  assert.match(action, /requireAdminRole\(token, config, backend, \['super_admin'\]\)/);
+  assert.match(action, /requireFreshSuperAdmin\(token, config, backend, payload\)/);
   assert.match(action, /payload\.email/);
   assert.match(action, /Invalid account email/);
 });
