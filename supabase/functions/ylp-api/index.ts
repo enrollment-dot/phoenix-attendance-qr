@@ -691,6 +691,39 @@ async function requireAdminRole(
   return claims;
 }
 
+/** Require fresh credentials for sensitive account lifecycle actions. */
+async function requireFreshSuperAdmin(
+  token: string,
+  config: EdgeConfig,
+  backend: BackendAdapter,
+  payload: Record<string, unknown>,
+): Promise<JwtClaims> {
+  const currentClaims = await requireAdminRole(token, config, backend, ['super_admin']);
+  const reauth = payload.reauth;
+  if (
+    !reauth || typeof reauth !== 'object' || Array.isArray(reauth) ||
+    typeof (reauth as Record<string, unknown>).username !== 'string' ||
+    !(reauth as Record<string, unknown>).username ||
+    typeof (reauth as Record<string, unknown>).password !== 'string' ||
+    !(reauth as Record<string, unknown>).password
+  ) throw new AuthenticationError();
+
+  const credentials = reauth as { username: string; password: string };
+  await enforceRateLimit(backend, config, 'login-global', 'global');
+  const fresh = await backend.login({ username: credentials.username.trim(), password: credentials.password }, token);
+  const freshToken =
+    fresh && typeof fresh === 'object' && 'data' in fresh &&
+    fresh.data && typeof fresh.data === 'object' &&
+    'token' in fresh.data && typeof fresh.data.token === 'string'
+      ? fresh.data.token
+      : '';
+  if (!freshToken) throw new AuthenticationError();
+
+  const freshClaims = await requireAdminRole(freshToken, config, backend, ['super_admin']);
+  if (freshClaims.sub !== currentClaims.sub) throw new AuthenticationError();
+  return freshClaims;
+}
+
 export function json<T>(body: ApiResponse<T>, origin: string): Response {
   return new Response(JSON.stringify(body), { status: 200, headers: {
     'content-type': 'application/json; charset=utf-8',
@@ -1139,8 +1172,8 @@ export async function handleRequest(request: Request, backend: BackendAdapter, c
         if (!/^[A-Za-z0-9._-]{3,40}$/.test(payload.username.trim())) throw new ValidationError('Username is invalid.');
         result = await backend.createAdminAccount(payload.email.trim(), payload.password, payload.username.trim(), payload.role);
         break;
-      case 'updateAdminAccount':
-        await requireAdminRole(token, config, backend, ['super_admin']);
+      case 'updateAdminAccount': {
+        await requireFreshSuperAdmin(token, config, backend, payload);
         if (typeof payload.admin_id !== 'string' || typeof payload.email !== 'string' || typeof payload.username !== 'string' || typeof payload.role !== 'string' || typeof payload.active !== 'boolean' || !['super_admin', 'admin', 'operator'].includes(payload.role)) throw new ValidationError('Account ID, email, username, role, and active status are required.');
         const accountEmail = payload.email.trim();
         if (!accountEmail || accountEmail.length > 254 || !EMAIL.test(accountEmail)) throw new ValidationError('Invalid account email.');
@@ -1148,11 +1181,13 @@ export async function handleRequest(request: Request, backend: BackendAdapter, c
         if (payload.password !== undefined && (typeof payload.password !== 'string' || payload.password.length < 16)) throw new ValidationError('Password must be at least 16 characters.');
         result = await backend.updateAdminAccount(payload.admin_id, accountEmail, payload.username.trim(), payload.role, payload.active, typeof payload.password === 'string' && payload.password ? payload.password : undefined);
         break;
-      case 'removeAdminAccount':
-        await requireAdminRole(token, config, backend, ['super_admin']);
+      }
+      case 'removeAdminAccount': {
+        await requireFreshSuperAdmin(token, config, backend, payload);
         if (typeof payload.admin_id !== 'string' || !payload.admin_id) throw new ValidationError('Account ID is required.');
         result = await backend.removeAdminAccount(payload.admin_id);
         break;
+      }
       case 'closeSession':
         await requireAdmin(token, config, backend);
         if (typeof payload.session_id !== 'string' || !payload.session_id) throw new ValidationError('Session not found.');
