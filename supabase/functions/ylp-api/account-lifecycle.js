@@ -30,12 +30,12 @@ export async function createAdminAccountLifecycle(deps, input) {
 
   let created;
   try {
-    created = await response.json() as Record<string, unknown>;
+    created = await response.json();
   } catch {
     notifyPartialFailure(deps, 'create_response_unparseable');
     throw new Error('auth user creation returned an unusable response');
   }
-  const nestedUser = created.user && typeof created.user === 'object' ? created.user as Record<string, unknown> : null;
+  const nestedUser = created.user && typeof created.user === 'object' ? created.user : null;
   const adminId = typeof created.id === 'string' ? created.id : nestedUser && typeof nestedUser.id === 'string' ? nestedUser.id : null;
   if (!adminId) {
     notifyPartialFailure(deps, 'create_missing_user_id');
