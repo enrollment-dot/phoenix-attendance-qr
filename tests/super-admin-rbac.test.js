@@ -260,3 +260,24 @@ test('scheduler auto-close is secret-gated and does not accept caller-selected s
   assert.match(migration, /revoke all on function public\.ylp_auto_close_sessions_v1\(\) from anon/i);
   assert.match(migration, /revoke all on function public\.ylp_auto_close_sessions_v1\(\) from authenticated/i);
 });
+
+test('account update and removal require server-side fresh Super Admin re-authentication before mutation', () => {
+  assert.match(backend, /async function requireFreshSuperAdmin\([\s\S]*?enforceRateLimit\(backend, config, 'login-global', 'global'\)/);
+  assert.match(backend, /const freshClaims = await requireAdminRole\(freshToken, config, backend, \['super_admin'\]\)/);
+  assert.match(backend, /freshClaims\.sub !== currentClaims\.sub/);
+  for (const action of ['updateAdminAccount', 'removeAdminAccount']) {
+    const start = backend.indexOf(`case '${action}'`);
+    const end = backend.indexOf('\n      case ', start + 1);
+    const block = backend.slice(start, end === -1 ? backend.length : end);
+    assert.match(block, /requireFreshSuperAdmin\(token, config, backend, payload\)/);
+  }
+});
+
+test('account UI collects masked current credentials and sends reauth separately from target password', () => {
+  assert.match(frontend, /function requestAccountReauth\(title\)/);
+  assert.match(frontend, /type="password" autocomplete="current-password"/);
+  assert.match(frontend, /reauth = await requestAccountReauth/);
+  assert.match(frontend, /active: account\.active, reauth/);
+  assert.match(frontend, /admin_id: account\.admin_id, reauth/);
+  assert.match(frontend, /payload\.password = v\.password/);
+});
