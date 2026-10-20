@@ -11,7 +11,11 @@ $$;
 drop table if exists public.scan_receipts;
 drop table if exists public.attendance;
 drop table if exists public.students;
+drop table if exists public.sessions;
 
+create table public.sessions (
+  session_id text primary key
+);
 create table public.students (
   student_id text primary key,
   name text not null,
@@ -23,7 +27,7 @@ create table public.students (
 );
 create table public.attendance (
   attendance_id text primary key,
-  session_id text not null,
+  session_id text not null references public.sessions(session_id) on delete no action,
   student_id text not null,
   student_name text not null,
   scan_in timestamptz,
@@ -36,8 +40,8 @@ create table public.attendance (
 );
 create table public.scan_receipts (
   request_id uuid primary key,
-  attendance_id text not null,
-  session_id text not null,
+  attendance_id text not null references public.attendance(attendance_id) on delete no action,
+  session_id text not null references public.sessions(session_id) on delete no action,
   student_id text not null,
   direction text not null,
   fingerprint text not null,
@@ -45,6 +49,7 @@ create table public.scan_receipts (
   created_at timestamptz not null default now()
 );
 
+insert into public.sessions (session_id) values ('SESSION-TEST');
 insert into public.students (student_id, name) values ('STU-DELETE-TEST', 'Disposable Test Student');
 insert into public.attendance (attendance_id, session_id, student_id, student_name, status)
 values ('ATT-DELETE-TEST', 'SESSION-TEST', 'STU-DELETE-TEST', 'Disposable Test Student', 'present');
