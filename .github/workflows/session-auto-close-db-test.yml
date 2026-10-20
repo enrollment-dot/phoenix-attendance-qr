@@ -1,16 +1,18 @@
-name: Session Auto-Close PostgreSQL Regression
+name: PostgreSQL RPC Regression
 
 on:
   pull_request:
     paths:
       - "supabase/migrations/**"
       - "tests/sql/session-auto-close-*.sql"
+      - "tests/sql/student-force-delete-*.sql"
       - ".github/workflows/session-auto-close-db-test.yml"
   push:
     branches: [main]
     paths:
       - "supabase/migrations/**"
       - "tests/sql/session-auto-close-*.sql"
+      - "tests/sql/student-force-delete-*.sql"
       - ".github/workflows/session-auto-close-db-test.yml"
 
 jobs:
@@ -41,9 +43,15 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install --yes postgresql-client
-      - name: Prepare disposable test schema
+      - name: Prepare disposable session auto-close test schema
         run: psql -v ON_ERROR_STOP=1 -f tests/sql/session-auto-close-setup.sql
       - name: Apply actual auto-close migration
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261012120000_secure_session_auto_close_scheduler.sql
-      - name: Verify close behavior and execution privileges
+      - name: Verify session auto-close behavior and privileges
         run: psql -v ON_ERROR_STOP=1 -f tests/sql/session-auto-close-assertions.sql
+      - name: Prepare disposable Student Delete test schema
+        run: psql -v ON_ERROR_STOP=1 -f tests/sql/student-force-delete-setup.sql
+      - name: Apply actual Student Delete migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261020150000_add_force_delete_student_rpc.sql
+      - name: Verify Student Delete behavior and privileges
+        run: psql -v ON_ERROR_STOP=1 -f tests/sql/student-force-delete-assertions.sql
