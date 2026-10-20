@@ -23,9 +23,12 @@ test('Student Delete RPC removes related records before deleting the student', (
   assert.match(migration, /student_not_found/);
 });
 
-test('Student Delete RPC is executable only by service_role among application roles', () => {
+test('Student Delete RPC has restricted ACLs and preserves its JSON response contract', () => {
   assert.match(migration, /revoke all on function public\.ylp_force_delete_student_v1\(text\) from public/i);
   assert.match(migration, /revoke all on function public\.ylp_force_delete_student_v1\(text\) from anon/i);
   assert.match(migration, /revoke all on function public\.ylp_force_delete_student_v1\(text\) from authenticated/i);
   assert.match(migration, /grant execute on function public\.ylp_force_delete_student_v1\(text\) to service_role/i);
+  assert.match(migration, /returns jsonb/i);
+  assert.match(migration, /'ok', false[\s\S]*?'code', 'student_not_found'/i);
+  assert.match(migration, /'ok', true[\s\S]*?'student_id', v_id[\s\S]*?'deleted', true/i);
 });
