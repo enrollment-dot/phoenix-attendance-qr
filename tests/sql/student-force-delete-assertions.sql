@@ -3,7 +3,7 @@ do $$
 declare
   result jsonb;
 begin
-  if not has_function_privilege('anon', 'public.ylp_force_delete_student_v1(text)', 'EXECUTE') = false then
+  if has_function_privilege('anon', 'public.ylp_force_delete_student_v1(text)', 'EXECUTE') then
     raise exception 'anon must not execute Student Delete RPC';
   end if;
   if has_function_privilege('authenticated', 'public.ylp_force_delete_student_v1(text)', 'EXECUTE') then
