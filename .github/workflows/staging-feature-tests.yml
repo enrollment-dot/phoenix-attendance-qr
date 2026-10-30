@@ -8,14 +8,24 @@ on:
     branches:
       - feat/admin-account-management-ui
 
+permissions:
+  contents: read
+
+concurrency:
+  group: staging-feature-tests-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     env:
       VITE_API_URL: https://yvtgwzvjpztvztozcfir.supabase.co/functions/v1/ylp-api
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
