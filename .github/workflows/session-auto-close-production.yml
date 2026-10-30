@@ -19,7 +19,7 @@ jobs:
     environment: production
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
       - name: Test scheduler response envelope validation
         run: bash tests/scripts/test-scheduler-response-envelope.sh
       - name: Validate production scheduler configuration
