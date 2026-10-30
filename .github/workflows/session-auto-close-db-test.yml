@@ -1,11 +1,8 @@
 name: Session Auto-Close PostgreSQL Regression
 
 on:
+  # Run on every PR so the required postgres-regression check is always reported.
   pull_request:
-    paths:
-      - "supabase/migrations/**"
-      - "tests/sql/session-auto-close-*.sql"
-      - ".github/workflows/session-auto-close-db-test.yml"
   push:
     branches: [main]
     paths:
@@ -13,9 +10,17 @@ on:
       - "tests/sql/session-auto-close-*.sql"
       - ".github/workflows/session-auto-close-db-test.yml"
 
+permissions:
+  contents: read
+
+concurrency:
+  group: postgres-regression-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   postgres-regression:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     services:
       postgres:
         image: postgres:17
@@ -37,6 +42,8 @@ jobs:
       PGDATABASE: postgres
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - name: Install PostgreSQL client
         run: |
           sudo apt-get update
