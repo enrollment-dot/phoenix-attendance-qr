@@ -52,5 +52,9 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f tests/sql/session-auto-close-setup.sql
       - name: Apply actual auto-close migration
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261012120000_secure_session_auto_close_scheduler.sql
-      - name: Verify close behavior and execution privileges
+      - name: Apply manual close timestamp migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261016160000_fix_manual_session_close_updated_at.sql
+      - name: Verify auto-close behavior and execution privileges
         run: psql -v ON_ERROR_STOP=1 -f tests/sql/session-auto-close-assertions.sql
+      - name: Verify manual close timestamp and execution privileges
+        run: psql -v ON_ERROR_STOP=1 -f tests/sql/session-auto-close-timestamp-assertions.sql
