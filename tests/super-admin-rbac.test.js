@@ -77,8 +77,10 @@ test('backend accepts super_admin even when legacy role allowlist omits it', () 
 
 test('backend account updates allow the super_admin role', () => {
   const start = backend.indexOf("case 'updateAdminAccount'");
-  const end = backend.indexOf('\\n      case ', start + 1);
-  const block = backend.slice(start, end === -1 ? backend.length : end);
+  assert.notEqual(start, -1, 'missing updateAdminAccount action');
+  const end = backend.indexOf('\n      case ', start + 1);
+  assert.notEqual(end, -1, 'could not find the end of updateAdminAccount action');
+  const block = backend.slice(start, end);
   assert.match(block, /\['super_admin', 'admin', 'operator'\]\.includes\(payload\.role\)/);
 });
 
@@ -204,8 +206,10 @@ test('scan QR branding uses configurable background, logo, and muted footer colo
 
 test('backend normalizes a blank optional favicon URL to null before the branding RPC', () => {
   const start = backend.indexOf("case 'updateBranding'");
-  const end = backend.indexOf("\\n      case ", start + 1);
-  const block = backend.slice(start, end === -1 ? backend.length : end);
+  assert.notEqual(start, -1, 'missing updateBranding action');
+  const end = backend.indexOf('\n      case ', start + 1);
+  assert.notEqual(end, -1, 'could not find the end of updateBranding action');
+  const block = backend.slice(start, end);
   assert.ok(block.includes("favicon_url: typeof input.favicon_url === 'string'"));
   assert.ok(block.includes("!input.favicon_url.trim() ? null"));
   assert.ok(block.includes("input.favicon_url ?? null"));
